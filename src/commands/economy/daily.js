@@ -1,11 +1,12 @@
-const { Client, Interaction } = require("discord.js");
+const { Client, Interaction , SlashCommandBuilder } = require("discord.js");
 const User = require("../../models/User");
 
 const dailyAmount = 100;
 
 module.exports = {
-  name: "daily",
-  description: "Claim Your Daily Reward!",
+  data: new SlashCommandBuilder()
+  .setName('daily')
+  .setDescription('Claim Your Daily'),
   // devOnly: Boolean,
   //testOnly: true,
   // options: Object[],
@@ -16,7 +17,7 @@ module.exports = {
    * @param {Interaction} interaction
    */
 
-  callback: async (client, interaction) => {
+  run: async ({client, interaction}) => {
     if (!interaction.inGuild()) {
       interaction.reply({
         content: "You can only run this command in a server.",

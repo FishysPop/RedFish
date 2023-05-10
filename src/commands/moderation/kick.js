@@ -1,22 +1,21 @@
 const {
   Client,
   Interaction,
-  ApplicationCommandOptionType,
+  SlashCommandBuilder,
   PermissionFlagsBits,
 } = require('discord.js');
 
 module.exports = {
+    //deleted: true,
+
   /**
    *
    * @param {Client} client
    * @param {Interaction} interaction
    */
 
-  callback: async (client, interaction) => {
-    const targetUserId = interaction.options.get('target-user').value;
-    const reason =
-      interaction.options.get('reason')?.value || 'No reason provided';
-
+  run: async ({client, interaction}) => {
+    const targetUserId = interaction.options.get('user').value;
     await interaction.deferReply();
 
     const targetUser = await interaction.guild.members.fetch(targetUserId);
@@ -53,34 +52,21 @@ module.exports = {
 
     // Ban the targetUser
     try {
-      await targetUser.kick(reason);
+      await targetUser.kick();
       await interaction.editReply(
-        `User ${targetUser} was kicked\nReason: ${reason}`
+        `User ${targetUser} was kicked`
       );
     } catch (error) {
       console.log(`There was an error when kicking: ${error}`);
     }
   },
-
-  name: 'kick',
-  description: 'Kicks a member from this server.',
-  // devOnly: Boolean,
-  //testOnly: true,
-  // options: Object[],
-  // deleted: Boolean,
-  options: [
-    {
-      name: 'target-user',
-      description: 'The user you want to kick.',
-      type: ApplicationCommandOptionType.Mentionable,
-      required: true,
-    },
-    {
-      name: 'reason',
-      description: 'The reason you want to kick.',
-      type: ApplicationCommandOptionType.String,
-    },
-  ],
+  data: new SlashCommandBuilder()
+  .setName('kick')
+  .setDescription("kick a user.")
+  .addMentionableOption(option =>
+    option.setName('user')
+    .setDescription('The users who u want to kick')
+    .setRequired(true)),
   permissionsRequired: [PermissionFlagsBits.KickMembers],
   botPermissions: [PermissionFlagsBits.KickMembers],
 };

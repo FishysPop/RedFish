@@ -1,8 +1,8 @@
 const {
   Client,
   Interaction,
-  ApplicationCommandOptionType,
   AttachmentBuilder,
+  SlashCommandBuilder,
 } = require('discord.js');
 const canvacord = require('canvacord');
 const calculateLevelXp = require('../../utils/calculateLevelXp');
@@ -14,7 +14,7 @@ module.exports = {
    * @param {Client} client
    * @param {Interaction} interaction
    */
-  callback: async (client, interaction) => {
+  run: async ({client, interaction}) => {
     if (!interaction.inGuild()) {
       interaction.reply('You can only run this command inside a server.');
       return;
@@ -22,7 +22,7 @@ module.exports = {
 
     await interaction.deferReply();
 
-    const mentionedUserId = interaction.options.get('target-user')?.value;
+    const mentionedUserId = interaction.options.get('user')?.value;
     const targetUserId = mentionedUserId || interaction.member.id;
     const targetUserObj = await interaction.guild.members.fetch(targetUserId);
 
@@ -69,17 +69,10 @@ module.exports = {
     interaction.editReply({ files: [attachment] });
   },
 
-  name: 'level',
-  description: "Shows your/someone's level.",
-  // devOnly: Boolean,
-  // testOnly: true,
-  // options: Object[],
-  // deleted: Boolean,
-  options: [
-    {
-      name: 'target-user',
-      description: 'The user whose level you want to see.',
-      type: ApplicationCommandOptionType.Mentionable,
-    },
-  ],
+  data: new SlashCommandBuilder()
+  .setName('level')
+  .setDescription("Check yours or someone elses level.")
+  .addUserOption((option) => option
+  .setName('user')
+  .setDescription('The users who u want to ban')),
 };

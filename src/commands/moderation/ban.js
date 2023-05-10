@@ -1,26 +1,25 @@
 const {
   Client,
   Interaction,
-  ApplicationCommandOptionType,
   PermissionFlagsBits,
+  SlashCommandBuilder,
 } = require('discord.js');
 
 
 module.exports = {
+    //deleted: true,
   /**
    *
    * @param {Client} client
-   * @param {Interaction} interaction
+   * @param {SlashCommandBuilder} interaction
    */
 
-  callback: async (client, interaction) => {
-    const targetUserId = interaction.options.get('target-user').value;
-    const reason =
-      interaction.options.get('reason')?.value || 'No reason provided';
-
+  run: async ({interaction, handler}) => {
+    const targetUserId = interaction.options.get('user')
     await interaction.deferReply();
 
     const targetUser = await interaction.guild.members.fetch(targetUserId);
+    console.log(targetUser.roles.highest.position)
 
     if (!targetUser) {
       await interaction.editReply("That user doesn't exist in this server.");
@@ -54,34 +53,22 @@ module.exports = {
 
     // Ban the targetUser
     try {
-      await targetUser.ban({ reason });
+      await targetUser.ban();
       await interaction.editReply(
-        `User ${targetUser} was banned\nReason: ${reason}`
+        `User ${targetUser} was banned`
       );
     } catch (error) {
       console.log(`There was an error when banning: ${error}`);
     }
   },
 
-  name: 'ban',
-  description: 'Bans a member from this server.',
-  // devOnly: Boolean,
-  //testOnly: true,
-  // options: Object[],
-  // deleted: Boolean,
-  options: [
-    {
-      name: 'target-user',
-      description: 'The user you want to ban.',
-      type: ApplicationCommandOptionType.Mentionable,
-      required: true,
-    },
-    {
-      name: 'reason',
-      description: 'The reason you want to ban.',
-      type: ApplicationCommandOptionType.String,
-    },
-  ],
+  data: new SlashCommandBuilder()
+  .setName('ban')
+  .setDescription("Bans a user.")
+  .addUserOption((option) => option
+  .setName('user')
+  .setDescription('The users who u want to ban')
+  .setRequired(true)),
   permissionsRequired: [PermissionFlagsBits.BanMembers],
   botPermissions: [PermissionFlagsBits.BanMembers],
 };

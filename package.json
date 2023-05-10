@@ -1,7 +1,7 @@
 {
   "name": "discord-bot",
   "version": "1.0.0",
-  "description": "",
+  "description": "��r\u0000e\u0000a\u0000d\u0000 \u0000t\u0000h\u0000i\u0000s\u0000 \u0000i\u0000f\u0000 \u0000y\u0000o\u0000u\u0000r\u0000 \u0000g\u0000a\u0000y\u0000",
   "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -12,6 +12,7 @@
   "dependencies": {
     "canvacord": "^5.4.8",
     "discord.js": "^14.9.0",
+    "djs-commander": "^0.0.45",
     "dotenv": "^16.0.3",
     "mongoose": "^7.1.0",
     "ms": "^2.1.3",

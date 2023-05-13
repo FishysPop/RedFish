@@ -24,7 +24,6 @@ module.exports =  {
                 metadata: {
                     channel: interaction.channel,
                     client: interaction.guild?.members.me,
-                    test: "test",
                     requestedBy: interaction.user.username,
                     discriminator: interaction.user.discriminator
                 },

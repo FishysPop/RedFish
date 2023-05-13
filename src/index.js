@@ -5,7 +5,6 @@ const { SpotifyExtractor, SoundCloudExtractor } = require('@discord-player/extra
 const { CommandHandler } = require('djs-commander');
 const { Player } = require('discord-player');
 const path = require('path');
-
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -17,12 +16,18 @@ const client = new Client({
   ],
 });
 
-player = new Player(client);
-
-player.events.on('playerStart', (queue, track) => {
-  // we will later define queue.metadata object while creating the queue
-  queue.metadata.channel.send(`Started playing **${track.title}**!`);
+player = new Player(client, {
+  ytdlOptions: {
+    quality: "highestaudio",
+    smoothVolume: true,
+    highWaterMark: 1 << 25,
+  },
 });
+
+require('./events/playerEvents/playerEvents')
+
+
+
 new CommandHandler({
   client,
   commandsPath: path.join(__dirname, 'commands'),
@@ -35,8 +40,9 @@ new CommandHandler({
     await mongoose.connect(process.env.MONGODB_URI, { keepAlive: true });
     console.log("Connected to DB.");
     await player.extractors.loadDefault();
-    client.login(process.env.TOKEN);
+    client.login(process.env.TOKEN); 
   } catch (error) {
     console.log(`Error: ${error}`);
   }
 })();
+module.exports = { client };

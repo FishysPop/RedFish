@@ -1,5 +1,5 @@
 const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { Player } = require('discord-player');
+const { Player, QueryType } = require('discord-player');
 module.exports =  {
     data: new SlashCommandBuilder()
     .setName("play")
@@ -15,31 +15,25 @@ module.exports =  {
     if (!channel) return interaction.reply('You are not connected to a voice channel!'); // make sure we have a voice channel
 
     const name = interaction.options.getString('name'); 
-    const queue = player.nodes.create(interaction.guild, {
-           metadata: {
-            channel: interaction.channel,
-            client: interaction.guild.members.me,
-            requestedBy: interaction.user,
-           },
-           selfDeaf: true,
-           volume: 80,
-           leaveOnEmpty: true,
-           leaveOnEmptyCooldown: 300000,
-          leaveOnEnd: true,
-           leaveOnEndCooldown: 300000,
-         });
-    if (!queue.connection) await queue.connect(interaction.member.voice.channel)
 
     await interaction.deferReply();
- 
 
     try {
         const { track } = await player.play(channel, name, {
             nodeOptions: {
-                // nodeOptions are the options for guild node (aka your queue in simple word)
-                metadata: interaction // we can access this metadata object using queue.metadata later on
-            }
-        });
+                metadata: {
+                    channel: interaction.channel,
+                    client: interaction.guild?.members.me,
+                    test: "test",
+                    requestedBy: interaction.user.username,
+                    discriminator: interaction.user.discriminator
+                },
+                volume: 20,
+                bufferingTimeout: 3000,
+            leaveOnEnd: "false" ? false : true
+              },
+            
+        })
  
         return interaction.followUp(`**${track.title}** enqueued!`);
     } catch (e) {

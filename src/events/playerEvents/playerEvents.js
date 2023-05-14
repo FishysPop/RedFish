@@ -7,7 +7,7 @@ player.events.on('playerStart', (queue, track) => {
 	.setURL(track.url)
 	.setAuthor({ name: 'Now Playing'})
 	.setThumbnail(track.thumbnail)
-    .setDescription(`Duration: ${track.duration}`)
+    .setDescription(`Duration: **${track.duration}**`)
     .setTimestamp()
     .setFooter({ text: `Requested by ${queue.metadata.requestedBy}#${queue.metadata.discriminator}`});
     // we will later define queue.metadata object while creating the queue

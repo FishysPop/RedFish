@@ -11,12 +11,11 @@ module.exports =  {
 
 
   run: async({ interaction, client, handler }) => {
+    await interaction.deferReply();
     const channel = interaction.member.voice.channel;
-    if (!channel) return interaction.reply('You are not connected to a voice channel!'); // make sure we have a voice channel
+    if (!channel) return interaction.editReply('You are not connected to a voice channel!'); // make sure we have a voice channel
 
     const name = interaction.options.getString('name'); 
-
-    await interaction.deferReply();
 
     try {
         const { track } = await player.play(channel, name, {
@@ -27,17 +26,17 @@ module.exports =  {
                     requestedBy: interaction.user.username,
                     discriminator: interaction.user.discriminator
                 },
-                volume: 20,
-                bufferingTimeout: 3000,
+                volume: 30,
+                bufferingTimeout: 5000,
             leaveOnEnd: "false" ? false : true
               },
             
         })
  
-        return interaction.followUp(`**${track.title}** enqueued!`);
+        return interaction.editReply(`**${track.title}** enqueued!`);
     } catch (e) {
         // let's return error if something failed
-        return interaction.followUp(`Something went wrong: ${e}`);
+        return interaction.editReply(`Something went wrong: ${e}`);
     }
   },
 

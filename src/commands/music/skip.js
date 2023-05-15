@@ -8,11 +8,11 @@ module.exports =  {
 
   run: async({ interaction, client, handler }) => {
    const queue = useQueue(interaction.guildId)
-   try {
+   if (!queue || !queue.isPlaying()) {
+    interaction.reply("There is no music playing")
+   } else {
     queue.node.skip()
     interaction.reply("Track Skipped")
-   } catch {
-    interaction.reply("There is no music playing")
    }
   },
 

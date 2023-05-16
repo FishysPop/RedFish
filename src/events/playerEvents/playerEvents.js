@@ -1,7 +1,10 @@
 const { EmbedBuilder, Client, ActionRowBuilder, ButtonBuilder, ButtonStyle} = require('discord.js')
 
 player.events.on('playerStart', async (queue, track) => {
-    const playerStartEmbed = new EmbedBuilder() //embed
+    let requestedByString = track.requestedBy?.username ? `${track.requestedBy.username}#${track.requestedBy.discriminator}`
+    : "AutoPlay" || `AutoPlay`
+
+    const playerStartEmbed = await new EmbedBuilder() //embed
 	.setColor('#e66229')
 	.setTitle(track.title)
 	.setURL(track.url)
@@ -9,7 +12,7 @@ player.events.on('playerStart', async (queue, track) => {
 	.setThumbnail(track.thumbnail)
     .setDescription(`Duration: **${track.duration}**`)
     .setTimestamp()
-    .setFooter({ text: `Requested by ${track.requestedBy.username}#${track.requestedBy.discriminator}`});
+    .setFooter({ text: `Requested by ${requestedByString}`});
     const playPauseButton = new ButtonBuilder().setCustomId('Pause').setEmoji('<:w_playpause:1106270708243386428').setStyle(ButtonStyle.Primary);
     const skipButton = new ButtonBuilder().setCustomId('Skip').setEmoji('<:w_next:1106270714664849448').setStyle(ButtonStyle.Success);
     const stopButton = new ButtonBuilder().setCustomId('Stop').setEmoji('<:w_stop:1106272001909346386>').setStyle(ButtonStyle.Danger);

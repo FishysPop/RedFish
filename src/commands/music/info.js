@@ -20,7 +20,6 @@ module.exports =  {
         content: `There is no track currently playing`,
         ephemeral: true,
       });
-      console.log(queue)
       let autoPlayEmoji = '❌'
       let repeatModeEmoji = '❌'
     const track = queue.currentTrack;
@@ -30,9 +29,8 @@ module.exports =  {
     if (queue.repeatMode === 3) {
         autoPlayEmoji = '✅'
    } 
-    const requestedByString = track.requestedBy.username
-      ? `${track.requestedBy.username}#${track.requestedBy.discriminator}`
-      : "Someone";
+   let requestedByString = track.requestedBy?.username ? `${track.requestedBy.username}#${track.requestedBy.discriminator}`
+   : "AutoPlay" || `AutoPlay`
     const embed = await new EmbedBuilder()
 	  .setAuthor({ name: 'Now Playing'})
       .setColor('#e66229')

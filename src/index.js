@@ -17,10 +17,12 @@ const client = new Client({
 });
 
 player = new Player(client, {
+  deafenOnJoin: true,
+  lagMonitor: 1000,
   ytdlOptions: {
+    filter: "audioonly",
     quality: "highestaudio",
-    smoothVolume: true,
-    highWaterMark: 1 << 25,
+    highWaterMark: 1 << 25
   },
 });
 

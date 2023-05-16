@@ -9,8 +9,7 @@ player.events.on('playerStart', async (queue, track) => {
 	.setThumbnail(track.thumbnail)
     .setDescription(`Duration: **${track.duration}**`)
     .setTimestamp()
-    .setFooter({ text: `Requested by ${queue.metadata.requestedBy}#${queue.metadata.discriminator}`});
-
+    .setFooter({ text: `Requested by ${track.requestedBy.username}#${track.requestedBy.discriminator}`});
     const playPauseButton = new ButtonBuilder().setCustomId('Pause').setEmoji('<:w_playpause:1106270708243386428').setStyle(ButtonStyle.Primary);
     const skipButton = new ButtonBuilder().setCustomId('Skip').setEmoji('<:w_next:1106270714664849448').setStyle(ButtonStyle.Success);
     const stopButton = new ButtonBuilder().setCustomId('Stop').setEmoji('<:w_stop:1106272001909346386>').setStyle(ButtonStyle.Danger);

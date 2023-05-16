@@ -1,36 +1,52 @@
-const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder } = require("discord.js");
-const { Player } = require('discord-player');
+const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { Player, QueryType } = require('discord-player');
 module.exports =  {
     data: new SlashCommandBuilder()
     .setName("80bunti")
-    .setDescription("Plays 80 Bunti by beastyqt"),
+    .setDescription("Plays 80bunti by beastyqt"),
+
 
 
   run: async({ interaction, client, handler }) => {
-    const channel = interaction.member.voice.channel;
-    if (!channel) return interaction.reply('You are not connected to a voice channel!'); // make sure we have a voice channel
-    const query = 'https://music.youtube.com/watch?v=4T53XltHrcU&feature=share'
- 
-    // let's defer the interaction as things can take time to process
     await interaction.deferReply();
- 
+    const channel = interaction.member.voice.channel;
+    if (!channel) return interaction.editReply('You are not connected to a voice channel!'); // make sure we have a voice channel
+
+    const name = "https://music.youtube.com/watch?v=4T53XltHrcU&feature=share";
+    const searchResult = await player.search(name, {
+        requestedBy: interaction.user,
+        requestedByUsername: interaction.user.username
+      });
+      if (!searchResult.hasTracks()) {
+        return interaction.followUp(`We found no tracks for ${query}!`);
+      }
     try {
-        const { track } = await player.play(channel, query, {
-            nodeOptions: {
-                // nodeOptions are the options for guild node (aka your queue in simple word)
+        const res = await player.play(
+            interaction.member.voice.channel.id,
+            searchResult,
+            {
+              nodeOptions: {
                 metadata: {
-                    channel: interaction.channel,
-                    client: interaction.guild?.members.me,
-                    requestedBy: interaction.user.username,
-                    discriminator: interaction.user.discriminator
-                },// we can access this metadata object using queue.metadata later on
+                  channel: interaction.channel,
+                  client: interaction.guild.members.me,
+                  requestedBy: interaction.user,
+                },
+                bufferingTimeout: 15000,
+                leaveOnEmpty: true,
+                leaveOnEmptyCooldown: 300000,
+                skipOnNoStream: true,
+              },
             }
-        });
+          );
  
-        return interaction.followUp(`**${track.title}** enqueued!`);
-    } catch (e) {
+          const message = res.track.playlist
+          ? `Successfully enqueued **track(s)** from: **${res.track.playlist.title}**`
+          : `Successfully enqueued: **${res.track.author} - ${res.track.title}**`; 
+          return interaction.editReply({ content: message });
+        } 
+          catch (e) {
         // let's return error if something failed
-        return interaction.followUp(`Something went wrong: ${e}`);
+        return interaction.editReply(`Something went wrong: ${e}`);
     }
   },
 

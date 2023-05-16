@@ -16,25 +16,38 @@ module.exports =  {
     if (!channel) return interaction.editReply('You are not connected to a voice channel!'); // make sure we have a voice channel
 
     const name = interaction.options.getString('name'); 
-
+    const searchResult = await player.search(name, {
+        requestedBy: interaction.user,
+        requestedByUsername: interaction.user.username
+      });
+      if (!searchResult.hasTracks()) {
+        return interaction.followUp(`We found no tracks for ${query}!`);
+      }
     try {
-        const { track } = await player.play(channel, name, {
-            nodeOptions: {
+        const res = await player.play(
+            interaction.member.voice.channel.id,
+            searchResult,
+            {
+              nodeOptions: {
                 metadata: {
-                    channel: interaction.channel,
-                    client: interaction.guild?.members.me,
-                    requestedBy: interaction.user.username,
-                    discriminator: interaction.user.discriminator
+                  channel: interaction.channel,
+                  client: interaction.guild.members.me,
+                  requestedBy: interaction.user,
                 },
-                volume: 30,
-                bufferingTimeout: 5000,
-            leaveOnEnd: "false" ? false : true
+                bufferingTimeout: 15000,
+                leaveOnEmpty: true,
+                leaveOnEmptyCooldown: 300000,
+                skipOnNoStream: true,
               },
-            
-        })
+            }
+          );
  
-        return interaction.editReply(`**${track.title}** enqueued!`);
-    } catch (e) {
+          const message = res.track.playlist
+          ? `Successfully enqueued **track(s)** from: **${res.track.playlist.title}**`
+          : `Successfully enqueued: **${res.track.author} - ${res.track.title}**`; 
+          return interaction.editReply({ content: message });
+        } 
+          catch (e) {
         // let's return error if something failed
         return interaction.editReply(`Something went wrong: ${e}`);
     }

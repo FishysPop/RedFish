@@ -39,7 +39,8 @@ new CommandHandler({
 (async () => {
   try {
     mongoose.set("strictQuery", false);
-    await mongoose.connect(process.env.MONGODB_URI, { keepAlive: true });
+    //await mongoose.connect(process.env.MONGODB_URI, { keepAlive: true });
+    await mongoose.connect(process.env.MONGODB_URI);
     console.log("Connected to DB.");
     await player.extractors.loadDefault();
     client.login(process.env.TOKEN); 

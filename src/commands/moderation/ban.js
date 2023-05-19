@@ -19,7 +19,6 @@ module.exports = {
     await interaction.deferReply();
 
     const targetUser = await interaction.guild.members.fetch(targetUserId);
-    console.log(targetUser.roles.highest.position)
 
     if (!targetUser) {
       await interaction.editReply("That user doesn't exist in this server.");

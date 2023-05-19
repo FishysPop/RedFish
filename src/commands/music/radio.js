@@ -19,23 +19,17 @@ module.exports =  {
     const name = interaction.options.getString('name'); 
     try {
       let { data } = await axios.get(`https://nl1.api.radio-browser.info/json/stations/byname/${encodeURIComponent(name)}`)
-      const radiodata = {
-        homepage: data[0].homepage,
-        name: data[0].name,
-        typeoftrack: 'radio',
-        requestedBy: interaction.user,
-      };
-      const searchResult = await player.search(data[0].url_resolved, {
-        requestedBy: interaction.user,
-        metadata: radiodata
-      });
       if (data.length < 1) {
         return await interaction.followUp({ content: `❌ | No radio station was found` })}
+
+      const searchResult = await player.search(data[0].url_resolved, {
+        requestedBy: interaction.user,
+      });
+
         const res = await player.play(
             interaction.member.voice.channel.id,
             searchResult, 
             {
-              radiodata: radiodata,
               nodeOptions: {
                 metadata: {
                   channel: interaction.channel,
@@ -60,7 +54,8 @@ module.exports =  {
         } 
           catch (e) {
         // let's return error if something failed
-        return interaction.editReply(`Something went wrong: ${e}`);
+        console.log(`Error with radio ${e}`)
+        return interaction.editReply(`Unable to play ${name} due to an error`);
     }
   }
 

@@ -10,7 +10,7 @@ player.events.on('playerStart', async (queue, track) => {
 	.setColor('#e66229')
 	.setTitle(track.title)
 	.setURL(track.url)
-	.setAuthor({ name: 'Now Playing'})
+	.setAuthor({ name: 'Now Streaming'})
 	.setThumbnail('https://img.freepik.com/premium-vector/online-radio-station-vintage-icon-symbol_8071-25787.jpg')
     .setDescription(`Duration: **LIVE**`)
     .setTimestamp()

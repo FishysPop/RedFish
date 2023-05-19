@@ -6,7 +6,7 @@ module.exports =  {
     .setDescription("Shows all the current songs in queue"),
 
 
-  run: async({ interaction, client, handler }) => {
+  run: ({ interaction, client, handler }) => {
    const queue = useQueue(interaction.guildId)
    try {
     queue.delete();

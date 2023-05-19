@@ -1,4 +1,4 @@
-const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder, italic } = require("discord.js");
+const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder } = require("discord.js");
 const { useQueue } = require('discord-player');
 module.exports =  {
     data: new SlashCommandBuilder()
@@ -6,7 +6,7 @@ module.exports =  {
     .setDescription("Skips a song."),
 
 
-  run: async({ interaction, client, handler }) => {
+  run: ({ interaction, client, handler }) => {
    const queue = useQueue(interaction.guildId)
    if (!queue || !queue.isPlaying()) {
     interaction.reply("There is no music playing")

@@ -6,7 +6,7 @@ module.exports =  {
     .setDescription("Disconnects the bot from the call"),
 
 
-  run: async({ interaction, client, handler }) => {
+  run: ({ interaction, client, handler }) => {
    const queue = useQueue(interaction.guildId)
    try {
     queue.delete();

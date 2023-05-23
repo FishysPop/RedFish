@@ -45,6 +45,14 @@ player.events.on('playerStart', async (queue, track) => {
     const row = new ActionRowBuilder()
    .addComponents(playPauseButton, skipButton, stopButton, loopButton, shuffleButton);
    
-   
-   queue.metadata.channel.send({ embeds: [playerStartEmbed] ,components: [row]});
+
+  const message = await queue.metadata.channel.send({ embeds: [playerStartEmbed] ,components: [row]});
+  const collector = message.createMessageComponentCollector({
+    idle: 60000,
+  });
+  collector.on("end", () => {
+    message.edit({
+      components: [],
+    });
+  });
 });

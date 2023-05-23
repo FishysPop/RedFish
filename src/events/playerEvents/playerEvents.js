@@ -48,7 +48,7 @@ player.events.on('playerStart', async (queue, track) => {
 
   const message = await queue.metadata.channel.send({ embeds: [playerStartEmbed] ,components: [row]});
   const collector = message.createMessageComponentCollector({
-    idle: 60000,
+    idle: 300000,
   });
   collector.on("end", () => {
     message.edit({

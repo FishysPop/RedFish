@@ -18,17 +18,19 @@ class BaseClient extends EventEmitter {
       throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'options', 'object', true);
     }
 
-    if (options.rest?.userAgentAppendix) {
-      // Merging the default options when a custom user agent appendix is supplied
-      // Replaces the discord.js string. Enforce it.
-      options.rest.userAgentAppendix = `${Options.userAgentAppendix} ${options.rest.userAgentAppendix}`;
-    }
-
     /**
      * The options the client was instantiated with
      * @type {ClientOptions}
      */
-    this.options = mergeDefault(Options.createDefault(), options);
+    this.options = mergeDefault(Options.createDefault(), {
+      ...options,
+      rest: {
+        ...options.rest,
+        userAgentAppendix: options.rest?.userAgentAppendix
+          ? `${Options.userAgentAppendix} ${options.rest.userAgentAppendix}`
+          : undefined,
+      },
+    });
 
     /**
      * The REST manager of the client
@@ -77,5 +79,5 @@ module.exports = BaseClient;
 
 /**
  * @external REST
- * @see {@link https://discord.js.org/#/docs/rest/main/class/REST}
+ * @see {@link https://discord.js.org/docs/packages/rest/stable/REST:Class}
  */

@@ -28,8 +28,6 @@ player = new Player(client, {
 
 require('./events/playerEvents/playerEvents')
 
-
-
 new CommandHandler({
   client,
   commandsPath: path.join(__dirname, 'commands'),

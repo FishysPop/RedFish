@@ -1,3 +1,5 @@
+/* eslint-disable max-len */
+
 /**
  * @external ActivityFlags
  * @see {@link https://discord-api-types.dev/api/discord-api-types-v10/enum/ActivityFlags}
@@ -41,6 +43,11 @@
 /**
  * @external APIChannel
  * @see {@link https://discord-api-types.dev/api/discord-api-types-v10#APIChannel}
+ */
+
+/**
+ * @external APIChannelSelectComponent
+ * @see {@link https://discord-api-types.dev/api/discord-api-types-v10#APIChannelSelectComponent}
  */
 
 /**
@@ -99,6 +106,11 @@
  */
 
 /**
+ * @external APIMentionableSelectComponent
+ * @see {@link https://discord-api-types.dev/api/discord-api-types-v10#APIMentionableSelectComponent}
+ */
+
+/**
  * @external APIMessage
  * @see {@link https://discord-api-types.dev/api/discord-api-types-v10/interface/APIMessage}
  */
@@ -124,6 +136,11 @@
  */
 
 /**
+ * @external APIModalInteractionResponseCallbackData
+ * @see {@link https://discord-api-types.dev/api/discord-api-types-v10/interface/APIModalInteractionResponseCallbackData}
+ */
+
+/**
  * @external APIModalComponent
  * @see {@link https://discord-api-types.dev/api/discord-api-types-v10#APIModalComponent}
  */
@@ -139,13 +156,18 @@
  */
 
 /**
- * @external APISelectMenuComponent
- * @see {@link https://discord-api-types.dev/api/discord-api-types-v10#APISelectMenuComponent}
+ * @external APIRoleSelectComponent
+ * @see {@link https://discord-api-types.dev/api/discord-api-types-v10#APIRoleSelectComponent}
  */
 
 /**
  * @external APISelectMenuOption
  * @see {@link https://discord-api-types.dev/api/discord-api-types-v10/interface/APISelectMenuOption}
+ */
+
+/**
+ * @external APIStringSelectComponent
+ * @see {@link https://discord-api-types.dev/api/discord-api-types-v10/interface/APIStringSelectComponent}
  */
 
 /**
@@ -156,6 +178,11 @@
 /**
  * @external APIUser
  * @see {@link https://discord-api-types.dev/api/discord-api-types-v10/interface/APIUser}
+ */
+
+/**
+ * @external APIUserSelectComponent
+ * @see {@link https://discord-api-types.dev/api/discord-api-types-v10#APIUserSelectComponent}
  */
 
 /**

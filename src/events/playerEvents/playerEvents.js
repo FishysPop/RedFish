@@ -47,12 +47,17 @@ player.events.on('playerStart', async (queue, track) => {
    
 
   const message = await queue.metadata.channel.send({ embeds: [playerStartEmbed] ,components: [row]});
-  const collector = message.createMessageComponentCollector({
-    idle: 300000,
+  let ms = Number(track.duration.split(':')[0])  * 60 * 1000 + Number(track.duration.split(':')[1])  * 1000;
+  if (ms < '300000') {
+  } else {
+    ms = '300000'
+  }
+ const collector = message.createMessageComponentCollector({
+    idle: ms,
   });
   collector.on("end", () => {
     message.edit({
       components: [],
     });
-  });
+  })
 });

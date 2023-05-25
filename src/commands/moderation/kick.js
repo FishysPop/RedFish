@@ -1,19 +1,6 @@
-const {
-  Client,
-  Interaction,
-  SlashCommandBuilder,
-  PermissionFlagsBits,
-} = require('discord.js');
+const {Client,Interaction,SlashCommandBuilder,PermissionFlagsBits,} = require('discord.js');
 
 module.exports = {
-    //deleted: true,
-
-  /**
-   *
-   * @param {Client} client
-   * @param {Interaction} interaction
-   */
-
   run: async ({client, interaction}) => {
     const targetUserId = interaction.options.get('user').value;
     await interaction.deferReply();
@@ -50,7 +37,6 @@ module.exports = {
       return;
     }
 
-    // Ban the targetUser
     try {
       await targetUser.kick();
       await interaction.editReply(
@@ -69,4 +55,8 @@ module.exports = {
     .setRequired(true)),
   permissionsRequired: [PermissionFlagsBits.KickMembers],
   botPermissions: [PermissionFlagsBits.KickMembers],
+  // devOnly: Boolean,
+  //testOnly: true,
+  // options: Object[],
+  // deleted: Boolean,
 };

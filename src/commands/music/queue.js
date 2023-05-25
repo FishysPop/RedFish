@@ -5,10 +5,8 @@ module.exports =  {
     .setName("queue")
     .setDescription("Shows all the current songs in queue"),
 
-
   run: async ({ interaction, client, handler }) =>  {
     const queue = useQueue(interaction.guildId);
-
     if (!queue)
       return interaction.reply({
         content: `There is nothing currently playing`,

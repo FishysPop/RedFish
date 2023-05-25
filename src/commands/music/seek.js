@@ -6,13 +6,12 @@ module.exports =  {
     .setDescription("Skip a time of a song")
     .addIntegerOption((option) => option.setName("seconds").setDescription("The amount of seconds to seek to.").setRequired(true)),
 
-
   run: ({ interaction, client, handler }) => {
     const seconds = interaction.options.getInteger("seconds")
     const queue = useQueue(interaction.guildId)
     if (!queue || !queue.isPlaying()) {
-     interaction.reply("There is no music playing")
-     return;
+      interaction.reply({content: 'You are not connected to a voice channel',ephemeral: true,})
+      return;
     } 
       queue.node.seek(seconds * 1000);
      interaction.reply(`Seeked ${seconds} seconds`)

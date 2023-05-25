@@ -5,12 +5,11 @@ module.exports =  {
     .setName("80bunti")
     .setDescription("Plays 80bunti by beastyqt"),
 
-
-
   run: async({ interaction, client, handler }) => {
     await interaction.deferReply();
     const channel = interaction.member.voice.channel;
-    if (!channel) return interaction.editReply('You are not connected to a voice channel!'); // make sure we have a voice channel
+    if (!channel) return interaction.reply({content: 'You are not connected to a voice channel',ephemeral: true,})
+
 
     const name = "https://music.youtube.com/watch?v=4T53XltHrcU&feature=share";
     const searchResult = await player.search(name, {
@@ -18,7 +17,7 @@ module.exports =  {
         requestedByUsername: interaction.user.username
       });
       if (!searchResult.hasTracks()) {
-        return interaction.followUp(`We found no tracks for ${query}!`);
+        return interaction.followUp(`We found no tracks for ${query}`);
       }
     try {
         const res = await player.play(

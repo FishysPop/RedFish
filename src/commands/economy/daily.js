@@ -1,22 +1,11 @@
 const { Client, Interaction , SlashCommandBuilder } = require("discord.js");
 const User = require("../../models/User");
-
 const dailyAmount = 100;
 
 module.exports = {
   data: new SlashCommandBuilder()
   .setName('daily')
-  .setDescription('Claim Your Daily'),
-  // devOnly: Boolean,
-  //testOnly: true,
-  // options: Object[],
-  // deleted: Boolean,
-  /**
-   *
-   * @param {Client} client
-   * @param {Interaction} interaction
-   */
-
+  .setDescription('Claim money every 24hs'),
   run: async ({client, interaction}) => {
     if (!interaction.inGuild()) {
       interaction.reply({
@@ -62,4 +51,8 @@ module.exports = {
       console.log(`error with daily: ${error}`);
     }
   },
+  // devOnly: Boolean,
+  //testOnly: true,
+  // options: Object[],
+  // deleted: Boolean,
 };

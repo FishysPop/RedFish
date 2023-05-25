@@ -2,11 +2,6 @@ const { ApplicationCommandOptionType, Client, Interaction, PermissionFlagsBits ,
 const AutoRole = require('../../models/AutoRole');
 
 module.exports = {
-  /**
-   *
-   * @param {Client} client
-   * @param {Interaction} interaction
-   */
     data: new SlashCommandBuilder()
     .setName('autorole')
     .setDescription('When a user joins they will be given a role.')
@@ -33,7 +28,7 @@ module.exports = {
     
           if (autoRole) {
             if (autoRole.roleId === targetRoleId) {
-              interaction.reply('Auto role has already been configured for that role. To disable run `/autorole toggle:False`');
+              interaction.reply('Auto role has already been configured for that role. To disable run `/autorole disable');
               return;
             }
     
@@ -66,6 +61,9 @@ module.exports = {
         }
 
     }
-
 },
+  // devOnly: Boolean,
+  //testOnly: true,
+  // options: Object[],
+  // deleted: Boolean,
 };

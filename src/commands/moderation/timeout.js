@@ -2,13 +2,6 @@ const { Client, Interaction, SlashCommandBuilder, PermissionFlagsBits } = requir
 const ms = require('ms');
 
 module.exports = {
-  //deleted: true,
-  /**
-   *
-   * @param {Client} client
-   * @param {Interaction} interaction
-   */
-
   run: async ({client, interaction}) => {
     const mentionable = interaction.options.get('user').value;
     const duration = interaction.options.get('duration').value; // 1d, 1 day, 1s 5s, 5m
@@ -50,7 +43,6 @@ module.exports = {
       return;
     }
 
-    // Timeout the user
     try {
       const { default: prettyMs } = await import('pretty-ms');
 
@@ -81,4 +73,8 @@ module.exports = {
     ),
   permissionsRequired: [PermissionFlagsBits.MuteMembers],
   botPermissions: [PermissionFlagsBits.MuteMembers],
+  // devOnly: Boolean,
+  //testOnly: true,
+  // options: Object[],
+  // deleted: Boolean,
 };

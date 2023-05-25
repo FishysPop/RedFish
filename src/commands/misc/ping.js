@@ -1,14 +1,9 @@
-const {
-  SlashCommandBuilder,
-} = require('discord.js');
+const {SlashCommandBuilder,} = require('discord.js');
 module.exports = {
   data: new SlashCommandBuilder()
   .setName('ping')
   .setDescription('Pings the Bot'),
-  // devOnly: Boolean,
-  //testOnly: true,
-  // options: Object[],
-  // deleted: Boolean,
+
 
   run: async ({ interaction, client, handler }) => {
     await interaction.deferReply();
@@ -21,4 +16,8 @@ module.exports = {
       `Pong! Client ${ping}ms | Websocket: ${client.ws.ping}ms`
     );
   },
+  // devOnly: Boolean,
+  //testOnly: true,
+  // options: Object[],
+  // deleted: Boolean,
 };

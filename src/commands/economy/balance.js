@@ -1,18 +1,7 @@
-const {
-  Client,
-  Interaction,
-  ApplicationCommandOptionType,
-  AttachmentBuilder,
-  SlashCommandBuilder,
-} = require('discord.js');
+const {Client,Interaction,ApplicationCommandOptionType,AttachmentBuilder,SlashCommandBuilder,} = require('discord.js');
 const User = require('../../models/User');
 
 module.exports = {
-  /**
-   *
-   * @param {Client} client
-   * @param {Interaction} interaction
-   */
   run: async ({client, interaction}) => {
     if (!interaction.inGuild()) {
       interaction.reply('You can only run this command inside a server.');
@@ -26,7 +15,7 @@ module.exports = {
 
 
     if (!user) {
-      interaction.editReply(`<@${targetUserId}> is broke.`);
+      interaction.editReply(`<@${targetUserId}> has no money.`);
       return;
     }
 
@@ -38,8 +27,12 @@ module.exports = {
   },
   data: new SlashCommandBuilder()
   .setName('balance')
-  .setDescription("Check yours or someone elses balance.")
+  .setDescription("Check yours or someone elses balance")
   .addUserOption((option) => option
   .setName('user')
-  .setDescription('The users who u want to ban')),
+  .setDescription('Whos balance you want to see')),
+  // devOnly: Boolean,
+  //testOnly: true,
+  // options: Object[],
+  // deleted: Boolean,
 };

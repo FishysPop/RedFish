@@ -12,7 +12,7 @@ module.exports =  {
     queue.delete();
     interaction.reply("Disconnected")
    } catch {
-    interaction.reply("There is no music playing")
+    interaction.reply({content: 'There is no music playing',ephemeral: true,})
    }
   },
 

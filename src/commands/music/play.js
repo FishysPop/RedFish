@@ -13,14 +13,14 @@ module.exports =  {
   run: async({ interaction, client, handler }) => {
     await interaction.deferReply();
     const channel = interaction.member.voice.channel;
-    if (!channel) return interaction.editReply('You are not connected to a voice channel!'); // make sure we have a voice channel
+    if (!channel) return interaction.reply({content: 'You are not connected to a voice channel',ephemeral: true,})
 
     const name = interaction.options.getString('name'); 
     const searchResult = await player.search(name, {
         requestedBy: interaction.user,
       });
       if (!searchResult.hasTracks()) {
-        return interaction.followUp(`We found no tracks for ${name}!`);
+        return interaction.followUp(`We found no tracks for ${name}`);
       }
     try {
         const res = await player.play(

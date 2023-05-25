@@ -1,9 +1,4 @@
-const {
-  Client,
-  Interaction,
-  AttachmentBuilder,
-  SlashCommandBuilder,
-} = require('discord.js');
+const {Client,Interaction,AttachmentBuilder,SlashCommandBuilder,} = require('discord.js');
 const canvacord = require('canvacord');
 const calculateLevelXp = require('../../utils/calculateLevelXp');
 const Level = require('../../models/Level');
@@ -71,8 +66,12 @@ module.exports = {
 
   data: new SlashCommandBuilder()
   .setName('level')
-  .setDescription("Check yours or someone elses level.")
+  .setDescription("Check your or someone elses level")
   .addUserOption((option) => option
   .setName('user')
-  .setDescription('The users who u want to ban')),
+  .setDescription('The users level you want to see')),
+  // devOnly: Boolean,
+  //testOnly: true,
+  // options: Object[],
+  // deleted: Boolean,
 };

@@ -5,11 +5,10 @@ module.exports =  {
     .setName("skip")
     .setDescription("Skips a song."),
 
-
   run: ({ interaction, client, handler }) => {
    const queue = useQueue(interaction.guildId)
    if (!queue || !queue.isPlaying()) {
-    interaction.reply("There is no music playing")
+    interaction.reply({content: 'You are not connected to a voice channel',ephemeral: true})
    } else {
     queue.node.skip()
     interaction.reply("Track Skipped")

@@ -13,11 +13,11 @@ module.exports =  {
     } 
     let playing = !queue.node.isPaused();
     if (playing) {
-        interaction.reply(`${user}#${discriminator} has paused the queue.`)
+        interaction.reply(`${interaction.user.username}#${interaction.user.discriminator} has paused the queue.`)
         queue.node.pause()
         
     } else {
-        interaction.reply(`${user}#${discriminator} has resumed the queue.`)
+        interaction.reply(`${interaction.user.username}#${interaction.user.discriminator} has resumed the queue.`)
         queue.node.resume();
     }
     

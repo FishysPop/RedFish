@@ -10,12 +10,15 @@ module.exports = {
   // options: Object[],
   // deleted: Boolean,
 
-  run: ({ interaction, client, handler }) => {
-    const reply = interaction.fetchReply();
+  run: async ({ interaction, client, handler }) => {
+    await interaction.deferReply();
+
+    const reply = await interaction.fetchReply();
+
     const ping = reply.createdTimestamp - interaction.createdTimestamp;
 
-    interaction.reply(
-      `Pong! Client ${ping}ms | Websocket: ${Math.round(client.ws.ping)}ms`
+    interaction.editReply(
+      `Pong! Client ${ping}ms | Websocket: ${client.ws.ping}ms`
     );
   },
 };

@@ -10,9 +10,12 @@ module.exports = {
   // options: Object[],
   // deleted: Boolean,
 
-  run: async({ interaction, client, handler }) => {
+  run: ({ interaction, client, handler }) => {
+    const reply = interaction.fetchReply();
+    const ping = reply.createdTimestamp - interaction.createdTimestamp;
+
     interaction.reply(
-      `Pong! ${client.ws.ping}ms`
+      `Pong! Client ${ping}ms | Websocket: ${Math.round(client.ws.ping)}ms`
     );
   },
 };

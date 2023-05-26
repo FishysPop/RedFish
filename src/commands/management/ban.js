@@ -1,4 +1,4 @@
-const {Client,Interaction,PermissionFlagsBits,SlashCommandBuilder} = require('discord.js');
+const {Client,Interaction, PermissionsBitField ,SlashCommandBuilder} = require('discord.js');
 
 module.exports = {
   run: async ({interaction, handler}) => {
@@ -54,8 +54,8 @@ module.exports = {
   .setName('user')
   .setDescription('The users who u want to ban')
   .setRequired(true)),
-  permissionsRequired: [PermissionFlagsBits.BanMembers],
-  botPermissions: [PermissionFlagsBits.BanMembers],
+  permissionsRequired: [PermissionsBitField.Flags.BanMembers],
+  botPermissions: [PermissionsBitField.Flags.BanMembers],
   // devOnly: Boolean,
   //testOnly: true,
   // options: Object[],

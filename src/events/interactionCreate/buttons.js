@@ -65,5 +65,20 @@ module.exports = async (interaction, client ,handler) => {
                }
             return;
         }
+        if(buttonname ==='Ticket') {
+            try {
+                let repeatMode = queue.repeatMode;
+                if (repeatMode === 0) {
+                    interaction.reply(`${user}#${discriminator} has looped the queue.`)
+                    queue.setRepeatMode(2);
+                    
+            } else {
+                   interaction.reply(`${user}#${discriminator} has unlooped the queue.`)
+                    queue.setRepeatMode(0);
+                } } catch {
+                    interaction.reply({content: `There is no music playing`,ephemeral: true,})
+                }
+             return;
+        }
     }
 };

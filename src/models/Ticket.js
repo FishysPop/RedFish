@@ -6,11 +6,15 @@ const ticketSchema = new Schema({
     required: true,
     unique: true,
   },
-  Category: {
+  category: {
     type: String,
     required: true,
   },
   ticketNumber: {
+    type: String,
+    required: true,
+  },
+  role: {
     type: String,
     required: true,
   },

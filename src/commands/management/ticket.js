@@ -96,9 +96,9 @@ module.exports = {
         });
         await Ticket.create({
             guildId: interaction.guild.id,
-            category: createdCategory,
-            ticketNumber: '0',
-            role: createdRole
+            category: createdCategory.id,
+            ticketNumber: '1',
+            role: createdRole.id
         })
 
         const ticketEmebed = await new EmbedBuilder()
@@ -111,7 +111,6 @@ module.exports = {
        await channel.send({ embeds: [ticketEmebed] ,components: [row]})
        await interaction.editReply(`Ticket System has been setup, ticket will be created in ${createdCategory} Category and staff will be able to access tickets with the ${createdRole} role`)
        }
-
      }
      if (subcommand === 'disable' ) {
         if (!(await Ticket.exists({ guildId: interaction.guild.id}))) {

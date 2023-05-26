@@ -1,5 +1,6 @@
-const { Client, Interaction } = require('discord.js');
+const { Client, Interaction , PermissionsBitField, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle} = require('discord.js');
 const { useQueue } = require('discord-player');
+const Ticket = require("../../models/Ticket");
 
 module.exports = async (interaction, client ,handler) => {
     const queue = useQueue(interaction.guildId)
@@ -66,9 +67,88 @@ module.exports = async (interaction, client ,handler) => {
             return;
         }
         if(buttonname ==='Ticket') {
-            
-                    interaction.reply({content: `Wip`,ephemeral: true,})
+            const ticket = await Ticket.findOne({ guildId: interaction.guild.id });
+            if(!(interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageChannels))) return await interaction.reply({content: 'I do not have manageChannels permission', ephemeral: true})
+            if (!ticket) {
+                interaction.reply({content: `Tickets have been disabled on this server **/ticket setup** or **/ticket quicksetup** to re-enable it`,ephemeral: true,})
+                return;
+            }
+            try {
+                ticketChannel = await interaction.guild.channels.create({
+                    name: `ticket-${ticket.ticketNumber}`,
+                    type: ChannelType.GuildText,
+                    parent: `${ticket.category}`,
+                    permissionOverwrites: [
+                        {
+                            id: interaction.guild.id,
+                            deny: [PermissionsBitField.Flags.ViewChannel],
+                        },
+                        {
+                            id: interaction.user.id,
+                            allow: [PermissionsBitField.Flags.ViewChannel],
+                        },
+                        {
+                            id: ticket.role,
+                            allow: [PermissionsBitField.Flags.ViewChannel],
+                        },
+                    ],
+                });
+                await interaction.reply({content: `Ticket Created ${ticketChannel}`,ephemeral: true,})
+                 ticket.ticketNumber = ticket.ticketNumber + 1;
+                 ticket.save();
+
+                 const ticketEmbed = await new EmbedBuilder()
+                 .setColor("#e66229")
+                 .setTitle(`${interaction.user.username}#${interaction.user.discriminator}'s ticket`)
+                 const Delete = new ButtonBuilder().setCustomId('delete').setLabel('Delete').setStyle(ButtonStyle.Danger);
+                 const Archive = new ButtonBuilder().setCustomId('archive').setLabel('Archive').setStyle(ButtonStyle.Success);
+                 const row = new ActionRowBuilder().addComponents(Delete,Archive);
+                await ticketChannel.send({ embeds: [ticketEmbed] ,components: [row]})
+
+            } catch (error) {
+                console.log(error)
+                interaction.reply({content: `The ticket category or Ticket staff role was deleted \nPlease run **/ticket disable** then **/ticket quicksetup** or **/ticket setup**`,ephemeral: true,})       
+            }
              return;
+        }
+        if(buttonname ==='delete') {
+            if(!(interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageChannels))) return await interaction.reply({content: 'I do not have manageChannels permission', ephemeral: true})
+            try {
+                const channelTarget = interaction.channel
+                channelTarget.delete();
+               } catch (error) {
+                interaction.reply({content: `Error while deleting ${error}`,ephemeral: true,})
+               }
+            return;
+        }
+        if(buttonname ==='archive') {
+            let role = interaction.guild.roles;
+            const ticket = await Ticket.findOne({ guildId: interaction.guild.id });
+            if(!(interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageChannels))) return await interaction.reply({content: 'I do not have manageChannels permission', ephemeral: true})
+           
+            try {
+                const channelTarget = interaction.channel
+               if (interaction.guild.roles.cache.some(role => role.id === ticket.role)) {
+                channelTarget.permissionOverwrites.set([
+                    {
+                        id: interaction.guild.id,
+                        deny: [PermissionsBitField.Flags.ViewChannel],
+                    },
+                    {
+                        id: ticket.role,
+                        allow: [PermissionsBitField.Flags.ViewChannel],
+                    },
+                ]);
+                interaction.reply("**Ticket Archived**")
+               } else {
+                interaction.reply({content: `The Ticket staff role was deleted \nPlease run **/ticket disable** then **/ticket quicksetup** or **/ticket setup**`,ephemeral: true,})       
+               } 
+            } catch (error) {
+                console.log(error)
+                interaction.reply({content: `The ticket category or Ticket staff role was deleted \nPlease run **/ticket disable** then **/ticket quicksetup** or **/ticket setup**`,ephemeral: true,})       
+            }
+           
+            return;
         }
     }
 };

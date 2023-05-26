@@ -121,8 +121,7 @@ module.exports = {
 
         await Ticket.findOneAndDelete({ guildId: interaction.guild.id })
         interaction.editReply("Ticket has been disabled")
-    Ticket.deleteMany({guildId: interaction.guild.id})
-    interaction.editReply("Ticket system has been disabled")
+
      }
 
     },

@@ -4,7 +4,7 @@ module.exports = {
     data: new SlashCommandBuilder()
     .setName('ticket')
     .setDescription('Setup a ticket system, when a user clicks a button it will create a ticket')
-    .addSubcommand((subcommand) => subcommand.setName("setup").setDescription("Disables auto role")
+    .addSubcommand((subcommand) => subcommand.setName("setup").setDescription("quicksetup but with more options")
     .addChannelOption(option => option
         .setName('channel')
         .setDescription('The channel you want the ticket message to be sent')
@@ -19,17 +19,12 @@ module.exports = {
                    .addStringOption(option => option
                    .setName('message')
                    .setDescription('The title of the ticket message.').setRequired(true)))
-    .addSubcommand((subcommand) => subcommand.setName("quick-setup").setDescription("Disables auto role")
+    .addSubcommand((subcommand) => subcommand.setName("quick-setup").setDescription("An easy setup")
     .addChannelOption(option => option
         .setName('channel')
         .setDescription('The channel you want the ticket message to be sent')
         .addChannelTypes(ChannelType.GuildText).setRequired(true)))
-    .addSubcommand((subcommand) => subcommand.setName("disable").setDescription("Disables auto role")),
-   
-    //3 subcommmands one /ticket setup, /ticket quicksetup, /ticket disable
-    //  /ticket setup channel:channel category:category access:role message:string
-    //  /ticket setup channel:string
-    //  /ticket disable
+    .addSubcommand((subcommand) => subcommand.setName("disable").setDescription("Disables ticket system")),
 
     run: async ({ interaction, client, handler }) => {
      await interaction.deferReply();

@@ -73,6 +73,7 @@ module.exports = async (interaction, client ,handler) => {
                 interaction.reply({content: `Tickets have been disabled on this server **/ticket setup** or **/ticket quicksetup** to re-enable it`,ephemeral: true,})
                 return;
             }
+
             try {
                 ticketChannel = await interaction.guild.channels.create({
                     name: `ticket-${ticket.ticketNumber}`,
@@ -103,7 +104,10 @@ module.exports = async (interaction, client ,handler) => {
                  const Delete = new ButtonBuilder().setCustomId('delete').setLabel('Delete').setStyle(ButtonStyle.Danger);
                  const Archive = new ButtonBuilder().setCustomId('archive').setLabel('Archive').setStyle(ButtonStyle.Success);
                  const row = new ActionRowBuilder().addComponents(Delete,Archive);
-                await ticketChannel.send({ embeds: [ticketEmbed] ,components: [row]})
+                 setTimeout(delay, 3000);
+                 function delay() {
+                     ticketChannel.send({ embeds: [ticketEmbed] ,components: [row]})
+                  }
 
             } catch (error) {
                 console.log(error)
@@ -139,6 +143,8 @@ module.exports = async (interaction, client ,handler) => {
                         allow: [PermissionsBitField.Flags.ViewChannel],
                     },
                 ]);
+                interaction.channel.setName(`${interaction.channel.name} Archived`)
+                console.log(interaction.channel.name)
                 interaction.reply("**Ticket Archived**")
                } else {
                 interaction.reply({content: `The Ticket staff role was deleted \nPlease run **/ticket disable** then **/ticket quicksetup** or **/ticket setup**`,ephemeral: true,})       

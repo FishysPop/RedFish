@@ -2,6 +2,10 @@ const {Client,Interaction, PermissionsBitField ,SlashCommandBuilder} = require('
 
 module.exports = {
   run: async ({interaction, handler}) => {
+    if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+      interaction.reply({content: 'Only server admins can run this comamand', ephemeral: true})
+      return;
+   }    
     const targetUserId = interaction.options.get('user')
     await interaction.deferReply();
 

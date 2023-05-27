@@ -30,7 +30,10 @@ module.exports = {
      await interaction.deferReply();
 
     if(!PermissionsBitField.Flags.ManageChannels) return await interaction.editreply({content: 'I do not have manageChannels permission', ephemeral: true})
-     if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) return await interaction.editreply({content: 'Only server admins can run this comamand', ephemeral: true})
+    if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+        interaction.reply({content: 'Only server admins can run this comamand', ephemeral: true})
+        return;
+     }    
      const subcommand = interaction.options.getSubcommand();
      const ticket = await Ticket.findOne({ guildId: interaction.guild.id });
      if (subcommand === 'setup' ) {

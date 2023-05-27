@@ -3,6 +3,10 @@ const ms = require('ms');
 
 module.exports = {
   run: async ({client, interaction}) => {
+    if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+      interaction.reply({content: 'Only server admins can run this comamand', ephemeral: true})
+      return;
+   }    
     const mentionable = interaction.options.get('user').value;
     const duration = interaction.options.get('duration').value; // 1d, 1 day, 1s 5s, 5m
     await interaction.deferReply();

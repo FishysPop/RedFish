@@ -13,6 +13,7 @@ const client = new Client({
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildPresences,
     GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildModeration
   ],
 });
 
@@ -33,6 +34,7 @@ new CommandHandler({
   eventsPath: path.join(__dirname, 'events'),
   testServer: '870670135248158730',
 });
+
 (async () => {
   try {
     mongoose.set("strictQuery", false);
@@ -45,4 +47,5 @@ new CommandHandler({
     console.log(`Error: ${error}`);
   }
 })();
+
 module.exports = { client };

@@ -20,7 +20,7 @@ module.exports = {
 			).setRequired(true))
                    .addStringOption(option => option
                    .setName('welcome-message')
-                   .setDescription('The message that is send when a user joins | (@user) to mention a user | (server) servers name'))
+                   .setDescription('(@user) to mention a user, (server) servers name | E.g: (user) has joined (server)'))
                       .addStringOption(option => option
                       .setName('leave-message')
                       .setDescription('The message that is send when a user leaves.'))
@@ -46,9 +46,9 @@ module.exports = {
      if (subcommand === 'setup' ) {
         const channel = interaction.options.getChannel('channel')
         const type = interaction.options.getString('type')
-        const welcomeMessage = interaction.options.getString('welcome-message')?.value || `Welcome (user) to (server)!`;
-        const leaveMessage = interaction.options.getString('leave-message')?.value || '(user) has left (server)!';
-        const banMessage = interaction.options.getString('ban-message')?.value || '(user) has been banned from (server)!';
+        const welcomeMessage = interaction.options.getString('welcome-message') || `Welcome (user) to (server)!`;
+        const leaveMessage = interaction.options.getString('leave-message') || '(user) has left (server)!';
+        const banMessage = interaction.options.getString('ban-message') || '(user) has been banned from (server)!';
         if (welcome) {
             await interaction.editReply(`Welcome has already been setup welcome messages will be created in ${welcome.channel} too disable run **/welcome disable**`)
             return;
@@ -76,7 +76,7 @@ module.exports = {
        } else {
         Welcome.create({
          guildId: interaction.guild.id,
-         channel: channel,
+         channel: channel.id,
          type: type,
          welcomeMessage: welcomeMessage,  
          banMessage: banMessage,     

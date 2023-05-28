@@ -45,7 +45,6 @@ player.events.on('playerStart', async (queue, track) => {
     const row = new ActionRowBuilder()
    .addComponents(playPauseButton, skipButton, stopButton, loopButton, shuffleButton);
    
-
   const message = await queue.metadata.channel.send({ embeds: [playerStartEmbed] ,components: [row]});
   let ms = Number(track.duration.split(':')[0])  * 60 * 1000 + Number(track.duration.split(':')[1])  * 1000;
   if (ms < '300000') {

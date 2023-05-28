@@ -7,7 +7,7 @@ const WelcomeSchema = new Schema({
     unique: true,
   },
   channel: {
-    type: String,
+    type: Object,
     required: true,
   },
   type: {

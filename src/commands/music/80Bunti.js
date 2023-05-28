@@ -8,7 +8,7 @@ module.exports =  {
   run: async({ interaction, client, handler }) => {
     await interaction.deferReply();
     const channel = interaction.member.voice.channel;
-    if (!channel) return interaction.reply({content: 'You are not connected to a voice channel',ephemeral: true,})
+    if (!channel) return interaction.editReply({content: 'You are not connected to a voice channel',ephemeral: true,})
 
 
     const name = "https://music.youtube.com/watch?v=4T53XltHrcU&feature=share";

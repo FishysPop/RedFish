@@ -32,7 +32,7 @@ new CommandHandler({
   client,
   commandsPath: path.join(__dirname, 'commands'),
   eventsPath: path.join(__dirname, 'events'),
-  testServer: '870670135248158730',
+  testServer: process.env.GUILD_ID,
 });
 
 (async () => {

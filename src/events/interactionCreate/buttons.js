@@ -144,7 +144,6 @@ module.exports = async (interaction, client ,handler) => {
                     },
                 ]);
                 interaction.channel.setName(`${interaction.channel.name} Archived`)
-                console.log(interaction.channel.name)
                 interaction.reply("**Ticket Archived**")
                } else {
                 interaction.reply({content: `The Ticket staff role was deleted \nPlease run **/ticket disable** then **/ticket quicksetup** or **/ticket setup**`,ephemeral: true,})       

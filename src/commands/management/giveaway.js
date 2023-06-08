@@ -4,22 +4,22 @@ module.exports = {
     data: new SlashCommandBuilder()
     .setName('giveaway')
     .setDescription('Create a giveaway')
-    .addSubcommand((subcommand) => subcommand.setName("create").setDescription("quicksetup but with more options")
+    .addSubcommand((subcommand) => subcommand.setName("create").setDescription("create a giveaway")
         .addChannelOption(option => option
           .setName('channel')
           .setDescription('The channel you want the giveaway message to be sent')
           .addChannelTypes(ChannelType.GuildText).setRequired(true))
             .addNumberOption(option => option
               .setName('winners')
-              .setDescription('The category you want the tickets to be created in.').setRequired(true))
-                .addNumberOption((option) => option
+              .setDescription('How many winners you want the giveaway to have.').setRequired(true))
+                .addStringOption((option) => option
                   .setName('duration')
-                  .setDescription('How long should the giveaway last').setRequired(true))
+                  .setDescription('How long should the giveaway last etc: 1h, 2d , 1h 22min , 1w').setRequired(true))
                     .addStringOption(option => option
                       .setName('message')
                       .setDescription('The title of the ticket message.').setRequired(true))
                         .addRoleOption((option) => option
-                          .setName('required role to enter')
+                          .setName('required-role')
                            .setDescription('The role user need to have to enter the giveaway')))
     .addSubcommand((subcommand) => subcommand.setName("end").setDescription("End an active giveaway.")
         .addStringOption(option => option

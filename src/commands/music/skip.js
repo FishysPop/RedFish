@@ -6,6 +6,13 @@ module.exports =  {
     .setDescription("Skips a song."),
 
   run: ({ interaction, client, handler }) => {
+    if (!interaction.inGuild()) {
+      interaction.reply({
+        content: "You can only run this command in a server.",
+        ephermeral: true,
+      });
+     return;
+    }
    const queue = useQueue(interaction.guildId)
    if (!queue || !queue.isPlaying()) {
     interaction.reply({content: 'You are not connected to a voice channel',ephemeral: true})

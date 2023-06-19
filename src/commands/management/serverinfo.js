@@ -5,6 +5,13 @@ module.exports = {
   .setDescription('Shows information about this server'),
 
   run: async ({ interaction }) => {
+    if (!interaction.inGuild()) {
+      interaction.reply({
+        content: "You can only run this command in a server.",
+        ephermeral: true,
+      });
+     return;
+    }
    const { guild } = interaction;
    const owner = (await guild.fetchOwner()).user.tag
    const textChannels = guild.channels.cache.filter((c) => c.type === 0).toJSON().length

@@ -6,6 +6,13 @@ module.exports =  {
     .setDescription("Plays 80bunti by beastyqt"),
 
   run: async({ interaction, client, handler }) => {
+    if (!interaction.inGuild()) {
+      interaction.reply({
+        content: "You can only run this command in a server.",
+        ephermeral: true,
+      });
+     return;
+    }
     await interaction.deferReply();
     const channel = interaction.member.voice.channel;
     if (!channel) return interaction.editReply({content: 'You are not connected to a voice channel',ephemeral: true,})

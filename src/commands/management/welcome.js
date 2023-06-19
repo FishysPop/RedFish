@@ -40,6 +40,13 @@ module.exports = {
             interaction.reply({content: 'Only server admins can run this comamand', ephemeral: true})
             return;
          }    
+         if (!interaction.inGuild()) {
+            interaction.reply({
+              content: "You can only run this command in a server.",
+              ephermeral: true,
+            });
+           return;
+          }
      await interaction.deferReply();
      const subcommand = interaction.options.getSubcommand();
      const welcome = await Welcome.findOne({ guildId: interaction.guild.id });

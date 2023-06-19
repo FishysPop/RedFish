@@ -7,6 +7,13 @@ module.exports =  {
 
 
   run: async({ interaction, client, handler }) => {
+    if (!interaction.inGuild()) {
+      interaction.reply({
+        content: "You can only run this command in a server.",
+        ephermeral: true,
+      });
+     return;
+    }
     const queue = useQueue(interaction.guildId)
     const user = interaction.user.username
     const discriminator = interaction.user.discriminator

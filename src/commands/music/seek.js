@@ -7,6 +7,13 @@ module.exports =  {
     .addIntegerOption((option) => option.setName("seconds").setDescription("The amount of seconds to seek to.").setRequired(true)),
 
   run: ({ interaction, client, handler }) => {
+    if (!interaction.inGuild()) {
+      interaction.reply({
+        content: "You can only run this command in a server.",
+        ephermeral: true,
+      });
+     return;
+    }
     const seconds = interaction.options.getInteger("seconds")
     const queue = useQueue(interaction.guildId)
     if (!queue || !queue.isPlaying()) {

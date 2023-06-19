@@ -34,6 +34,13 @@ module.exports = {
         interaction.reply({content: 'Only server admins can run this comamand', ephemeral: true})
         return;
      }    
+     if (!interaction.inGuild()) {
+        interaction.reply({
+          content: "You can only run this command in a server.",
+          ephermeral: true,
+        });
+       return;
+      }
      const subcommand = interaction.options.getSubcommand();
      const ticket = await Ticket.findOne({ guildId: interaction.guild.id });
      if (subcommand === 'setup' ) {

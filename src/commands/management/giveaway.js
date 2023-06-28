@@ -1,5 +1,6 @@
 const {Client,Interaction,SlashCommandBuilder,PermissionsBitField, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle} = require('discord.js');
 const Giveaway = require("../../models/Ticket");
+const ms = require('ms');
 module.exports = {
     data: new SlashCommandBuilder()
     .setName('giveaway')
@@ -50,7 +51,56 @@ module.exports = {
      return;
     }
      if (subcommand === 'create' ) {
-     }
+      const channel = interaction.options.getChannel('channel')
+      const winners = interaction.options.getString('winners')
+      const duration = interaction.options.getString('duration')
+      const message = interaction.options.getString('message')
+      const date = new Date();
+      const requiredRole = interaction.options.getString('required-role') || 'null';   
+      if (!msg.guild.members.me?.permissionsIn(channel).has(PermissionsBitField.Flags.SendMessages)) {
+        interaction.reply({
+          content: "I do not have permissons to send messages in that channel",
+          ephermeral: true,
+        });      
+        return;
+      }
+      const msDuration = ms(duration);
+      if (isNaN(msDuration)) {
+        await interaction.editReply('Please provide a valid timeout duration.');
+        return;
+      }
+      if (msDuration < 60000 || msDuration > 7.884e+9) {
+        await interaction.editReply('Giveaway lenth cannot be shorter than 1 minute or 3 months.');
+        return;
+      }
+      const foundChannel = client.channels.cache.get(channel);
+      const giveawayEmbed = await new EmbedBuilder() 
+      .setColor('#e66229')
+      .setTitle(track.title)
+      .setAuthor({ name: message})
+      .setDescription(`Winners: ${winners}\nEntries: \n Ends In:`)
+      .setTimestamp()
+      .setFooter({ text: `Click The Button Bellow To Enter`});
+ 
+
+
+
+
+
+
+
+
+      Giveaway.create({
+       guildId: interaction.guild.id,
+       messageid: messageid,
+       winners: winners,
+       requiredRole: requiredRole,  
+       giveawayEnd: duration,     
+       leaveMessage: leaveMessage,
+})
+
+
+    }
      if (subcommand === 'end' ) {
      }
      if (subcommand === 'reroll' ) {

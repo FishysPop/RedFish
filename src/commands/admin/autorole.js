@@ -1,4 +1,4 @@
-const { ApplicationCommandOptionType, Client, Interaction, PermissionFlagsBits , SlashCommandBuilder} = require('discord.js');
+const { ApplicationCommandOptionType, Client, Interaction, PermissionFlagsBits , SlashCommandBuilder,PermissionsBitField} = require('discord.js');
 const AutoRole = require('../../models/AutoRole');
 
 module.exports = {
@@ -11,6 +11,10 @@ module.exports = {
 
     
   run: async ({client, interaction})  => {
+    if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+      interaction.reply({content: 'Only server admins can run this comamand', ephemeral: true})
+      return;
+   }    
     const subcommand = interaction.options.getSubcommand();
     
     if (!interaction.inGuild()) {

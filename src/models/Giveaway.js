@@ -18,6 +18,19 @@ const giveawaySchema = new Schema({
   requiredRole: {
     type: String,
   },
+  entriesArray: {
+    type: Array
+  },
+  giveawayEnd: {
+    type: Date,
+    required: true,
+  },
+  ended: {
+    type: Boolean
+  },
+  endedDate: {
+   type: Date,
+  }
 });
 
 module.exports = model('Giveaway', giveawaySchema);

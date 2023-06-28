@@ -8,7 +8,7 @@ module.exports = {
       return;
     }
     const targetUserId = interaction.options.get('user')?.value || interaction.member.id;
-
+ 
     await interaction.deferReply();
 
     const user = await User.findOne({ userId: targetUserId });

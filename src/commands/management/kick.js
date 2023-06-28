@@ -1,4 +1,4 @@
-const {Client,Interaction,SlashCommandBuilder,PermissionFlagsBits,} = require('discord.js');
+const {Client,Interaction,SlashCommandBuilder,PermissionFlagsBits,PermissionsBitField} = require('discord.js');
 
 module.exports = {
   run: async ({client, interaction}) => {

@@ -26,7 +26,7 @@ player = new Player(client, {
     highWaterMark: 1 << 25
   },
 });
-
+require('./events/giveawayEvents/checkGiveaway')
 require('./events/playerEvents/playerEvents')
 new CommandHandler({
   client,

@@ -10,10 +10,14 @@ module.exports = {
   data: new SlashCommandBuilder()
   .setName('test')
   .setDescription('for testing commands'),
-
+ 
 
   run: async ({ interaction, client, handler }) => {
- interaction.reply("testing the test...")
+    const date = new Date(); // Replace with your JavaScript Date object
+    const dateWithDuration = new Date(date.getTime() + 604800000)
+    const unixTimestamp = Math.floor(dateWithDuration.getTime() / 1000);
+    const timestamp = `<t:${unixTimestamp}:R>`;
+    interaction.reply(`testing the test...${timestamp}`)
 
  
   },

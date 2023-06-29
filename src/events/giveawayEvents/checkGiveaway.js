@@ -18,11 +18,10 @@ var timerID = setInterval(function() {
       ])
         .exec()
         .then((pastGiveaways) => {
-          console.log('Past Giveaways:', pastGiveaways);
+       //   console.log('Past Giveaways:', pastGiveaways);
         })
         .catch((error) => {
           console.error('Error:', error);
         });
     
-    console.log(Date.now())
 }, 60 * 1000); 

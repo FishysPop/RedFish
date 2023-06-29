@@ -1,10 +1,10 @@
 const {Client,Interaction,SlashCommandBuilder,PermissionsBitField, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle} = require('discord.js');
-const Giveaway = require("../../models/Ticket");
+const Giveaway = require("../../models/Giveaway");
 const ms = require('ms');
 module.exports = {
     data: new SlashCommandBuilder()
     .setName('giveaway')
-    .setDescription('Create a giveaway')
+    .setDescription('Create a giveaway.')
     .addSubcommand((subcommand) => subcommand.setName("create").setDescription("create a giveaway")
         .addChannelOption(option => option
           .setName('channel')
@@ -15,7 +15,7 @@ module.exports = {
               .setDescription('How many winners you want the giveaway to have.').setRequired(true))
                 .addStringOption((option) => option
                   .setName('duration')
-                  .setDescription('How long should the giveaway last etc: 1h, 2d , 1h 22min , 1w').setRequired(true))
+                  .setDescription('How long should the giveaway last etc: 1h, 2d , 94m , 1w').setRequired(true))
                     .addStringOption(option => option
                       .setName('message')
                       .setDescription('The title of the ticket message.').setRequired(true))
@@ -52,12 +52,12 @@ module.exports = {
     }
      if (subcommand === 'create' ) {
       const channel = interaction.options.getChannel('channel')
-      const winners = interaction.options.getString('winners')
+      const winners = interaction.options.get('winners').value
       const duration = interaction.options.getString('duration')
       const message = interaction.options.getString('message')
       const date = new Date();
       const requiredRole = interaction.options.getString('required-role') || 'null';   
-      if (!msg.guild.members.me?.permissionsIn(channel).has(PermissionsBitField.Flags.SendMessages)) {
+      if (!interaction.guild.members.me?.permissionsIn(channel).has(PermissionsBitField.Flags.SendMessages)) {
         interaction.reply({
           content: "I do not have permissons to send messages in that channel",
           ephermeral: true,
@@ -73,31 +73,31 @@ module.exports = {
         await interaction.editReply('Giveaway lenth cannot be shorter than 1 minute or 3 months.');
         return;
       }
-      const foundChannel = client.channels.cache.get(channel);
+      const dateWithDuration = new Date(date.getTime() + msDuration)
+      const unixTimestamp = Math.floor(dateWithDuration.getTime() / 1000);
+      const timestamp = `<t:${unixTimestamp}:R>`;
+
+      const foundChannel = client.channels.cache.get(channel.id);
       const giveawayEmbed = await new EmbedBuilder() 
       .setColor('#e66229')
-      .setTitle(track.title)
-      .setAuthor({ name: message})
-      .setDescription(`Winners: ${winners}\nEntries: \n Ends In:`)
-      .setTimestamp()
+      .setTitle(message)
+      .setDescription(`Winners: ${winners}\nEntries: 0\n Ends In:${timestamp}`)
       .setFooter({ text: `Click The Button Bellow To Enter`});
- 
-
-
-
-
-
-
-
-
-      Giveaway.create({
-       guildId: interaction.guild.id,
-       messageid: messageid,
-       winners: winners,
-       requiredRole: requiredRole,  
-       giveawayEnd: duration,     
-       leaveMessage: leaveMessage,
-})
+      const giveawayEnterButton = new ButtonBuilder().setCustomId('giveawayEnter').setEmoji('🎉').setStyle(ButtonStyle.Success);
+      const row = new ActionRowBuilder().addComponents(giveawayEnterButton);
+      const sentMessage = await foundChannel.send({
+        embeds: [giveawayEmbed],
+        components: [row],
+      });
+      const link = `https://discordapp.com/channels/${sentMessage.guild.id}/${sentMessage.channel.id}/${sentMessage.id}`;
+      await Giveaway.create({
+        messageId: sentMessage.id,
+        messageTitle: message,
+        winners: winners,
+        requiredRole: requiredRole,  
+        giveawayEnd: dateWithDuration,     
+       })
+      interaction.editReply(`Giveaway has been created in ${link}`)
 
 
     }

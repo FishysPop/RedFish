@@ -1,12 +1,11 @@
 const { Schema, model } = require('mongoose');
 
 const giveawaySchema = new Schema({
-  guildId: {
+  messageId: {
     type: String,
     required: true,
-    unique: true,
   },
-  messageId: {
+  messageTitle: {
     type: String,
     required: true,
   },
@@ -22,7 +21,7 @@ const giveawaySchema = new Schema({
     type: Array
   },
   giveawayEnd: {
-    type: Date,
+    type: String,
     required: true,
   },
   ended: {

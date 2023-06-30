@@ -44,7 +44,7 @@ module.exports = {
         return;
      }    
      if (!interaction.inGuild()) {
-      interaction.reply({
+      interaction.editReply({
         content: "You can only run this command in a server.",
         ephermeral: true,
       });
@@ -104,6 +104,71 @@ module.exports = {
 
     }
      if (subcommand === 'end' ) {
+    const currentDate = new Date();
+    const messageId = interaction.options.get('message-id').value
+    const giveaway = await Giveaway.find({ messageId: messageId, ended: false });
+    if (giveaway.length > 0) {
+       } else {
+        interaction.editReply({
+          content: "That giveaway doesnt exist or has ended",
+          ephermeral: true,
+        }); 
+    return;
+    }
+    const unixTimestamp = Math.floor(currentDate.getTime() / 1000);
+    const timestamp = `<t:${unixTimestamp}:R>`;
+    const discordIdCount = giveaway[0].entriesArray.length;
+    let guild = interaction.guild
+    function pickRandomFromArray(array, count) {
+      if (!Array.isArray(array)) {
+        console.log('The input must be an array.');
+      }
+    
+      const shuffledArray = [...array];
+      const selectedElements = [];
+    
+      while (shuffledArray.length > 0 && count > 0) {
+        const randomIndex = Math.floor(Math.random() * shuffledArray.length);
+        const selectedElement = shuffledArray.splice(randomIndex, 1)[0];
+        selectedElements.push(selectedElement);
+    
+        count--;
+      }
+    
+      return selectedElements;
+    }
+    const winners = pickRandomFromArray(giveaway[0].entriesArray, giveaway[0].winners);
+    const mentionedWinners = [];
+    winners.forEach(winnerId => {
+      const mentionedWinner = `<@${winnerId}>`;
+      mentionedWinners.push(mentionedWinner);
+    });
+    const mentionedWinnersString = mentionedWinners.join(' ');
+    const giveawayEmbed = new EmbedBuilder()
+      .setColor("#e66229")
+      .setTitle(giveaway[0].messageTitle)
+      .setDescription(
+        `Winners: ${mentionedWinnersString}\nEntries: ${discordIdCount}\n Ended: ${timestamp}`
+      )
+      .setFooter({ text: `/giveaway reroll to reroll` });
+    const giveawayEnterButton = new ButtonBuilder()
+      .setCustomId("giveawayEnter")
+      .setEmoji("🎉")
+      .setStyle(ButtonStyle.Success);
+    const row = new ActionRowBuilder().addComponents(giveawayEnterButton);
+    if (guild) {
+      const channel = guild.channels.cache.get(giveaway[0].channelId);
+      const message = await channel.messages.fetch(giveaway[0].messageId);
+      message.edit({
+        embeds: [giveawayEmbed],
+        components: []
+      }).catch((err) => {console.log("error while sending message for giveaway enter:", err)});
+    }
+    giveaway[0].ended = true
+    giveaway[0].endedDate = currentDate
+    giveaway[0].save();
+    interaction.editReply("Giveaway has been ended")
+    
      }
      if (subcommand === 'reroll' ) {
      }

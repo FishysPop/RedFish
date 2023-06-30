@@ -35,13 +35,17 @@ var timerID = setInterval(async function() {
       return selectedElements;
     }
     const winners = pickRandomFromArray(firstGiveaway.entriesArray, firstGiveaway.winners);
-    console.lo
-    const user = await guild.fetch(winners);   
+    const mentionedWinners = [];
+    winners.forEach(winnerId => {
+      const mentionedWinner = `<@${winnerId}>`;
+      mentionedWinners.push(mentionedWinner);
+    });
+    const mentionedWinnersString = mentionedWinners.join(' ');
     const giveawayEmbed = new EmbedBuilder()
       .setColor("#e66229")
       .setTitle(firstGiveaway.messageTitle)
       .setDescription(
-        `Winners: <@${winners}>\nEntries: ${discordIdCount}\n Ended: ${timestamp}`
+        `Winners: ${mentionedWinnersString}\nEntries: ${discordIdCount}\n Ended: ${timestamp}`
       )
       .setFooter({ text: `/giveaway reroll to reroll` });
     const giveawayEnterButton = new ButtonBuilder()

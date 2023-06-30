@@ -91,7 +91,9 @@ module.exports = {
       });
       const link = `https://discordapp.com/channels/${sentMessage.guild.id}/${sentMessage.channel.id}/${sentMessage.id}`;
       await Giveaway.create({
+        guildId: interaction.guild.id,
         messageId: sentMessage.id,
+        channelId: channel.id,
         messageTitle: message,
         winners: winners,
         requiredRole: requiredRole,  

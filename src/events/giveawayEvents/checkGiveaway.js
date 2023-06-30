@@ -43,7 +43,7 @@ var timerID = setInterval(async function() {
       .setDescription(
         `Winners: <@${winners}>\nEntries: ${discordIdCount}\n Ended: ${timestamp}`
       )
-      .setFooter({ text: `**/giveaway reroll** to reroll` });
+      .setFooter({ text: `/giveaway reroll to reroll` });
     const giveawayEnterButton = new ButtonBuilder()
       .setCustomId("giveawayEnter")
       .setEmoji("🎉")

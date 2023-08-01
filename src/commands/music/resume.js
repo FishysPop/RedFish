@@ -9,15 +9,19 @@ module.exports =  {
     if (!interaction.inGuild()) {
       interaction.reply({
         content: "You can only run this command in a server.",
-        ephermeral: true,
+        ephemeral: true,
       });
      return;
     }
     const queue = useQueue(interaction.guildId)
-    if (!queue || !queue.isPlaying()) {
-      interaction.reply({content: 'You are not connected to a voice channel',ephemeral: true})
-     return;
-    } 
+    if (!interaction.member.voice.channel) {
+      interaction.reply({content: 'You are not connected to a voice channel.',ephemeral: true})
+      return;
+  }
+  if (!queue || !queue.isPlaying()) {
+      interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+      return;
+  }
     let playing = !queue.node.isPaused();
     if (playing) {
         interaction.reply(`${interaction.user.username}#${interaction.user.discriminator} has paused the queue.`)

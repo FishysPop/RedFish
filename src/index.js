@@ -1,5 +1,5 @@
 require("dotenv").config();
-const { Client, GatewayIntentBits, EmbedBuilder, ActivityType, } = require("discord.js");
+const { Client, GatewayIntentBits, ActivityType } = require("discord.js");
 const mongoose = require("mongoose");
 const { SpotifyExtractor, SoundCloudExtractor } = require('@discord-player/extractor');
 const { CommandHandler } = require('djs-commander');
@@ -26,7 +26,6 @@ player = new Player(client, {
     highWaterMark: 1 << 25
   },
 });
-require('./events/giveawayEvents/checkGiveaway')
 require('./events/playerEvents/playerEvents')
 new CommandHandler({
   client,
@@ -47,5 +46,4 @@ new CommandHandler({
     console.log(`Error: ${error}`);
   }
 })();
-
 module.exports = client;

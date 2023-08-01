@@ -10,16 +10,20 @@ module.exports =  {
     if (!interaction.inGuild()) {
       interaction.reply({
         content: "You can only run this command in a server.",
-        ephermeral: true,
+        ephemeral: true,
       });
      return;
     }
     const seconds = interaction.options.getInteger("seconds")
     const queue = useQueue(interaction.guildId)
-    if (!queue || !queue.isPlaying()) {
-      interaction.reply({content: 'You are not connected to a voice channel',ephemeral: true,})
+    if (!interaction.member.voice.channel) {
+      interaction.reply({content: 'You are not connected to a voice channel.',ephemeral: true})
       return;
-    } 
+  }
+  if (!queue || !queue.isPlaying()) {
+      interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+      return;
+  }
       queue.node.seek(seconds * 1000);
      interaction.reply(`Seeked ${seconds} seconds`)
     

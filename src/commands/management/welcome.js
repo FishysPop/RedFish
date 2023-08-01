@@ -43,7 +43,7 @@ module.exports = {
          if (!interaction.inGuild()) {
             interaction.reply({
               content: "You can only run this command in a server.",
-              ephermeral: true,
+              ephemeral: true,
             });
            return;
           }

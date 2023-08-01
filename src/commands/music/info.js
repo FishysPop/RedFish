@@ -9,23 +9,21 @@ module.exports =  {
     if (!interaction.inGuild()) {
       interaction.reply({
         content: "You can only run this command in a server.",
-        ephermeral: true,
+        ephemeral: true,
       });
      return;
     }
     const queue = useQueue(interaction.guildId);
     const timeline = useTimeline(interaction.guildId);
   
-    if (!queue)
-      return interaction.reply({
-        content: `There is nothing playing`,
-        ephemeral: true,
-      });
-    if (!queue.currentTrack)
-      return interaction.reply({
-        content: `There is no track currently playing`,
-        ephemeral: true,
-      });
+    if (!interaction.member.voice.channel) {
+      interaction.reply({content: 'You are not connected to a voice channel.',ephemeral: true})
+      return;
+  }
+  if (!queue || !queue.isPlaying()) {
+      interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+      return;
+  }
       let autoPlayEmoji = '❌'
       let repeatModeEmoji = '❌'
     const track = queue.currentTrack;

@@ -3,7 +3,7 @@ const { Player, QueryType } = require('discord-player');
 module.exports =  {
     data: new SlashCommandBuilder()
     .setName("play")
-    .setDescription("play a song in a voice channel")
+    .setDescription("Play music/playlist in a vc.")
     .addStringOption(option => option
         .setName("name")
         .setDescription("name of the song")
@@ -14,7 +14,7 @@ module.exports =  {
     if (!interaction.inGuild()) {
       interaction.reply({
         content: "You can only run this command in a server.",
-        ephermeral: true,
+        ephemeral: true,
       });
      return;
     }

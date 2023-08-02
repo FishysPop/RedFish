@@ -56,6 +56,7 @@ var timerID = setInterval(async function() {
     if (guild) {
       const channel = guild.channels.cache.get(firstGiveaway.channelId);
       const message = await channel.messages.fetch(firstGiveaway.messageId);
+      if(!message) return;
       message.edit({
         embeds: [giveawayEmbed],
         components: []

@@ -30,6 +30,10 @@ module.exports = {
         .addStringOption(option => option
             .setName('message-id')
             .setDescription('The giveaway message id | right click and copy message id').setRequired(true)))
+    .addSubcommand((subcommand) => subcommand.setName("view-entries").setDescription("See who entered the giveaway.")
+        .addStringOption(option => option
+              .setName('message-id')
+              .setDescription('The giveaway message id | right click and copy message id').setRequired(true)))
     .addSubcommand((subcommand) => subcommand.setName("delete").setDescription("delete an active giveaway.")
       .addStringOption(option => option
         .setName('message-id')
@@ -171,7 +175,177 @@ module.exports = {
     
      }
      if (subcommand === 'reroll' ) {
+
+
+
+
+    const currentDate = new Date();
+    const messageId = interaction.options.get('message-id').value
+    const giveaway = await Giveaway.find({ messageId: messageId, ended: true });
+    if (giveaway.length > 0) {
+       } else {
+        interaction.editReply({
+          content: "That giveaway doesnt exist or has not ended",
+          ephermeral: true,
+        }); 
+    return;
+    }
+    const unixTimestamp = Math.floor(currentDate.getTime() / 1000);
+    const timestamp = `<t:${unixTimestamp}:R>`;
+    const discordIdCount = giveaway[0].entriesArray.length;
+    let guild = interaction.guild
+    function pickRandomFromArray(array, count) {
+      if (!Array.isArray(array)) {
+        console.log('The input must be an array.');
+      }
+    
+      const shuffledArray = [...array];
+      const selectedElements = [];
+    
+      while (shuffledArray.length > 0 && count > 0) {
+        const randomIndex = Math.floor(Math.random() * shuffledArray.length);
+        const selectedElement = shuffledArray.splice(randomIndex, 1)[0];
+        selectedElements.push(selectedElement);
+    
+        count--;
+      }
+    
+      return selectedElements;
+    }
+    const winners = pickRandomFromArray(giveaway[0].entriesArray, giveaway[0].winners);
+    const mentionedWinners = [];
+    winners.forEach(winnerId => {
+      const mentionedWinner = `<@${winnerId}>`;
+      mentionedWinners.push(mentionedWinner);
+    });
+    const mentionedWinnersString = mentionedWinners.join(' ');
+    const giveawayEmbed = new EmbedBuilder()
+      .setColor("#e66229")
+      .setTitle(giveaway[0].messageTitle)
+      .setDescription(
+        `Winners: ${mentionedWinnersString}\nEntries: ${discordIdCount}\n Ended: ${timestamp}`
+      )
+      .setFooter({ text: `/giveaway reroll to reroll` });
+    const giveawayEnterButton = new ButtonBuilder()
+      .setCustomId("giveawayEnter")
+      .setEmoji("🎉")
+      .setStyle(ButtonStyle.Success);
+    const row = new ActionRowBuilder().addComponents(giveawayEnterButton);
+    if (guild) {
+      const channel = guild.channels.cache.get(giveaway[0].channelId);
+      const message = await channel.messages.fetch(giveaway[0].messageId);
+      message.edit({
+        embeds: [giveawayEmbed],
+        components: []
+      }).catch((err) => {console.log("error while sending message for giveaway enter:", err)});
+    }
+    giveaway[0].ended = true
+    giveaway[0].endedDate = currentDate
+    giveaway[0].save();
+    interaction.editReply("Giveaway has been rerolled")
+    
+
      }
+     if (subcommand === 'view-entries' ) {
+
+
+      const messageId = interaction.options.get('message-id').value
+      const giveawayArray = await Giveaway.find({ messageId: messageId});
+      if (giveawayArray.length > 0) {
+         } else {
+          interaction.editReply({
+            content: "That giveaway doesnt exist or is older than a month",
+            ephermeral: true,
+          }); 
+      return;
+      }
+      const giveaway = giveawayArray[0]
+
+      const allEntries = giveaway.entriesArray.map(
+        (entry, idx) => `**${idx + 1}.** <@${entry}>`
+      );
+  
+      const chunkSize = 10;
+      const pages = Math.ceil(allEntries.length / chunkSize);
+  
+      const embeds = [];
+      for (let i = 0; i < pages; i++) {
+        const start = i * chunkSize;
+        const end = start + chunkSize;
+  
+        const embed = new EmbedBuilder()
+          .setColor("#e66229")
+          .setTitle("Entries")
+          .setDescription(
+            allEntries.slice(start, end).join("\n") || "**No entires**"
+          )
+          .setFooter({
+            text: `Page ${i + 1} | Total ${giveaway.entriesArray.length} entires`,
+          });
+  
+        embeds.push(embed);
+      }
+  
+      if (embeds.length === 1) {
+        return interaction.editReply({
+          embeds: [embeds[0]],
+        });
+      }
+  
+      const prevButton = new ButtonBuilder()
+        .setCustomId("prev")
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji("⬅️");
+  
+      const nextButton = new ButtonBuilder()
+        .setCustomId("next")
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji("➡️");
+  
+      const row = new ActionRowBuilder().addComponents(prevButton, nextButton);
+  
+      const message = await interaction.editReply({
+        embeds: [embeds[0]],
+        components: [row],
+        fetchReply: true,
+      });
+  
+      let currentIndex = 0;
+      const collector = message.createMessageComponentCollector({
+        idle: 60000,
+      });
+  
+      collector.on("collect", (i) => {
+        i.deferUpdate();
+  
+        switch (i.customId) {
+          case "prev":
+            currentIndex =
+              currentIndex === 0 ? embeds.length - 1 : currentIndex - 1;
+            break;
+          case "next":
+            currentIndex =
+              currentIndex === embeds.length - 1 ? 0 : currentIndex + 1;
+            break;
+          default:
+            break;
+        }
+  
+        message.edit({
+          embeds: [embeds[currentIndex]],
+          components: [row],
+        });
+      });
+  
+      collector.on("end", () => {
+        message.edit({
+          components: [],
+        });
+      });
+
+
+
+    }
      if (subcommand === 'delete' ) {
     }
     },

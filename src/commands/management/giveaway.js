@@ -64,7 +64,7 @@ module.exports = {
       if (!interaction.guild.members.me?.permissionsIn(channel).has(PermissionsBitField.Flags.SendMessages)) {
         interaction.reply({
           content: "I do not have permissons to send messages in that channel",
-          ephermeral: true,
+          ephemeral: true,
         });      
         return;
       }
@@ -115,7 +115,7 @@ module.exports = {
        } else {
         interaction.editReply({
           content: "That giveaway doesnt exist or has ended",
-          ephermeral: true,
+          ephemeral: true,
         }); 
     return;
     }
@@ -174,10 +174,8 @@ module.exports = {
     interaction.editReply("Giveaway has been ended")
     
      }
+
      if (subcommand === 'reroll' ) {
-
-
-
 
     const currentDate = new Date();
     const messageId = interaction.options.get('message-id').value
@@ -186,7 +184,7 @@ module.exports = {
        } else {
         interaction.editReply({
           content: "That giveaway doesnt exist or has not ended",
-          ephermeral: true,
+          ephemeral: true,
         }); 
     return;
     }
@@ -255,7 +253,7 @@ module.exports = {
          } else {
           interaction.editReply({
             content: "That giveaway doesnt exist or is older than a month",
-            ephermeral: true,
+            ephemeral: true,
           }); 
       return;
       }
@@ -343,11 +341,54 @@ module.exports = {
         });
       });
 
-
-
     }
+
+
      if (subcommand === 'delete' ) {
+      const messageId = interaction.options.get('message-id').value;
+      const giveawayArray = await Giveaway.find({ messageId: messageId });
+      
+      if (giveawayArray.length > 0) {
+        const giveaway = giveawayArray[0];
+        const channel = interaction.guild.channels.cache.get(giveaway.channelId);
+        
+        try {
+          const message = await channel.messages.fetch(giveaway.messageId);
+          
+          if (!message) {
+            try {
+              await Giveaway.deleteOne({ _id: giveaway._id });
+              interaction.editReply("Giveaway has been deleted from the database");
+            } catch (error) {
+              console.error('Error deleting giveaway from MongoDB:', error);
+            }
+          } else {
+            await message.delete();
+            try {
+              await Giveaway.deleteOne({ _id: giveaway._id });
+              interaction.editReply("Giveaway has been deleted");
+            } catch (error) {
+              console.error('Error deleting giveaway from MongoDB:', error);
+            }
+          }
+        } catch (error) {
+          try {
+            await Giveaway.deleteOne({ _id: giveaway._id });
+            interaction.editReply("Giveaway has been deleted from the database");
+          } catch (error) {
+            console.error('Error deleting giveaway from MongoDB:', error);
+          }
+        }
+      } else {
+        interaction.editReply({
+          content: "That giveaway doesn't exist.",
+          ephemeral: true,
+        });
+      }
+
     }
+
+
     },
     // devOnly: Boolean,
     //testOnly: true,

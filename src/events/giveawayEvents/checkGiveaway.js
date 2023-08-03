@@ -55,12 +55,14 @@ var timerID = setInterval(async function() {
     const row = new ActionRowBuilder().addComponents(giveawayEnterButton);
     if (guild) {
       const channel = guild.channels.cache.get(firstGiveaway.channelId);
-      const message = await channel.messages.fetch(firstGiveaway.messageId);
-      if(!message) return;
-      message.edit({
-        embeds: [giveawayEmbed],
-        components: []
-      }).catch((err) => {console.log("error while sending message for giveaway enter:", err)});
+      try {
+        const message = await channel.messages.fetch(firstGiveaway.messageId);
+        message.edit({
+          embeds: [giveawayEmbed],
+          components: []
+        }).catch((err) => {console.log("error while sending message for giveaway enter:", err)});
+      } catch (error) {
+      }
     }
     firstGiveaway.ended = true
     firstGiveaway.endedDate = currentDate

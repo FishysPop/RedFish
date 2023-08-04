@@ -77,9 +77,7 @@ var timerID2 = setInterval(async function() {
   Giveaway.findOneAndDelete({ giveawayEnd: { $lt: oneMonthAgo }, ended: true })
   .then((deletedGiveaway) => {
     if (deletedGiveaway) {
-      console.log("Giveaway deleted successfully:", deletedGiveaway);
     } else {
-      console.log("No giveaway older than a month found.");
     }
   })
   .catch((error) => {

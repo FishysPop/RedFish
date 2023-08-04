@@ -2,3 +2,4 @@
 node_modules/
 .gitignore
 src/index.js
+package-lock.json

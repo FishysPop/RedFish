@@ -7,7 +7,7 @@ module.exports = async (oldChannel, newChannel, client ,handler) => {
     }
     const guild = oldChannel.guild
     const autoroom = await AutoRoom.findOne({ guildId: guild.id });
-
+    if (!autoroom) return;
     if (newChannel.channelId === autoroom.source) {
         const message = autoroom.channelName.replace('(user)',`${newChannel.member.user.globalName}`); //changes (user) to the person who joins the channels name
         try {

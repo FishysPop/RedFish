@@ -62,7 +62,8 @@ module.exports = {
       .then((modalInteraction) => {
        const testValue = modalInteraction.fields.getTextInputValue('testInput')
        const testerValue = modalInteraction.fields.getTextInputValue('testerInput')
-       reply.edit({
+       modalInteraction.deferUpdate();
+       interaction.editReply({
         content: `testing the test...:  ${testValue}, ${testerValue}`,
         components: [],
       })

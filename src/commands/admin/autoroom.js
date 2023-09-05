@@ -260,13 +260,11 @@ module.exports = {
         currentStep = 2;
         data.category = interaction.values[0];
         handleEasySetupStep(2, data);
-        console.log(data)
       }
       if (interaction.customId === "autoroomEasySetupSelectVoiceChannel2") {
         currentStep = 3;
         data.source = interaction.values[0];
         data.name = "(user)'s Room"
-        console.log(data)
 
         handleEasySetupStep(3, data);
       }
@@ -279,7 +277,6 @@ module.exports = {
           channelName: data.name,
         });
         handleEasySetupStep(4, data);
-        console.log(data)
 
       }
 

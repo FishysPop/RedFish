@@ -419,12 +419,48 @@ module.exports = {
 
       //automatic setup
       if (interaction.customId === "autoroomAutomaticSetupButton0") {
-        const autoroomDisableEmbed1 = new EmbedBuilder()
-          .setColor("#e66229")
-          .setTitle("Autoroom Setup")
-          .setDescription(`You picked automatic setup`);
+        const autoroomAutoEmbed1 = new EmbedBuilder()
+        .setColor("#e66229")
+        .setTitle("Autoroom Auto Setup")
+        .setDescription(`Creating channels...`);
         await MessageReply.edit({
-          embeds: [autoroomDisableEmbed1],
+          embeds: [autoroomAutoEmbed1],
+          components: [],
+        });
+
+        const createdCategory = await interaction.guild.channels.create({
+          name: "AutoRoom",
+          type: ChannelType.GuildCategory,
+          permissionOverwrites: [
+            {
+              id: interaction.guild.id,
+              allow: [PermissionsBitField.Flags.ViewChannel],
+            },
+          ],
+        });
+        const createdChannel = await interaction.guild.channels.create({
+          name: "Click To Create A VC",
+          type: ChannelType.GuildVoice,
+          parent: createdCategory.id,
+          permissionOverwrites: [
+            {
+              id: interaction.guild.id,
+              allow: [PermissionsBitField.Flags.ViewChannel],
+            },
+          ],
+        });
+        AutoRoom.create({
+          guildId: interaction.guild.id,
+          category: createdCategory.id,
+          source: createdChannel.id,
+          channelName: "(user)'s Room",
+        }).catch((err) => {console.error("error while saving autoroom")});
+        const autoroomAutoEmbed2 = new EmbedBuilder()
+          .setColor("#e66229")
+          .setTitle("Autoroom Auto Setup")
+          .setDescription(`You finished the setup, Join ${createdChannel} to create your autoroom. \n If you would like to disable autorooms run this command again.`);
+        await MessageReply.edit({
+          embeds: [autoroomAutoEmbed2],
           components: [],
         });
       }
@@ -468,27 +504,6 @@ module.exports = {
         });
       }
     });
-
-
-    if (!interaction) { //temp code/useless
-      if (autoroom) {
-        await interaction.editReply(
-          `AutoRooms have already been setup autorooms will be created in ${autoroom.category} to disable run **/autoroom disable**`
-        );
-        return;
-      }
-
-      const createdCategory = await interaction.guild.channels.create({
-        name: "AutoRooms",
-        type: ChannelType.GuildCategory,
-        permissionOverwrites: [
-          {
-            id: interaction.guild.id,
-            allow: [PermissionsBitField.Flags.ViewChannel],
-          },
-        ],
-      });
-    }
   },
   // devOnly: Boolean,
   //testOnly: true,

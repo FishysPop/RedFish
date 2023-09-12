@@ -10,10 +10,9 @@ const WelcomeSchema = new Schema({
     type: Object,
     required: true,
   },
-  type: {
-    type: Number,  // 1 is only welcome | 2 is welcome and leaves | 3 is welcome and bans | 4 is welcome leaves and bans
+  typeArray: {
+    type: Array,
     required: true,
-    default: 1,
   },
   welcomeMessage: {
     type: String,

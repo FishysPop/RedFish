@@ -2,8 +2,8 @@ const { Client, GuildMember } = require('discord.js');
 const Welcome = require('../../models/Welcome');
 
 module.exports = async (ban, client ,handler) => {
-  const welcome = await Welcome.findOne({ guildId: guild.id });
   const guild = ban.guild;
+  const welcome = await Welcome.findOne({ guildId: guild.id });
 
   if (!welcome) return;
   if (!guild) return;

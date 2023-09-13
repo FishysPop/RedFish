@@ -4,9 +4,7 @@ module.exports = {
     data: new SlashCommandBuilder()
     .setName('welcome-setup')
     .setDescription('Welcome people in a channel when they join the server.'),
-                  // .setDescription('(@user) to mention a user, (server) servers name | E.g: (user) has joined (server)'))
    
-
     run: async ({ interaction, client, handler }) => {
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
             interaction.reply({content: 'Only server admins can run this comamand', ephemeral: true})
@@ -81,9 +79,9 @@ module.exports = {
                   );
       
                   const easyChannelSelect1 = new ChannelSelectMenuBuilder()
-                  .setCustomId('welcomeEasySetupSelectCategory1')
+                  .setCustomId('welcomeEasySetupSelectChannel1')
                   .setPlaceholder('Select a channel.')
-                  .setMaxValues(1).addChannelTypes(ChannelType.GuildCategory);
+                  .setMaxValues(1).addChannelTypes(ChannelType.GuildText);
       
                 const easySetupRow1 = new ActionRowBuilder().addComponents(easyChannelSelect1);
                 await interaction.editReply({embeds: [easySetupEmbed1], components: [easySetupRow1],
@@ -95,7 +93,7 @@ module.exports = {
                 const easySetupEmbed2 = new EmbedBuilder()
                   .setColor("#e66229")
                   .setTitle("Welcome Easy Setup - Step 2")
-                  .setDescription(``);
+                  .setDescription(`Please pick what types of messages you would like.`);
                   await interaction.editReply({embeds: [easySetupEmbed2], components: [],}); // fixes bug where select menu shows the previous selected option
                   const easyTypeSelect2 = new StringSelectMenuBuilder()
                   .setCustomId('welcomeEasySetupSelectType2')
@@ -122,13 +120,17 @@ module.exports = {
                 });
                 break;
               case 3:
-                const sourceChannel = interaction.guild.channels.cache.get(data.source);
-                const categoryName = interaction.guild.channels.cache.get(data.category).name;
+                const channel = interaction.guild.channels.cache.get(data.channel);
+                const type = data.type.join(', ');
                 const easySetupEmbed3 = new EmbedBuilder()
                   .setColor("#e66229")
                   .setTitle("Welcome Easy Setup - Step 3")
                   .setDescription(`Are these settings correct?\n
-                  Users will join ${sourceChannel} to create their welcomes, which are named **${data.name}**, When they join there rooms will be created in #${categoryName} category.\n
+                  Welcome messages will be sent in ${channel}, you have enabled: **${type}**.\n
+                  Welcome message: ${data.welcomeMessage}\n
+                  Leave Message: ${data.leaveMessage}\n
+                  Ban Message: ${data.banMessage}\n
+                  *Only the types you have selected will be used.* 
                   *If you would like to change the name, select setup at the start*`);
                 const easySetupNext3 = new ButtonBuilder()
                   .setLabel("Confirm")
@@ -141,11 +143,11 @@ module.exports = {
                 });
                 break;
               case 4:
-                const sourceChannel4 = interaction.guild.channels.cache.get(data.source);
+                const Channel4 = interaction.guild.channels.cache.get(data.channel);
                 const easySetupEmbed4 = new EmbedBuilder()
                   .setColor("#e66229")
                   .setTitle("Welcome Easy Setup - Step 4")
-                  .setDescription(`You finished the setup, Join ${sourceChannel4} to create your welcome. \n If you would like to disable welcomes run this command again.`);
+                  .setDescription(`You finished the setup, Welcome messages will be sent in ${Channel4}. \n If you would like to disable welcomes run this command again.`);
                 MessageReply.edit({ embeds: [easySetupEmbed4], components: [] });
                 break;
               default:
@@ -350,26 +352,30 @@ module.exports = {
               currentStep = 1;
               handleEasySetupStep(1, data);
             }
-            if (interaction.customId === "welcomeEasySetupSelectCategory1") {
+            if (interaction.customId === "welcomeEasySetupSelectChannel1") {
               currentStep = 2;
-              data.category = interaction.values[0];
+              data.channel = interaction.values[0];
               handleEasySetupStep(2, data);
             }
-            if (interaction.customId === "welcomeEasySetupSelectVoiceChannel2") {
+            if (interaction.customId === "welcomeEasySetupSelectType2") {
               currentStep = 3;
-              data.source = interaction.values[0];
-              data.name = "(user)'s Room"
+              data.type = interaction.values;
+              data.welcomeMessage = "Welcome (user) to (server)!"
+              data.banMessage = '(user) has been banned from (server)!'
+              data.leaveMessage = '(user) has left (server)!'
       
               handleEasySetupStep(3, data);
             }
             if (interaction.customId === "welcomeEasySetupButton3") {
               currentStep = 4;
               Welcome.create({
-                guildId: data.guildId,
-                category: data.category,
-                source: data.source,
-                channelName: data.name,
-              });
+                guildId: interaction.guild.id,
+                channel: data.channel,
+                type: data.type,
+                welcomeMessage: data.welcomeMessage,  
+                banMessage: data.banMessage,     
+                leaveMessage: data.leaveMessage,
+              }).catch((err) => {console.error(`error while saving welcome: ${err}`)});
               await handleEasySetupStep(4, data);
               isCollectorActive = false;
               return;

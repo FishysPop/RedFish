@@ -13,7 +13,7 @@ module.exports = async (member, client ,handler) => {
             if (!welcome) return;
             if (welcome.type === 3) return;
             if (welcome.type === 1) return;
-            const channel = client.channels.cache.get(welcome.channel);
+            const channel = await client.channels.cache.get(welcome.channel);
             const userMessage = welcome.leaveMessage.replace('(user)',`${member.user}`);
             const message = userMessage.replace('(server)',`${member.guild}`);
             channel.send(`${message}`).catch((err) => {client.users.send(guild.ownerId, `I do not have permissions to send messages in ${channel}`);});

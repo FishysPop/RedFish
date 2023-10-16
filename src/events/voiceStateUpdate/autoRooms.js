@@ -32,6 +32,7 @@ module.exports = async (oldChannel, newChannel, client ,handler) => {
         const channel = await client.channels.fetch(oldChannel.channelId);
             if (channel.members.size === 0) {
                 // Delete the empty autoroom channel
+                if (!channel) return;
                 await channel.delete();
                 await AutoRoom.updateOne(
                     { _id: autoroom._id },

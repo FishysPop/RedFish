@@ -1,6 +1,7 @@
 const { Client, Message } = require('discord.js');
 const calculateLevelXp = require('../../utils/calculateLevelXp');
 const Level = require('../../models/Level');
+const GuildSettings = require('../../models/GuildSettings');
 const cooldowns = new Set();
 
 function getRandomXp(min, max) {
@@ -11,6 +12,8 @@ function getRandomXp(min, max) {
 
 module.exports = async (message, client ,handler) => {
   if (!message.inGuild() || message.author.bot || cooldowns.has(message.author.id)) return;
+  const guildSettings = await GuildSettings.findOne({ guildId: message.guild.id });
+  if(guildSettings.levels === false) return;
 
   const xpToGive = getRandomXp(5, 15);
 
@@ -21,8 +24,9 @@ module.exports = async (message, client ,handler) => {
 
   try {
     const level = await Level.findOne(query);
-
     if (level) {
+      if (level.enabled === false) return;
+
       level.xp += xpToGive;
 
       if (level.xp > calculateLevelXp(level.level)) {

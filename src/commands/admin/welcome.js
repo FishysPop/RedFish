@@ -1,4 +1,4 @@
-const {Client,Interaction,StringSelectMenuOptionBuilder,ChannelSelectMenuBuilder,ComponentType,SlashCommandBuilder,PermissionsBitField, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder} = require('discord.js');
+const {Client,Interaction,TextInputStyle,TextInputBuilder,StringSelectMenuOptionBuilder,ModalBuilder,ChannelSelectMenuBuilder,ComponentType,SlashCommandBuilder,PermissionsBitField, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder} = require('discord.js');
 const Welcome = require("../../models/Welcome");
 module.exports = {
     data: new SlashCommandBuilder()
@@ -74,7 +74,7 @@ module.exports = {
                   .setColor("#e66229")
                   .setTitle("Welcome Easy Setup - Step 1")
                   .setDescription(
-                    `Please pick the channel you would like welcome messages to be sent in.*
+                    `Please pick the channel you would like welcome messages to be sent in.
                     `
                   );
       
@@ -164,13 +164,12 @@ module.exports = {
                   .setColor("#e66229")
                   .setTitle("Welcome Setup - Step 1")
                   .setDescription(
-                    `Please pick the category you want welcomes to be created in \n
-                    *When users join the "Click To Create A VC" channel this will be the category there room is created in.*
+                    `Please pick the channel you would like welcome messages to be sent in.
                     `);
                     const ChannelSelect1 = new ChannelSelectMenuBuilder()
-                    .setCustomId('welcomeSetupSelectCategory1')
+                    .setCustomId('welcomeSetupSelectChannel1')
                     .setPlaceholder('Select a channel.')
-                    .setMaxValues(1).addChannelTypes(ChannelType.GuildCategory);
+                    .setMaxValues(1).addChannelTypes(ChannelType.GuildText);
                 const SetupRow1 = new ActionRowBuilder().addComponents(ChannelSelect1);
                 MessageReply.edit({embeds: [SetupEmbed1],components: [SetupRow1],});
                 break;
@@ -179,24 +178,41 @@ module.exports = {
                   .setColor("#e66229")
                   .setTitle("Welcome Setup - Step 2")
                   .setDescription(
-                    `Please pick the channel users will join to create there welcomes \n 
-                  *If you havent created a channel please create one and select it, This will be the channel users join to create there welcomes*`
+                    `Please pick what types of messages you would like.`
                   );
                   await interaction.editReply({embeds: [SetupEmbed2], components: [],}); // fixes bug where select menu shows the previous selected option
-                  const ChannelSelect2 = new ChannelSelectMenuBuilder()
-                  .setCustomId('welcomeSetupSelectVoiceChannel2')
-                  .setPlaceholder('Select a channel.')
-                  .setMaxValues(1).addChannelTypes(ChannelType.GuildVoice);
-                const SetupRow2 = new ActionRowBuilder().addComponents(ChannelSelect2);
-                MessageReply.edit({embeds: [SetupEmbed2],components: [SetupRow2,backButtonRow],});
+                  const TypeSelect2 = new StringSelectMenuBuilder()
+                  .setCustomId('welcomeSetupSelectType2')
+                  .setPlaceholder('Select a types.')
+                  .addOptions(
+                    new StringSelectMenuOptionBuilder()
+                      .setLabel('Join Messages')
+                      .setDescription('Sends a message when someone joins.')
+                      .setValue('joinMessage'),
+                    new StringSelectMenuOptionBuilder()
+                      .setLabel('Leave Messages')
+                      .setDescription('Sends a message when someone leaves.')
+                      .setValue('leaveMessage'),
+                    new StringSelectMenuOptionBuilder()
+                      .setLabel('Ban Messages')
+                      .setDescription('Sends a message when someone is banned.')
+                      .setValue('banMessage'),
+                  )
+                  .setMaxValues(3);
+                const SetupRow2 = new ActionRowBuilder().addComponents(TypeSelect2);
+                interaction.editReply({
+                  embeds: [SetupEmbed2],
+                  components: [SetupRow2,backButtonRow],
+                });
                 break;
               case 3:
                 const SetupEmbed3 = new EmbedBuilder()
                   .setColor("#e66229")
                   .setTitle("Welcome Setup - Step 3")
                   .setDescription(`
-                  This will be the users room when they join the source channel(the channel people join to create there rooms),\n
-                  Please click the text button when your ready.`
+                  This will be the message the bot sends when someone joins/leaves/banned, If you have only selected join messages ignore the rest of the inputs 
+                  \n(user) to ping the user | (server) for the server name | eg: (user) has joined (server)
+                  \n Click the text button when your ready.`
                   );
                   const SetupNext3 = new ButtonBuilder().setLabel("Text").setStyle(ButtonStyle.Primary).setCustomId("welcomeSetupButton3");
                   const SetupRow3 = new ActionRowBuilder().addComponents(SetupNext3,backButton);
@@ -207,9 +223,19 @@ module.exports = {
                   custom_id: `welcomeModal-${interaction.user.id}`,
                   title: "Welcome name",
                 });
-                const setupInput4 = new TextInputBuilder({
-                  custom_id: "nameInput",
-                  label: `(user) = There Username. e.g: (user)'s room  `,
+                const setupWelcomeInput4 = new TextInputBuilder({
+                  custom_id: "welcomeInput",
+                  label: `Welcome Message. e.g:(user) joined (server)`,
+                  style: TextInputStyle.Short,
+                });
+                const setupLeaveInput4 = new TextInputBuilder({
+                  custom_id: "leaveInput",
+                  label: `Leave Message. e.g: (user) left (server)`,
+                  style: TextInputStyle.Short,
+                });
+                const setupBanInput4 = new TextInputBuilder({
+                  custom_id: "banInput",
+                  label: `Ban Message. e.g: (user) has been banned`,
                   style: TextInputStyle.Short,
                 });
                 const SetupEmbed4 = new EmbedBuilder()
@@ -220,33 +246,42 @@ module.exports = {
                 If you clicked cancel please go back and try again,`
                 );
                 const SetupRow4 = new ActionRowBuilder().addComponents(backButton);
-                const SetupModalRow4 = new ActionRowBuilder().addComponents(setupInput4);
+                const SetupModalRow1 = new ActionRowBuilder().addComponents(setupWelcomeInput4);
+                const SetupModalRow2 = new ActionRowBuilder().addComponents(setupLeaveInput4);
+                const SetupModalRow3 = new ActionRowBuilder().addComponents(setupBanInput4);
                 MessageReply.edit({embeds: [SetupEmbed4],components: [SetupRow4],});
-                modal.addComponents(SetupModalRow4);
+                modal.addComponents(SetupModalRow1,SetupModalRow2,SetupModalRow3);
                 return modal
                 break;
                 case 5:
-                  const sourceChannel = interaction.guild.channels.cache.get(data.source);
-                  const categoryName = interaction.guild.channels.cache.get(data.category).name;
+                  const channel = interaction.guild.channels.cache.get(data.channel);
+                  const type = data.type.join(', ');
                   const SetupEmbed5 = new EmbedBuilder()
                     .setColor("#e66229")
-                    .setTitle("Welcome Setup - Step 5")
-                    .setDescription(
-                      `Are these settings correct?\n
-                       Users will join ${sourceChannel} to create their welcomes, which are named **${data.name}**,
-                       When they join the source channel rooms will be created in **#${categoryName}** category.`
-                    );
-                    const SetupNext5 = new ButtonBuilder().setLabel("Confirm").setStyle(ButtonStyle.Success).setCustomId("welcomeSetupButton5");
-                    const SetupRow5 = new ActionRowBuilder().addComponents(SetupNext5 ,backButton);
-                    MessageReply.edit({embeds: [SetupEmbed5],components: [SetupRow5],});
+                    .setTitle("Welcome Easy Setup - Step 3")
+                    .setDescription(`Are these settings correct?\n
+                    Welcome messages will be sent in ${channel}, you have enabled: **${type}**.\n
+                    Welcome message: ${data.welcomeMessage}\n
+                    Leave Message: ${data.leaveMessage}\n
+                    Ban Message: ${data.banMessage}\n
+                    *Only the types you have selected will be used.*`);
+                  const SetupNext5 = new ButtonBuilder()
+                    .setLabel("Confirm")
+                    .setStyle(ButtonStyle.Success)
+                    .setCustomId("welcomeSetupButton5");
+                  const easySetupRow5 = new ActionRowBuilder().addComponents(SetupNext5,backButton);
+                  MessageReply.edit({
+                    embeds: [SetupEmbed5],
+                    components: [easySetupRow5],
+                  });
                   break;
                   case 6:
-                    const sourceChannel6 = interaction.guild.channels.cache.get(data.source);
+                    const Channel6 = interaction.guild.channels.cache.get(data.channel);
                     const SetupEmbed6 = new EmbedBuilder()
                       .setColor("#e66229")
                       .setTitle("Welcome Setup - Step 6")
                       .setDescription(
-                        `You finished the setup, Join ${sourceChannel6} to create your welcome. \n If you would like to disable welcomes run this command again.`
+                        `You finished the setup, Welcome messages will be sent in ${Channel6}. \n If you would like to disable welcomes run this command again.`
                       );
                       MessageReply.edit({embeds: [SetupEmbed6],components: [],});
                     break;
@@ -294,14 +329,14 @@ module.exports = {
               currentStep = 1;
               handleSetupStep(1, data);
             }
-            if (interaction.customId === "welcomeSetupSelectCategory1") {
+            if (interaction.customId === "welcomeSetupSelectChannel1") {
               currentStep = 2;
-              data.category = interaction.values[0];
+              data.channel = interaction.values[0];
               handleSetupStep(2, data);
             }
-            if (interaction.customId === "welcomeSetupSelectVoiceChannel2") {
+            if (interaction.customId === "welcomeSetupSelectType2") {
               currentStep = 3;
-              data.source = interaction.values[0];
+              data.type = interaction.values;
               handleSetupStep(3, data);
             }
             if (interaction.customId === `welcomeSetupButton3`) {
@@ -315,8 +350,17 @@ module.exports = {
               interaction.customId === `welcomeModal-${interaction.user.id}`;
             interaction.awaitModalSubmit({ Modalfilter, time: 300_000 })
               .then((modalInteraction) => {
-                  tempName = modalInteraction.fields.getTextInputValue("nameInput");
-                  data.name = tempName.replace(/\(USER\)/g, "(user)");
+                  tempWelcome = modalInteraction.fields.getTextInputValue("welcomeInput");
+                  tempWelcome.replace(/\(SERVER\)/g, "(server)");
+                  data.welcomeMessage = tempWelcome.replace(/\(USER\)/g, "(user)");
+
+                  tempLeave = modalInteraction.fields.getTextInputValue("leaveInput");
+                  tempLeave.replace(/\(SERVER\)/g, "(server)");
+                  data.leaveMessage = tempLeave.replace(/\(USER\)/g, "(user)");
+
+                  tempBan = modalInteraction.fields.getTextInputValue("banInput");
+                  tempBan.replace(/\(SERVER\)/g, "(server)");
+                  data.banMessage = tempBan.replace(/\(USER\)/g, "(user)");
                   currentStep = 5;
                   modalInteraction.deferUpdate().catch((err) => {
                     console.log(err);
@@ -332,14 +376,14 @@ module.exports = {
             }
       
             if (interaction.customId === "welcomeSetupButton5") {
-              await Welcome.create({
-                guildId: data.guildId,
-                category: data.category,
-                source: data.source,
-                channelName: data.name,
-              }).catch((err) => {
-                console.log(`Welcome Setup Error: ${err}`);
-              });;
+                await Welcome.create({
+                guildId: interaction.guild.id,
+                channel: data.channel,
+                typeArray: data.type,
+                welcomeMessage: data.welcomeMessage,  
+                banMessage: data.banMessage,     
+                leaveMessage: data.leaveMessage,
+              }).catch((err) => {console.error(`error while saving welcome: ${err}`)});
               currentStep = 6;
               await handleSetupStep(6, data);
               isCollectorActive = false;
@@ -362,7 +406,7 @@ module.exports = {
               data.type = interaction.values;
               data.welcomeMessage = "Welcome (user) to (server)!"
               data.banMessage = '(user) has been banned from (server)!'
-              data.leaveMessage = '(user) has left (server)!'
+              data.leaveMessage = '(user) has left (server).'
       
               handleEasySetupStep(3, data);
             }
@@ -371,7 +415,7 @@ module.exports = {
               Welcome.create({
                 guildId: interaction.guild.id,
                 channel: data.channel,
-                type: data.type,
+                typeArray: data.type,
                 welcomeMessage: data.welcomeMessage,  
                 banMessage: data.banMessage,     
                 leaveMessage: data.leaveMessage,
@@ -453,7 +497,7 @@ module.exports = {
                 type: ["leaveMessage","banMessage","joinMessage"],
                 welcomeMessage: `Welcome (user) to (server)!`,  
                 banMessage: '(user) has been banned from (server)!',     
-                leaveMessage: '(user) has left (server)!',
+                leaveMessage: '(user) has left (server).',
               }).catch((err) => {console.error(`error while saving welcome: ${err}`)});
               const welcomeAutoEmbed2 = new EmbedBuilder()
                 .setColor("#e66229")

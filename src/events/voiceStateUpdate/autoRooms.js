@@ -20,7 +20,9 @@ module.exports = async (oldChannel, newChannel, client ,handler) => {
             console.log(error)
         }
         autoroom.autoroomArray.push(newCreatedChannel.id);
-        await newChannel.setChannel(newCreatedChannel);
+        await newChannel.setChannel(newCreatedChannel).catch((error) =>{
+            newCreatedChannel.delete().catch((error) => {console.log(error)}); 
+        });
 
 
 
@@ -29,7 +31,8 @@ module.exports = async (oldChannel, newChannel, client ,handler) => {
 
     }
     if (autoroom.autoroomArray.includes(oldChannel.channelId)) {
-        const channel = await client.channels.fetch(oldChannel.channelId);
+        try {
+        const channel = await client.channels.fetch(oldChannel.channelId)
             if (channel.members.size === 0) {
                 // Delete the empty autoroom channel
                 if (!channel) return;
@@ -40,17 +43,9 @@ module.exports = async (oldChannel, newChannel, client ,handler) => {
                   ).catch((error) => {console.error("Error occurred while removing entry from autoroom:", error);
                     });
             }
+        } catch (error) {
+            }
         
     }
-
- /**
-  * old channel to check if the left channel id === database id or other way of checking if its a autoroom
-  * new channel to check if they joined source
-  * 
-  * 
-  * 
-  * 
-  * 
-  */
 
 };

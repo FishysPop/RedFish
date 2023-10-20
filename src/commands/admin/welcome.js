@@ -548,68 +548,6 @@ module.exports = {
               });
             }
           });
-
-
-
-
-
-
-
-
- const subcommand = "s"
-     if (subcommand === 'setup' ) {
-        const channel = interaction.options.getChannel('channel')
-        const type = interaction.options.getString('type')
-        const welcomeMessage = interaction.options.getString('welcome-message') || `Welcome (user) to (server)!`;
-        const leaveMessage = interaction.options.getString('leave-message') || '(user) has left (server)!';
-        const banMessage = interaction.options.getString('ban-message') || '(user) has been banned from (server)!';
-        if (welcome) {
-            await interaction.editReply(`Welcome has already been setup welcome messages will be created in ${welcome.channel} too disable run **/welcome disable**`)
-            return;
-       } else {
-        Welcome.create({
-         guildId: interaction.guild.id,
-         channel: channel,
-         type: type,
-         welcomeMessage: welcomeMessage,  
-         banMessage: banMessage,     
-         leaveMessage: leaveMessage,
-})
-         interaction.editReply("Welcome has been setup.")
-       }
-     }
-     if (subcommand === 'quick-setup' ) {
-        const channel = interaction.options.getChannel('channel')
-        const type = '2';
-        const welcomeMessage = `Welcome (user) to (server)!`;
-        const leaveMessage = '(user) has left (server)!';
-        const banMessage = '(user) has been banned from (server)!';
-        if (welcome) {
-            await interaction.editReply(`Welcome has already been setup welcome messages will be created in ${welcome.channel} too disable run **/welcome disable**`)
-            return;
-       } else {
-        Welcome.create({
-         guildId: interaction.guild.id,
-         channel: channel.id,
-         type: type,
-         welcomeMessage: welcomeMessage,  
-         banMessage: banMessage,     
-         leaveMessage: leaveMessage,
-})
-         interaction.editReply("Welcome has been setup.")
-       }
-     }
-     if (subcommand === 'disable' ) {
-        if (!(await Welcome.exists({ guildId: interaction.guild.id}))) {
-            interaction.editReply('Welcome have not been setup yet, Use  **/welcome setup** or **/welcome quick-setup** to set it up.');
-            return;
-        }
-
-        await Welcome.findOneAndDelete({ guildId: interaction.guild.id })
-        interaction.editReply("Welcome has been disabled")
-
-     }
-
     },
     // devOnly: Boolean,
     //testOnly: true,

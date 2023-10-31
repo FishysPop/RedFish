@@ -12,7 +12,7 @@ module.exports = async (member, client, handler) => {
     try {
         if (guild.channels.cache.get(welcome.channel)) {
             if (welcome.typeArray.includes('leaveMessage')) {
-                const channel = await client.channels.cache.get(welcomeData.channel);
+                const channel = await client.channels.cache.get(welcome.channel);
                 const userMessage = welcomeData.leaveMessage.replace('(user)', `${member.user}`);
                 const message = userMessage.replace('(server)', `${member.guild}`);
                 channel.send(`${message}`).catch((err) => {

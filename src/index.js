@@ -1,5 +1,5 @@
 require("dotenv").config();
-const { Client, GatewayIntentBits, ActivityType } = require("discord.js");
+const { Client, GatewayIntentBits, Collection } = require("discord.js");
 const mongoose = require("mongoose");
 const { SpotifyExtractor, SoundCloudExtractor } = require('@discord-player/extractor');
 const { CommandHandler } = require('djs-commander');
@@ -33,6 +33,11 @@ new CommandHandler({
   eventsPath: path.join(__dirname, 'events'),
   //testServer: process.env.GUILD_ID,
 });
+
+const playCommand = require('./commands/music/play');
+client.commands = new Collection();
+client.commands.set('play', playCommand);
+
 
 (async () => {
   try {

@@ -4,7 +4,7 @@ const ms = require('ms');
 module.exports = {
     data: new SlashCommandBuilder()
     .setName('giveaway')
-    .setDescription('Create a giveaway.')
+    .setDescription('Create a giveaway')
     .addSubcommand((subcommand) => subcommand.setName("create").setDescription("create a giveaway")
         .addChannelOption(option => option
           .setName('channel')
@@ -18,7 +18,7 @@ module.exports = {
                   .setDescription('How long should the giveaway last etc: 1h, 2d , 94m , 1w').setRequired(true))
                     .addStringOption(option => option
                       .setName('message')
-                      .setDescription('The title of the ticket message.').setRequired(true))
+                      .setDescription('The title of the giveaway.').setRequired(true))
                         .addRoleOption((option) => option
                           .setName('required-role')
                            .setDescription('The role user need to have to enter the giveaway')))

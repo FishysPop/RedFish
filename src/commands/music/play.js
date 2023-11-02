@@ -41,7 +41,7 @@ module.exports =  {
                   requestedBy: interaction.user,
                 },
                 bufferingTimeout: 15000,
-                leaveOnEmpty: true,
+                leaveOnEmpty: false,
                 leaveOnEmptyCooldown: 300000,
                 skipOnNoStream: true,
                 connectionTimeout: 999_999_999
@@ -58,20 +58,6 @@ module.exports =  {
         // let's return error if something failed
         return interaction.editReply(`Something went wrong: ${e}`);
     }
-    async function autocompleteRun(interaction) {
-      console.log("test")
-      const player = useMainPlayer();
-      const query = interaction.options.getString('query', true);
-      const results = await player.search(query);
-  
-      //Returns a list of songs with their title
-      return interaction.respond(
-          results.tracks.slice(0, 10).map((t) => ({
-              name: t.title,
-              value: t.url
-          }))
-      );
-  }
   },
   async autocompleteRun(interaction) {
     const player = useMainPlayer();

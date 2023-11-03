@@ -20,6 +20,7 @@ const client = new Client({
 player = new Player(client, {
   deafenOnJoin: true,
   lagMonitor: 1000,
+  skipFFmpeg: false,
   ytdlOptions: {
     filter: "audioonly",
     quality: "highestaudio",

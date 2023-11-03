@@ -23,9 +23,14 @@ player.events.on('playerStart', async (queue, track) => {
     const row = new ActionRowBuilder()
    .addComponents(playPauseButton, skipButton, stopButton, loopButton, shuffleButton);
    
-   
+   try {
+    
    queue.metadata.channel.send({ embeds: [playerStartEmbed] ,components: [row]})
-   return;}
+  } catch (error) {
+   console.error(`error while sending player event:${error}`); 
+  }
+   return;
+  }
 
 
     const playerStartEmbed = await new EmbedBuilder() //embed

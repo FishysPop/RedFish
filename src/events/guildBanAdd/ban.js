@@ -5,6 +5,7 @@ module.exports = async (ban, client ,handler) => {
   const guild = ban.guild;
   const welcome = await Welcome.findOne({ guildId: guild.id });
 
+  if (ban.id === client.user.id) return;
   if (!welcome) return;
   if (!guild) return;
   try {

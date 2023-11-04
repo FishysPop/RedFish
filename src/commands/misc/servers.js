@@ -17,4 +17,7 @@ module.exports = {
 
     interaction.editReply(`List of servers the bot is in:\n${guildList}`);
   },
+    // devOnly: Boolean,
+  //testOnly: true,
+  deleted: true,
 };

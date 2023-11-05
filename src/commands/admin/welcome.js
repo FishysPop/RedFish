@@ -6,17 +6,13 @@ module.exports = {
     .setDescription('Welcome people in a channel when they join the server.'),
    
     run: async ({ interaction, client, handler }) => {
+      if (!interaction.inGuild()) {interaction.reply({content: "You can only run this command in a server.",ephemeral: true,});
+       return;
+      }
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
             interaction.reply({content: 'Only server admins can run this comamand', ephemeral: true})
             return;
-         }    
-         if (!interaction.inGuild()) {
-            interaction.reply({
-              content: "You can only run this command in a server.",
-              ephemeral: true,
-            });
-           return;
-          }
+         }   
           await interaction.deferReply();
           const welcome = await Welcome.findOne({ guildId: interaction.guild.id }); //check the db for the guild id
 
@@ -472,6 +468,16 @@ module.exports = {
       
             //automatic setup
             if (interaction.customId === "welcomeAutomaticSetupButton0") {
+              if (!interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageChannels)) {
+                const welcomeNoPermsEmbed = new EmbedBuilder()
+                .setColor("#e66229")
+                .setTitle("Welcome Auto Setup")
+                .setDescription(`Hey there... Autosetup requires Manage Channels permissions, Since it creates channels when setting up.`);
+                MessageReply.edit({
+                  embeds: [welcomeNoPermsEmbed],
+                });
+               return;
+              }
               const welcomeAutoEmbed1 = new EmbedBuilder()
               .setColor("#e66229")
               .setTitle("Welcome Auto Setup")

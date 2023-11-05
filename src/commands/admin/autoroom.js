@@ -13,23 +13,24 @@ module.exports = {
 .                                                                                                       |-> if user chose easysetup -> runs handleEasySetupStep(1, data); -> asks the user what catagory they want channels to be created in ->saves the catagory as data.catagory -> asks for source channel -> saves it as data.source -> askes the user for name -> saves as data.name -> asks for comfirmation of settings -> saves data to db
    hope this helps visualise the code structure. If not just read ¯\_(ツ)_/¯, sorry if my code is unreadable :)  */
 
-    await interaction.deferReply();
     //permissions
     if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator))
-      return await interaction.editreply({
+      return await interaction.reply({
         content: "Only server admins can run this comamand",
         ephemeral: true,
       });
-    if (!PermissionsBitField.Flags.ManageChannels)
-      return await interaction.editreply({
-        content: "To use this feature please give me manageChannels permission",
-        ephemeral: true,
-      });
+      if (!interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageChannels)) {
+        interaction.reply({
+          content: 'Hey there... This feature requires me to have Manage Channels Permissions, Since autorooms create channels when a user joins the source channel.',
+          ephemeral: true})
+        return;
+     }    
     if (!interaction.inGuild())
-      return await interaction.editreply({
+      return await interaction.reply({
         content: "You can only run this command in a server.",
         ephemeral: true,
       });
+      await interaction.deferReply();
 
     const autoroom = await AutoRoom.findOne({ guildId: interaction.guild.id }); //check the db for the guild id
 

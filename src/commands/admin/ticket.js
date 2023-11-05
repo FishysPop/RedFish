@@ -27,20 +27,22 @@ module.exports = {
     .addSubcommand((subcommand) => subcommand.setName("disable").setDescription("Disables ticket system")),
 
     run: async ({ interaction, client, handler }) => {
-     await interaction.deferReply();
 
-    if(!PermissionsBitField.Flags.ManageChannels) return await interaction.editreply({content: 'I do not have manageChannels permission', ephemeral: true})
-    if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-        interaction.reply({content: 'Only server admins can run this comamand', ephemeral: true})
-        return;
-     }    
-     if (!interaction.inGuild()) {
-        interaction.reply({
-          content: "You can only run this command in a server.",
-          ephemeral: true,
-        });
-       return;
-      }
+        if (!interaction.inGuild()) {interaction.reply({content: "You can only run this command in a server.",ephemeral: true,});
+           return;
+          }
+        if (!interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageChannels)) {
+            interaction.reply({
+              content: 'Hey there... This feature requires me to have Manage Channels Permissions, Since tickets create channels when someone creates a ticket.',
+              ephemeral: true})
+            return;
+         }    
+         if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+            interaction.reply({content: 'Only server admins can run this comamand', ephemeral: true})
+            return;
+         } 
+     await interaction.deferReply();   
+
      const subcommand = interaction.options.getSubcommand();
      const ticket = await Ticket.findOne({ guildId: interaction.guild.id });
      if (subcommand === 'setup' ) {

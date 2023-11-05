@@ -42,7 +42,8 @@ module.exports =  {
                 },
                 volume: 30,
                 bufferingTimeout: 15000,
-                leaveOnEmpty: false,
+                leaveOnEmpty: true,
+                leaveOnEnd: true,
                 leaveOnEmptyCooldown: 300000,
                 skipOnNoStream: true,
                 connectionTimeout: 999_999_999

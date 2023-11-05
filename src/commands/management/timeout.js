@@ -1,21 +1,21 @@
-const { Client, Interaction, SlashCommandBuilder, PermissionFlagsBits ,PermissionsBitField} = require('discord.js');
+const { Client, Interaction, SlashCommandBuilder ,PermissionsBitField} = require('discord.js');
 const ms = require('ms');
 
 module.exports = {
   run: async ({client, interaction}) => {
-    if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+    if (!interaction.inGuild()) {
+      interaction.reply({
+        content: "You can only run this command in a server.",
+        ephemeral: true,
+      });
+     return;
+    }
+    if (!interaction.member.permissions.has(PermissionsBitField.Flags.ModerateMembers)) {
       interaction.reply({content: 'Only server admins can run this comamand', ephemeral: true})
       return;
    }    
-   if (!interaction.inGuild()) {
-    interaction.reply({
-      content: "You can only run this command in a server.",
-      ephemeral: true,
-    });
-   return;
-  }
-  if (!interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.BanMembers)) {
-    interaction.reply({content: 'I dont have MuteMembers permissions', ephemeral: true})
+  if (!interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.ModerateMembers)) {
+    interaction.reply({content: 'I dont have Time out members permissions', ephemeral: true})
     return;
  }  
     const mentionable = interaction.options.get('user').value;
@@ -86,8 +86,7 @@ module.exports = {
       .setDescription('The duration for the timeout 5m, 20s, 1 day')
       .setRequired(true)
     ),
-  permissionsRequired: [PermissionFlagsBits.MuteMembers],
-  botPermissions: [PermissionFlagsBits.MuteMembers],
+
   // devOnly: Boolean,
   //testOnly: true,
   // options: Object[],

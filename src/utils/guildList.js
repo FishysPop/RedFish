@@ -11,7 +11,6 @@ const client = new Client({
 
 client.once('ready', async () => {
     try {
-        await client.login(token);
         console.log('Bot is ready!');
 
         const guilds = client.guilds.cache;
@@ -28,4 +27,5 @@ client.once('ready', async () => {
 
 
 });
+client.login(token);
 

@@ -30,17 +30,16 @@ module.exports = {
           return;
        }    
         const targetRoleId = interaction.options.get('role').value;
+        const targetRole = interaction.guild.roles.cache.get(targetRoleId)
 
         try {
           let autoRole = await AutoRole.findOne({ guildId: interaction.guild.id });
-    
+          
           if (autoRole) {
             if (autoRole.roleId === targetRoleId) {
-              interaction.reply('Auto role has already been configured for that role. To disable run `/autorole disable');
+              interaction.reply('Autorole has already been configured for that role. To disable run `/autorole disable`');
               return;
             }
-    
-            autoRole.roleId = targetRoleId;
           } else {
             autoRole = new AutoRole({
               guildId: interaction.guild.id,
@@ -49,8 +48,21 @@ module.exports = {
           }
     
           await autoRole.save();
-          interaction.reply("Autorole has now been configured. To disable run `/autorole toggle:False`");
-          const alreadyset = 'true';
+          const targetRolePosition = targetRole.position;
+          const botRolePosition = interaction.guild.members.me.roles.highest.position; 
+
+          if (targetRolePosition >= botRolePosition) {
+            interaction.reply(`Autorole has been enabled but you need to move the bots role above ${targetRole} for it to work. To disable run \`/autorole disable\``);
+            return;
+          }
+          if (autoRole) {
+            interaction.reply(`Autorole has been updated to ${targetRole}. To disable run \`/autorole disable\``);
+            autoRole.roleId = targetRoleId
+            await autoRole.save();
+            return;
+          } else {
+            interaction.reply(`Autorole has now been configured for ${targetRole}. To disable run \`/autorole disable\``);
+          }
         } catch (error) {
           console.log(error);
         }

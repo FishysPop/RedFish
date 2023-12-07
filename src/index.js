@@ -22,9 +22,10 @@ player = new Player(client, {
   lagMonitor: 1000,
   skipFFmpeg: false,
   ytdlOptions: {
-    filter: "audioonly",
-    quality: "highestaudio",
-    highWaterMark: 1 << 25
+    filter: 'audioonly',
+    quality: 'highestaudio',
+    highWaterMark: 1 << 30,
+    dlChunkSize: 0,
   },
 });
 require('./events/playerEvents/playerEvents')

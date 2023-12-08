@@ -4,8 +4,12 @@ module.exports = async (interaction, client, handler) => {
         try {
             await command.autocompleteRun(interaction);
         } catch (error) {
-            console.log(`Error while autocompleting: ${error}`)
-        }
+            if (error.code === 10062) {
+                return;
+            }
+            console.log(`Error while autocompleting: ${error}`);   
+            return;  
+           }
     } else {
         return;
     }

@@ -21,7 +21,7 @@ module.exports =  {
     await interaction.deferReply();
     const channel = interaction.member.voice.channel;
     if (!channel) return interaction.editReply({content: 'You are not connected to a voice channel',ephemeral: true,})
-
+    try {
     const name = interaction.options.getString('query'); 
     const searchResult = await player.search(name, {
         requestedBy: interaction.user,
@@ -29,7 +29,7 @@ module.exports =  {
       if (!searchResult.hasTracks()) {
         return interaction.followUp(`We found no tracks for ${name}`);
       }
-    try {
+
         const res = await player.play(
             interaction.member.voice.channel.id,
             searchResult,

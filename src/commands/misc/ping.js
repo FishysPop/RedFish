@@ -6,15 +6,20 @@ module.exports = {
 
 
   run: async ({ interaction, client, handler }) => {
-	  await interaction.deferReply();
-  
+    try {
+    await interaction.deferReply();
+
 	  const reply = await interaction.fetchReply();
-  
+
 	  const ping = reply.createdTimestamp - interaction.createdTimestamp;
   
 	  interaction.editReply(
 		`Pong! Client ${ping}ms | Websocket: ${client.ws.ping}ms`
 	  );
+          
+  } catch (error) {
+   console.log("error while running ping",error)   
+  }
   },
   // devOnly: Boolean,
   //testOnly: true,

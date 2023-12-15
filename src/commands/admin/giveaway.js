@@ -40,13 +40,14 @@ module.exports = {
         .setDescription('The giveaway message id or link | right click and copy message id').setRequired(true))),
 
     run: async ({ interaction, client, handler }) => {
-     await interaction.deferReply();
-     const subcommand = interaction.options.getSubcommand();
-    if(!PermissionsBitField.Flags.ManageChannels) return await interaction.editreply({content: 'I do not have manageChannels permission', ephemeral: true})
     if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
         interaction.reply({content: 'Only server admins can run this comamand', ephemeral: true})
         return;
-     }    
+     }  
+     await interaction.deferReply();
+     const subcommand = interaction.options.getSubcommand();
+    if(!PermissionsBitField.Flags.ManageChannels) return await interaction.editreply({content: 'I do not have manageChannels permission', ephemeral: true})
+
      if (!interaction.inGuild()) {
       interaction.editReply({
         content: "You can only run this command in a server.",

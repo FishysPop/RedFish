@@ -14,10 +14,16 @@ module.exports = async (interaction, client, handler) => {
       try {
         let playing = !queue.node.isPaused();
         if (playing) {
-          interaction.reply(`${user}#${discriminator} has paused the queue.`);
+          const PlayerPauseEmbed = await new EmbedBuilder() 
+          .setColor('#e66229')
+            .setDescription(`${usera} has paused the queue.`)
+          interaction.reply({ embeds: [PlayerPauseEmbed]})
           queue.node.pause();
         } else {
-          interaction.reply(`${user}#${discriminator} has resumed the queue.`);
+          const PlayerResumedEmbed = await new EmbedBuilder() 
+          .setColor('#e66229')
+            .setDescription(`${usera} has resumed the queue.`)
+          interaction.reply({ embeds: [PlayerResumedEmbed]})
           queue.node.resume();
         }
       } catch {

@@ -70,7 +70,10 @@ player.events.on("error", (queue, error) => {
   console.log(`[${queue.guild.name}] (ID:${queue.metadata.channel}) Error emitted from the queue: ${error.message}`);
 })
 
-player.events.on("playerError", (queue, error) => {
+player.events.on("playerError", async (queue, error) => {
+  const playeErrorEmbed = await new EmbedBuilder() 
+	.setColor('#e66229')
+    .setDescription(`Oops, We failed to extract the song, skipping to the next!`)
   console.log(`[${queue.guild.name}] (ID:${queue.metadata.channel}) Error emitted from the player: ${error.message}`);
-  queue.metadata.channel.send({ content: '❌ | Failed to extract the following song... skipping to the next!' })
-})
+  queue.metadata.channel.send({ embeds: [playeErrorEmbed]})
+});

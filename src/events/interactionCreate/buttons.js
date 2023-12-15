@@ -36,14 +36,20 @@ module.exports = async (interaction, client, handler) => {
         });
       } else {
         queue.node.skip();
-        interaction.reply(`${user}#${discriminator} has skipped a song.`);
+        const PlayerSkipEmbed = await new EmbedBuilder() 
+        .setColor('#e66229')
+          .setDescription(`${usera} has skipped a song.`)
+        interaction.reply({ embeds: [PlayerSkipEmbed]})
       }
       return;
     }
     if (buttonname === "Stop") {
       try {
         queue.delete();
-        interaction.reply(`${user}#${discriminator} has disconnected the bot.`);
+        const PlayerStopEmbed = await new EmbedBuilder() 
+        .setColor('#e66229')
+          .setDescription(`${usera} has disconnected the bot.`)
+        interaction.reply({ embeds: [PlayerStopEmbed]})
       } catch {
         interaction.reply({
           content: `The bot is not in a voice channel`,
@@ -56,10 +62,16 @@ module.exports = async (interaction, client, handler) => {
       try {
         let repeatMode = queue.repeatMode;
         if (repeatMode === 0) {
-          interaction.reply(`${user}#${discriminator} has looped the queue.`);
+          const PlayerLoopEmbed = await new EmbedBuilder() 
+          .setColor('#e66229')
+            .setDescription(`${usera} has looped the queue.`)
+          interaction.reply({ embeds: [PlayerLoopEmbed]})
           queue.setRepeatMode(2);
         } else {
-          interaction.reply(`${user}#${discriminator} has unlooped the queue.`);
+          const PlayerLoopEmbed2 = await new EmbedBuilder() 
+          .setColor('#e66229')
+            .setDescription(`${usera} has unlooped the queue.`)
+          interaction.reply({ embeds: [PlayerLoopEmbed2]})
           queue.setRepeatMode(0);
         }
       } catch {
@@ -73,7 +85,10 @@ module.exports = async (interaction, client, handler) => {
     if (buttonname === "Shuffle") {
       try {
         queue.tracks.shuffle();
-        interaction.reply(`${user}#${discriminator} has shuffled the queue.`);
+        const PlayerShuffleEmbed = await new EmbedBuilder() 
+        .setColor('#e66229')
+          .setDescription(`${usera} has shuffled the queue.`)
+        interaction.reply({ embeds: [PlayerShuffleEmbed]})
       } catch {
         interaction.reply({
           content: `There is no music playing`,

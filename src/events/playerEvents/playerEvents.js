@@ -65,3 +65,12 @@ player.events.on('playerStart', async (queue, track) => {
     });
   })
 });
+
+player.events.on("error", (queue, error) => {
+  console.log(`[${queue.guild.name}] (ID:${queue.metadata.channel}) Error emitted from the queue: ${error.message}`);
+})
+
+player.events.on("playerError", (queue, error) => {
+  console.log(`[${queue.guild.name}] (ID:${queue.metadata.channel}) Error emitted from the player: ${error.message}`);
+  queue.metadata.channel.send({ content: '❌ | Failed to extract the following song... skipping to the next!' })
+})

@@ -21,23 +21,20 @@ module.exports =  {
      return;
     }
     const channel = interaction.member.voice.channel;
-    if (!channel) return interaction.editReply({content: 'You are not connected to a voice channel',ephemeral: true,})
-
+    if (!channel) return interaction.reply({content: 'You are not connected to a voice channel',ephemeral: true,})
     await interaction.deferReply();
     const name = interaction.options.getString('query'); 
-
-
 
     switch (client.playerType) {
       case "both":
         try {
+          const player = useMainPlayer();
           const searchResult = await player.search(name, {
               requestedBy: interaction.user,
             });
             if (!searchResult.hasTracks()) {
               return interaction.followUp(`We found no tracks for ${name}`);
             }
-      
               const res = await player.play(
                   interaction.member.voice.channel.id,
                   searchResult,
@@ -58,19 +55,27 @@ module.exports =  {
                     },
                   }
                 );
-       
-                const message = res.track.playlist
-                ? `Successfully enqueued **track(s)** from: **${res.track.playlist.title}**`
-                : `Successfully enqueued: **${res.track.author} - ${res.track.title}**`; 
-                return interaction.editReply({ content: message });
+                if (res.track.playlist) {
+                  const embed = new EmbedBuilder()
+                  .setColor('#e66229')
+                  .setDescription(`**Enqueued: [${res.track.playlist.title}](${res.track.playlist.url}) (${res.track.playlist.tracks.length} tracks)**`)
+                   return interaction.editReply({ embeds: [embed] });
+                } else {
+                  const embed = new EmbedBuilder()
+                  .setColor('#e66229')
+                  .setDescription(`**Enqueued: [${res.track.title}](${res.track.url}) - ${res.track.author}** \`${res.track.duration}\``)
+                   return interaction.editReply({ embeds: [embed] });
+                }
               } 
                 catch (e) {
+                   console.log(e)
               return interaction.editReply(`Something went wrong: ${e}`);
           }
         break;
 
         case "discord_player":
           try {
+            const player = useMainPlayer();
             const searchResult = await player.search(name, {
                 requestedBy: interaction.user,
               });
@@ -99,17 +104,27 @@ module.exports =  {
                     }
                   );
          
-                  const message = res.track.playlist
-                  ? `Successfully enqueued **track(s)** from: **${res.track.playlist.title}**`
-                  : `Successfully enqueued: **${res.track.author} - ${res.track.title}**`; 
-                  return interaction.editReply({ content: message });
+                  if (res.track.playlist) {
+                    const embed = new EmbedBuilder()
+                    .setColor('#e66229')
+                    .setDescription(`**Enqueued: [${res.track.playlist.title}](${res.track.playlist.url}) (${res.track.playlist.tracks.length} tracks)**`)
+                     return interaction.editReply({ embeds: [embed] });
+                  } else {
+                    const embed = new EmbedBuilder()
+                    .setColor('#e66229')
+                    .setDescription(`**Enqueued: [${res.track.title}](${res.track.url}) - ${res.track.author}** \`${res.track.duration}\``)
+                     return interaction.editReply({ embeds: [embed] });
+                  }
+
                 } 
                   catch (e) {
+                    console.log(e)
                 return interaction.editReply(`Something went wrong: ${e}`);
             }
         break;
 
         case "lavalink":
+          try {
           const player = await client.manager.createPlayer({
             guildId: interaction.guild.id,
             textId: interaction.channel.id,
@@ -128,19 +143,21 @@ module.exports =  {
 
             const embed = new EmbedBuilder()
                 .setColor('#e66229')
-                .setDescription(`**Queued • [${res.playlistName}](${name})** \`${convertTime(res.tracks[0].length + player.queue.durationLength, true)}\` (${res.tracks.length} tracks) • ${res.tracks[0].requester}`)
-
+                .setDescription(`**Enqueued: [${res.playlistName}](${name}) (${res.tracks.length} tracks**)`)
             return interaction.editReply({ content: " ", embeds: [embed] })
         } else {
             player.queue.add(res.tracks[0]);
 
             if (!player.playing && !player.paused) player.play();
-
             const embed = new EmbedBuilder()
                 .setColor('#e66229')
-                .setDescription(`**Queued • [${res.tracks[0].title}](${res.tracks[0].uri})** \`${convertTime(res.tracks[0].length, true)}\` • ${res.tracks[0].requester}`)
-
+                .setDescription(`**Enqueued: [${res.tracks[0].title}](${res.tracks[0].uri}) - ${res.tracks[0].author}** \`${convertTime(res.tracks[0].length, true)}\``)
             return interaction.editReply({ content: " ", embeds: [embed] })
+        }
+      }
+        catch (e) {
+          console.log(e)
+      return interaction.editReply(`Something went wrong: ${e}`);
         }
         break;
     

@@ -1,5 +1,7 @@
 const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { Player, QueryType, useMainPlayer } = require('discord-player');
+const { convertTime } = require("../../utils/ConvertTime.js");
+
 module.exports =  {
     data: new SlashCommandBuilder()
     .setName("play")
@@ -18,48 +20,138 @@ module.exports =  {
       });
      return;
     }
-    await interaction.deferReply();
     const channel = interaction.member.voice.channel;
     if (!channel) return interaction.editReply({content: 'You are not connected to a voice channel',ephemeral: true,})
-    try {
-    const name = interaction.options.getString('query'); 
-    const searchResult = await player.search(name, {
-        requestedBy: interaction.user,
-      });
-      if (!searchResult.hasTracks()) {
-        return interaction.followUp(`We found no tracks for ${name}`);
-      }
 
-        const res = await player.play(
-            interaction.member.voice.channel.id,
-            searchResult,
-            {
-              nodeOptions: {
-                metadata: {
-                  channel: interaction.channel,
-                  client: interaction.guild.members.me,
-                  requestedBy: interaction.user,
-                },
-                volume: 30,
-                bufferingTimeout: 15000,
-                leaveOnEmpty: true,
-                leaveOnEnd: false,
-                leaveOnEmptyCooldown: 300000,
-                skipOnNoStream: true,
-                connectionTimeout: 999_999_999
-              },
+    await interaction.deferReply();
+    const name = interaction.options.getString('query'); 
+
+
+
+    switch (client.playerType) {
+      case "both":
+        try {
+          const searchResult = await player.search(name, {
+              requestedBy: interaction.user,
+            });
+            if (!searchResult.hasTracks()) {
+              return interaction.followUp(`We found no tracks for ${name}`);
             }
-          );
- 
-          const message = res.track.playlist
-          ? `Successfully enqueued **track(s)** from: **${res.track.playlist.title}**`
-          : `Successfully enqueued: **${res.track.author} - ${res.track.title}**`; 
-          return interaction.editReply({ content: message });
-        } 
-          catch (e) {
-        // let's return error if something failed
-        return interaction.editReply(`Something went wrong: ${e}`);
+      
+              const res = await player.play(
+                  interaction.member.voice.channel.id,
+                  searchResult,
+                  {
+                    nodeOptions: {
+                      metadata: {
+                        channel: interaction.channel,
+                        client: interaction.guild.members.me,
+                        requestedBy: interaction.user,
+                      },
+                      volume: 30,
+                      bufferingTimeout: 15000,
+                      leaveOnEmpty: true,
+                      leaveOnEnd: false,
+                      leaveOnEmptyCooldown: 300000,
+                      skipOnNoStream: true,
+                      connectionTimeout: 999_999_999
+                    },
+                  }
+                );
+       
+                const message = res.track.playlist
+                ? `Successfully enqueued **track(s)** from: **${res.track.playlist.title}**`
+                : `Successfully enqueued: **${res.track.author} - ${res.track.title}**`; 
+                return interaction.editReply({ content: message });
+              } 
+                catch (e) {
+              return interaction.editReply(`Something went wrong: ${e}`);
+          }
+        break;
+
+        case "discord_player":
+          try {
+            const searchResult = await player.search(name, {
+                requestedBy: interaction.user,
+              });
+              if (!searchResult.hasTracks()) {
+                return interaction.followUp(`We found no tracks for ${name}`);
+              }
+        
+                const res = await player.play(
+                    interaction.member.voice.channel.id,
+                    searchResult,
+                    {
+                      nodeOptions: {
+                        metadata: {
+                          channel: interaction.channel,
+                          client: interaction.guild.members.me,
+                          requestedBy: interaction.user,
+                        },
+                        volume: 30,
+                        bufferingTimeout: 15000,
+                        leaveOnEmpty: true,
+                        leaveOnEnd: false,
+                        leaveOnEmptyCooldown: 300000,
+                        skipOnNoStream: true,
+                        connectionTimeout: 999_999_999
+                      },
+                    }
+                  );
+         
+                  const message = res.track.playlist
+                  ? `Successfully enqueued **track(s)** from: **${res.track.playlist.title}**`
+                  : `Successfully enqueued: **${res.track.author} - ${res.track.title}**`; 
+                  return interaction.editReply({ content: message });
+                } 
+                  catch (e) {
+                return interaction.editReply(`Something went wrong: ${e}`);
+            }
+        break;
+
+        case "lavalink":
+          const player = await client.manager.createPlayer({
+            guildId: interaction.guild.id,
+            textId: interaction.channel.id,
+            voiceId: channel.id,
+            volume: 30,
+            deaf: true
+        });
+
+        const res = await player.search(name, { requester: interaction.user });
+        if (!res.tracks.length) return interaction.editReply("No results found!");
+
+        if (res.type === "PLAYLIST") {
+            for (let track of res.tracks) player.queue.add(track);
+
+            if (!player.playing && !player.paused) player.play();
+
+            const embed = new EmbedBuilder()
+                .setColor('#e66229')
+                .setDescription(`**Queued • [${res.playlistName}](${name})** \`${convertTime(res.tracks[0].length + player.queue.durationLength, true)}\` (${res.tracks.length} tracks) • ${res.tracks[0].requester}`)
+
+            return interaction.editReply({ content: " ", embeds: [embed] })
+        } else {
+            player.queue.add(res.tracks[0]);
+
+            if (!player.playing && !player.paused) player.play();
+
+            const embed = new EmbedBuilder()
+                .setColor('#e66229')
+                .setDescription(`**Queued • [${res.tracks[0].title}](${res.tracks[0].uri})** \`${convertTime(res.tracks[0].length, true)}\` • ${res.tracks[0].requester}`)
+
+            return interaction.editReply({ content: " ", embeds: [embed] })
+        }
+        break;
+    
+      default:
+        break;
     }
+
+
+
+  
+
   },
   async autocompleteRun(interaction) {
     const player = useMainPlayer();

@@ -88,7 +88,7 @@ new CommandHandler({
     await mongoose.connect(process.env.MONGODB_URI);
     console.log("Connected to DB.");
     require('./events/giveawayEvents/checkGiveaway')(client);
-    if (client.playerType === 'discord_player') await player.extractors.loadDefault();
+    if (client.playerType === 'discord_player' | client.playerType === 'both') await player.extractors.loadDefault();
     client.login(process.env.TOKEN); 
   } catch (error) {
     console.log(`Error: ${error}`);

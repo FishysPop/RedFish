@@ -5,6 +5,7 @@ const { SpotifyExtractor, SoundCloudExtractor } = require('@discord-player/extra
 const { CommandHandler } = require('djs-commander');
 const { Player } = require('discord-player');
 const { Kazagumo, Plugins } = require("kazagumo");
+const Spotify = require('kazagumo-spotify');
 const { Connectors } = require("shoukaku");
 
 
@@ -48,7 +49,16 @@ if (process.env.LAVALINK === 'true') {
 }];
   client.manager = new Kazagumo({
     defaultSearchEngine: "youtube",
-    plugins: [new Plugins.PlayerMoved(client)],
+    plugins: [
+      new Plugins.PlayerMoved(client),
+      new Spotify({
+      clientId: process.env.SPOTIFY_ID,
+      clientSecret: process.env.SPOTIFY_SECRET,
+      playlistPageLimit: 2, // ( 100 tracks per page )
+      albumPageLimit: 4, //( 50 tracks per page )
+      searchLimit: 10, // ( track search limit. Max 50 )
+      searchMarket: 'US', //( eg: US, IN, EN ] )//
+    }),],
     send: (guildId, payload) => {
         const guild = client.guilds.cache.get(guildId);
         if (guild) guild.shard.send(payload);

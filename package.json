@@ -20,6 +20,7 @@
     "djs-commander": "^0.0.45",
     "dotenv": "^16.0.3",
     "kazagumo": "^2.3.3",
+    "kazagumo-spotify": "^1.2.1",
     "mediaplex": "^0.0.8",
     "mongoose": "^7.3.3",
     "ms": "^2.1.3",

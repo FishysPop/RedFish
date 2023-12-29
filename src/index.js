@@ -17,7 +17,6 @@ const client = new Client({
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildPresences,
     GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.GuildModeration
   ],
@@ -88,9 +87,6 @@ new CommandHandler({
   eventsPath: path.join(__dirname, 'events'),
   //testServer: process.env.GUILD_ID,
 });
-
-
-
 
 (async () => {
   try {

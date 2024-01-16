@@ -2,8 +2,8 @@ const { EmbedBuilder , SlashCommandBuilder } = require("discord.js");
 const { useQueue } = require('discord-player');
 module.exports =  {
     data: new SlashCommandBuilder()
-    .setName("resume")
-    .setDescription("resume or pause a song."),
+    .setName("pause")
+    .setDescription("pause or resume a song."),
 
   run: async ({ interaction, client, handler }) => {
     if (!interaction.inGuild()) {
@@ -43,6 +43,6 @@ module.exports =  {
   // devOnly: Boolean,
   //testOnly: true,
   // options: Object[],
-   deleted: true
+  // deleted: true
 
 };

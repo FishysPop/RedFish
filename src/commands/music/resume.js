@@ -1,11 +1,11 @@
-const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder } = require("discord.js");
+const { EmbedBuilder , SlashCommandBuilder } = require("discord.js");
 const { useQueue } = require('discord-player');
 module.exports =  {
     data: new SlashCommandBuilder()
     .setName("resume")
     .setDescription("resume or pause a song."),
 
-  run: ({ interaction, client, handler }) => {
+  run: async ({ interaction, client, handler }) => {
     if (!interaction.inGuild()) {
       interaction.reply({
         content: "You can only run this command in a server.",
@@ -24,11 +24,17 @@ module.exports =  {
   }
     let playing = !queue.node.isPaused();
     if (playing) {
-        interaction.reply(`${interaction.user.username}#${interaction.user.discriminator} has paused the queue.`)
+      const PlayerPauseEmbed = await new EmbedBuilder() 
+      .setColor('#e66229')
+        .setDescription(`${interaction.user} has paused the queue.`)
+      interaction.reply({ embeds: [PlayerPauseEmbed]})
         queue.node.pause()
         
     } else {
-        interaction.reply(`${interaction.user.username}#${interaction.user.discriminator} has resumed the queue.`)
+      const PlayerResumedEmbed = await new EmbedBuilder() 
+      .setColor('#e66229')
+        .setDescription(`${interaction.user} has resumed the queue.`)
+      interaction.reply({ embeds: [PlayerResumedEmbed]})
         queue.node.resume();
     }
     
@@ -37,6 +43,6 @@ module.exports =  {
   // devOnly: Boolean,
   //testOnly: true,
   // options: Object[],
-  // deleted: true
+   deleted: true
 
 };

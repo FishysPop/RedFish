@@ -10,6 +10,7 @@ module.exports = async (interaction, client, handler) => {
     const user = interaction.user.username;
     const usera = interaction.user;
     const discriminator = interaction.user.discriminator;
+    try {
     if (buttonname === "Pause") {
       try {
         let playing = !queue.node.isPaused();
@@ -308,5 +309,9 @@ module.exports = async (interaction, client, handler) => {
         .catch((err) => {console.log("error while sending message for giveaway enter:", err)});
     return;
     }
+  } catch (error) {
+      console.log("error with buttons", error)
   }
+  }
+  
 };

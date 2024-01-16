@@ -1,4 +1,4 @@
-const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder, italic } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { useQueue } = require('discord-player');
 module.exports =  {
     data: new SlashCommandBuilder()
@@ -20,15 +20,19 @@ module.exports =  {
     try {
       let repeatMode = queue.repeatMode;
       if (repeatMode === 0) {
-          interaction.reply(`${user}#${discriminator} has enabled autoplay | Do this command again to disable autoplay.`)
+        const embed = new EmbedBuilder()
+        .setColor('#e66229')
+        .setDescription(`**Autoplay enabled**`).setFooter({ text:`Run this command again to disable it.`})
+          interaction.reply({ embeds: [embed] });
           queue.setRepeatMode(3);
       
           
   } else {
          interaction.reply(`${user}#${discriminator} has disabled autoplay.`)
           queue.setRepeatMode(0);
-      } } catch {
+      } } catch (error) {
           interaction.reply({content: `There is no music playing`,ephemeral: true,})
+          console.log(error)
       }
    return;
   // devOnly: Boolean,

@@ -1,4 +1,4 @@
-const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder, EmbedBuilder ,PermissionsBitField} = require("discord.js");
 const { Player, QueryType, useMainPlayer } = require('discord-player');
 const { convertTime } = require("../../utils/ConvertTime.js");
 
@@ -22,6 +22,10 @@ module.exports =  {
     }
     const channel = interaction.member.voice.channel;
     if (!channel) return interaction.reply({content: 'You are not connected to a voice channel',ephemeral: true,})
+    if (!interaction.guild.members.me.permissionsIn(channel).has(PermissionsBitField.Flags.ViewChannel)) {
+      interaction.reply("I dont have access to that channel")
+      return;
+    }
     await interaction.deferReply();
     const name = interaction.options.getString('query'); 
 
@@ -118,8 +122,8 @@ module.exports =  {
 
                 } 
                   catch (e) {
-                    console.log(e)
-                return interaction.editReply(`Something went wrong: ${e}`);
+                    console.log(`[${interaction.guild.name}] (ID:${channel}) request:(${name}) Error emitted from play: ${e}`)
+                return interaction.editReply(`Oops... something went wrong`);
             }
         break;
 

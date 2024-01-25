@@ -17,7 +17,7 @@ client.once('ready', async () => {
 
         console.log('Guild Index:');
         guilds.forEach(guild => {
-            console.log(`${guild.name} - Members: ${guild.memberCount}`);
+            console.log(`${guild.name}(${guild.id}) - Members: ${guild.memberCount}`);
         });
 
         client.destroy();

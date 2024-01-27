@@ -317,11 +317,6 @@ module.exports = async (interaction, client, handler) => {
             })
             .catch((err) => {console.log("error while sending message for giveaway enter:", err)});
           default:
-            interaction.reply({
-              content: "Unknown button",
-              ephemeral: true,
-            });
-            console.log("unknown button:", buttonname)
             break;
       }
   } catch (error) {

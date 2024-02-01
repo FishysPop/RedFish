@@ -79,6 +79,7 @@ if (process.env.DISCORD_PLAYER === 'true' && process.env.LAVALINK === 'true') {
 }
 client.playerType = playerType;
 console.log(client.playerType);
+require('./events/errors/handleErrors.js')(client);
 
 
 new CommandHandler({

@@ -17,6 +17,10 @@ module.exports =  {
     const queue = useQueue(interaction.guildId)
     const user = interaction.user.username
     const discriminator = interaction.user.discriminator
+    if (!queue || !queue.isPlaying()) {
+      interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+      return;
+  }
     try {
       let repeatMode = queue.repeatMode;
       if (repeatMode === 0) {
@@ -25,10 +29,12 @@ module.exports =  {
         .setDescription(`**Autoplay enabled**`).setFooter({ text:`Run this command again to disable it.`})
           interaction.reply({ embeds: [embed] });
           queue.setRepeatMode(3);
-      
           
   } else {
-         interaction.reply(`${user}#${discriminator} has disabled autoplay.`)
+    const embed2 = new EmbedBuilder()
+    .setColor('#e66229')
+    .setDescription(`**Autoplay disabled**`).setFooter({ text:`Run this command again to enable it.`})
+      interaction.reply({ embeds: [embed2] });
           queue.setRepeatMode(0);
       } } catch (error) {
           interaction.reply({content: `There is no music playing`,ephemeral: true,})

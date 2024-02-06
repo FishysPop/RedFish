@@ -2,6 +2,8 @@ const {Client,Interaction,AttachmentBuilder,SlashCommandBuilder,} = require('dis
 const canvacord = require('canvacord');
 const calculateLevelXp = require('../../utils/calculateLevelXp');
 const Level = require('../../models/Level');
+const GuildSettings = require('../../models/GuildSettings');
+
 
 module.exports = {
   /**
@@ -14,6 +16,15 @@ module.exports = {
       interaction.reply('You can only run this command inside a server.');
       return;
     }
+    const guildSettings = await GuildSettings.findOne({ guildId: interaction.guild.id });
+    if(!guildSettings) return interaction.reply({
+      content: "Leveling is not enabled in this server. Enable it with **\`/level-setting\`**",
+      ephemeral: true,
+    });
+    if(guildSettings.levels === false) return interaction.reply({
+      content: "Leveling is not enabled in this server. Enable it with **\`/level-setting\`**",
+      ephemeral: true,
+    });
 
     await interaction.deferReply();
 

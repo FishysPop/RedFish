@@ -55,6 +55,14 @@ module.exports = {
             await interaction.editReply(`Ticket system has already been setup tickets will be created in ${Ticket.Category} to disable run **/ticket disable**`)
             return;
        } else {
+        if (!interaction.guild.members.me.permissionsIn(channel).has(PermissionsBitField.Flags.ViewChannel)) {
+            interaction.editReply("I dont have access to that channel")
+            return;
+          }
+          if (!interaction.guild.members.me.permissionsIn(category).has(PermissionsBitField.Flags.ViewChannel)) {
+            interaction.editReply("I dont have access to that channel")
+            return;
+          }
         Ticket.create({
             guildId: interaction.guild.id,
             category: category.id,
@@ -96,6 +104,10 @@ module.exports = {
                 },
                 {
                     id: createdRole.id,
+                    allow: [PermissionsBitField.Flags.ViewChannel],
+                },
+                {
+                    id: client.user.id,
                     allow: [PermissionsBitField.Flags.ViewChannel],
                 },
 

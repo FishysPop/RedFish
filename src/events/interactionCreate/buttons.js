@@ -145,6 +145,10 @@ module.exports = async (interaction, client, handler) => {
                     allow: [PermissionsBitField.Flags.ViewChannel],
                   },
                   {
+                    id: client.user.id,
+                    allow: [PermissionsBitField.Flags.ViewChannel],
+                  },
+                  {
                     id: ticket.role,
                     allow: [PermissionsBitField.Flags.ViewChannel],
                   },
@@ -171,7 +175,7 @@ module.exports = async (interaction, client, handler) => {
                 .setLabel("Archive")
                 .setStyle(ButtonStyle.Success);
               const row = new ActionRowBuilder().addComponents(Delete, Archive);
-              setTimeout(delay, 3000);
+              setTimeout(delay, 1000);
               function delay() {
                 ticketChannel.send({ embeds: [ticketEmbed], components: [row] });
               }

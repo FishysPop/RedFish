@@ -238,6 +238,10 @@ module.exports = async (interaction, client, handler) => {
                   id: ticket2.role,
                   allow: [PermissionsBitField.Flags.ViewChannel],
                 },
+                {
+                  id: client.user.id,
+                  allow: [PermissionsBitField.Flags.ViewChannel],
+                },
               ]);
               interaction.channel.setName(`${interaction.channel.name} Archived`);
               interaction.reply("**Ticket Archived**");

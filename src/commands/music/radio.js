@@ -19,9 +19,11 @@ module.exports =  {
       });
      return;
     }
-    await interaction.deferReply();
     const channel = interaction.member.voice.channel;
     if (!channel) return interaction.reply({content: 'You are not connected to a voice channel',ephemeral: true,}); 
+   
+    await interaction.deferReply();
+
 
     const name = interaction.options.getString('name'); 
     try {

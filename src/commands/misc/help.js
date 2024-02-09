@@ -30,6 +30,7 @@ module.exports = {
       /balance | Check your own balace or someone elses
       /daily | Claim your daily reward
       /level | Check your own level or someone elses
+      /leaderboard | Shows the top levels in this server.
       \nMusic
       /play | Play a song or playlist
       /queue | Shows the current queue
@@ -40,7 +41,7 @@ module.exports = {
       /autoplay | Will automaticly find and play a song at the end of the queue
       /disconnet | Removes the bot from the vc
       /radio | Play from a radio station
-      /resume | Resumes playback
+      /pause | Resumes playback
       \n If need any further assistance please dm fishypop
       `);
  

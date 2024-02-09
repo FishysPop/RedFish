@@ -59,16 +59,32 @@ module.exports =  {
                     },
                   }
                 );
-                if (res.track.playlist) {
-                  const embed = new EmbedBuilder()
-                  .setColor('#e66229')
-                  .setDescription(`**Enqueued: [${res.track.playlist.title}](${res.track.playlist.url}) (${res.track.playlist.tracks.length} tracks)**`)
-                   return interaction.editReply({ embeds: [embed] });
+                if (!interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.ViewChannel)) {
+                  if (res.track.playlist) {
+                    const embed = new EmbedBuilder()
+                    .setColor('#e66229')
+                    .setDescription(`**Enqueued: [${res.track.playlist.title}](${res.track.playlist.url}) (${res.track.playlist.tracks.length} tracks)**`)
+                    .setFooter({ text: `Media Controls Disabled: Missing Permissions`})
+                     return interaction.editReply({ embeds: [embed] });
+                  } else {
+                    const embed = new EmbedBuilder()
+                    .setColor('#e66229')
+                    .setDescription(`**Enqueued: [${res.track.title}](${res.track.url}) - ${res.track.author}** \`${res.track.duration}\``)
+                    .setFooter({ text: `Media Controls Disabled: Missing Permissions`})
+                     return interaction.editReply({ embeds: [embed] });
+                  }
                 } else {
-                  const embed = new EmbedBuilder()
-                  .setColor('#e66229')
-                  .setDescription(`**Enqueued: [${res.track.title}](${res.track.url}) - ${res.track.author}** \`${res.track.duration}\``)
-                   return interaction.editReply({ embeds: [embed] });
+                  if (res.track.playlist) {
+                    const embed = new EmbedBuilder()
+                    .setColor('#e66229')
+                    .setDescription(`**Enqueued: [${res.track.playlist.title}](${res.track.playlist.url}) (${res.track.playlist.tracks.length} tracks)**`)
+                     return interaction.editReply({ embeds: [embed] });
+                  } else {
+                    const embed = new EmbedBuilder()
+                    .setColor('#e66229')
+                    .setDescription(`**Enqueued: [${res.track.title}](${res.track.url}) - ${res.track.author}** \`${res.track.duration}\``)
+                     return interaction.editReply({ embeds: [embed] });
+                  }
                 }
               } 
                 catch (e) {
@@ -108,16 +124,32 @@ module.exports =  {
                     }
                   );
          
-                  if (res.track.playlist) {
-                    const embed = new EmbedBuilder()
-                    .setColor('#e66229')
-                    .setDescription(`**Enqueued: [${res.track.playlist.title}](${res.track.playlist.url}) (${res.track.playlist.tracks.length} tracks)**`)
-                     return interaction.editReply({ embeds: [embed] });
+                  if (!interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.ViewChannel)) {
+                    if (res.track.playlist) {
+                      const embed = new EmbedBuilder()
+                      .setColor('#e66229')
+                      .setDescription(`**Enqueued: [${res.track.playlist.title}](${res.track.playlist.url}) (${res.track.playlist.tracks.length} tracks)**`)
+                      .setFooter({ text: `Media Controls Disabled: Missing Permissions`})
+                       return interaction.editReply({ embeds: [embed] });
+                    } else {
+                      const embed = new EmbedBuilder()
+                      .setColor('#e66229')
+                      .setDescription(`**Enqueued: [${res.track.title}](${res.track.url}) - ${res.track.author}** \`${res.track.duration}\``)
+                      .setFooter({ text: `Media Controls Disabled: Missing Permissions`})
+                       return interaction.editReply({ embeds: [embed] });
+                    }
                   } else {
-                    const embed = new EmbedBuilder()
-                    .setColor('#e66229')
-                    .setDescription(`**Enqueued: [${res.track.title}](${res.track.url}) - ${res.track.author}** \`${res.track.duration}\``)
-                     return interaction.editReply({ embeds: [embed] });
+                    if (res.track.playlist) {
+                      const embed = new EmbedBuilder()
+                      .setColor('#e66229')
+                      .setDescription(`**Enqueued: [${res.track.playlist.title}](${res.track.playlist.url}) (${res.track.playlist.tracks.length} tracks)**`)
+                       return interaction.editReply({ embeds: [embed] });
+                    } else {
+                      const embed = new EmbedBuilder()
+                      .setColor('#e66229')
+                      .setDescription(`**Enqueued: [${res.track.title}](${res.track.url}) - ${res.track.author}** \`${res.track.duration}\``)
+                       return interaction.editReply({ embeds: [embed] });
+                    }
                   }
 
                 } 

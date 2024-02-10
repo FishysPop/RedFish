@@ -65,9 +65,11 @@ module.exports = {
       .setLevel(fetchedLevel.level)
       .setCurrentXP(fetchedLevel.xp)
       .setRequiredXP(calculateLevelXp(fetchedLevel.level))
-      .setProgressBar('#D97614', 'COLOR')
-      .setUsername(targetUserObj.user.username)
-      .setDiscriminator(targetUserObj.user.discriminator);
+      .setProgressBar('#20B2AA', 'COLOR')
+      .setBackground('IMAGE', "https://i.imgur.com/XT5vLmD.jpeg")
+      .setOverlay('#D97614', 20, false)
+      .setStatus('online')
+      .setUsername(`@${targetUserObj.user.username}`);
 
     const data = await rank.build();
     const attachment = new AttachmentBuilder(data);

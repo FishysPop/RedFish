@@ -66,8 +66,8 @@ module.exports = {
       .setCurrentXP(fetchedLevel.xp)
       .setRequiredXP(calculateLevelXp(fetchedLevel.level))
       .setProgressBar('#20B2AA', 'COLOR')
-      .setBackground('IMAGE', "https://i.imgur.com/XT5vLmD.jpeg")
-      .setOverlay('#D97614', 20, false)
+      .setBackground('COLOR', "#214854")
+      .setOverlay('#367588', 0.5, true)
       .setStatus('online')
       .setUsername(`@${targetUserObj.user.username}`);
 

@@ -4,6 +4,9 @@ player.events.on('playerStart', async (queue, track) => {
   if (!queue.guild.members.me.permissionsIn(queue.metadata.channel).has(PermissionsBitField.Flags.ViewChannel)) {
     return;
   }
+  if (!queue.guild.members.me.permissionsIn(queue.metadata.channel).has(PermissionsBitField.Flags.SendMessages)) {
+    return;
+  }
     let requestedByString = track.requestedBy?.username ? `${track.requestedBy.username}#${track.requestedBy.discriminator}`
     : "AutoPlay" || `AutoPlay`
 

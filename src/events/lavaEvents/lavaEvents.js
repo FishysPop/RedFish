@@ -9,12 +9,14 @@ client.manager.shoukaku.on('disconnect', (name, players, moved) => {
     console.warn(`Lavalink ${name}: Disconnected`);
 });
 
-client.manager.shoukaku.on("playerStart", (player, track) => {
+client.manager.on("playerStart", (player, track) => {
+    console.log('playerStart')
+    console.log(player.textId)
     client.channels.cache.get(player.textId)?.send({content: `Now playing **${track.title}** by **${track.author}**`})
         .then(x => player.data.set("message", x));
 });
 
-client.manager.shoukaku.on("playerEnd", (player) => {
+client.manager.on("playerEnd", (player) => {
     player.data.get("message")?.edit({content: `Finished playing`});
 });
 

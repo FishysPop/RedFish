@@ -64,7 +64,12 @@ player.events.on('playerStart', async (queue, track) => {
  const collector = message.createMessageComponentCollector({
     idle: ms,
   });
-  collector.on("end", () => {
+  collector.on("end", async () => {
+    try {
+      const fetchedMessage = await message.channel.messages.fetch(message.id)
+    } catch (error) {
+      return;
+    }
     message.edit({
       components: [],
     });

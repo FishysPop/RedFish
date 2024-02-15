@@ -5,7 +5,10 @@ const Giveaway = require("../../models/Giveaway");
 
 module.exports = async (interaction, client, handler) => {
   const queue = useQueue(interaction.guildId);
-  const player = client.manager.players.get(interaction.guildId);
+  let player;
+  if (client.playerType === 'lavalink') { 
+    player = client.manager.players.get(interaction.guildId);
+   }
 
   if (interaction.isButton()) {
     const buttonname = interaction.customId;

@@ -1,4 +1,4 @@
-const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder, EmbedBuilder ,ComponentType} = require("discord.js");
+const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder, EmbedBuilder ,ComponentType ,PermissionsBitField} = require("discord.js");
 const { Player, QueryType } = require('discord-player');
 const axios = require('axios')
 module.exports =  {
@@ -12,6 +12,7 @@ module.exports =  {
 
 
   run: async({ interaction, client, handler }) => {
+    if (client.playerType === 'lavalink') return interaction.reply({content: 'Lavalink is not supported yet',ephemeral: true,});
     if (!interaction.inGuild()) {
       interaction.reply({
         content: "You can only run this command in a server.",
@@ -29,7 +30,7 @@ module.exports =  {
     try {
       let { data } = await axios.get(`https://nl1.api.radio-browser.info/json/stations/byname/${encodeURIComponent(name)}`)
       if (data.length < 1) {
-        return await interaction.followUp({ content: `❌ | No radio station was found` })}
+        return await interaction.followUp({ content: `❌ | No radio station was found, A full list can be found [here](https://www.radio-browser.info/search?page=1&hidebroken=true&order=votes&reverse=true)` })}
 
       const searchResult = await player.search(data[0].url_resolved, {
         requestedBy: interaction.user,
@@ -56,14 +57,22 @@ module.exports =  {
             }
           );
  
-          const message = res.track.playlist
-          ? `Successfully enqueued **track(s)** from: **${res.track.playlist.title}**`
-          : `Successfully enqueued: **${name}**`; 
-          return interaction.editReply({ content: message });
+          if (!interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.ViewChannel) || !interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.SendMessages)) {
+                const embed = new EmbedBuilder()
+                    .setColor('#e66229')
+                    .setDescription(`**Enqueued: [${name}](${res.track.url}) -** \`LIVE\``)
+                    .setFooter({ text: `Media Controls Disabled: Missing Permissions` });
+                return interaction.editReply({ embeds: [embed] });
+        } else {
+              const embed = new EmbedBuilder()
+              .setColor('#e66229')
+              .setDescription(`**Enqueued: [${name}](${res.track.url}) -** \`LIVE\``)
+               return interaction.editReply({ embeds: [embed] });
+          }
         } 
           catch (e) {
         // let's return error if something failed
-        console.log(`Error with radio ${e}`)
+        console.log(`Error with radio `, e)
         return interaction.editReply(`Unable to play ${name} due to an error`);
     }
   }

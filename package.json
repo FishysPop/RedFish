@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/index.js",
-    "guildList": "node src/utils/guildList.js"
+    "guildList": "node src/utils/guildList.js",
+    "debug": "node src/utils/debugEvents.js"
   },
   "keywords": [],
   "author": "FishyPop",

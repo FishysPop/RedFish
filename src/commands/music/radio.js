@@ -72,7 +72,7 @@ module.exports =  {
         } 
           catch (e) {
         // let's return error if something failed
-        console.log(`Error with radio `, e)
+        console.log(`Error with radio `, 'query: ', name ,'error: ', e)
         return interaction.editReply(`Unable to play ${name} due to an error`);
     }
   }

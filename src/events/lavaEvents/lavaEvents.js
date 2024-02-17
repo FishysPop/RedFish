@@ -29,8 +29,27 @@ client.manager.on("playerStart", async (player, track) => {
     const shuffleButton = new ButtonBuilder().setCustomId('LavaShuffle').setEmoji('<:w_shuffle:1106270712542531624>').setStyle(ButtonStyle.Secondary);
     const row = new ActionRowBuilder()
    .addComponents(playPauseButton, skipButton, stopButton, loopButton, shuffleButton);
-    client.channels.cache.get(player.textId)?.send({ embeds: [playerStartEmbed] ,components: [row]})
-        .then(x => player.data.set("message", x));
+   const channel = client.channels.cache.get(player.textId);
+   const message = await channel.send({ embeds: [playerStartEmbed], components: [row] })
+   player.data.set("message", message);
+       let ms = track.length
+       if (ms < "300000") {
+        } else {
+         ms = "300000";
+        }
+       const collector = message.createMessageComponentCollector({
+        idle: ms,
+        });
+          collector.on("end", async () => {
+            try {
+              const fetchedMessage = await message.channel.messages.fetch(message.id)
+              fetchedMessage.edit({
+                components: [],
+              });
+            } catch (error) {
+              return;
+            }
+          })
 });
 
 client.manager.on("playerEnd", (player) => {

@@ -63,8 +63,8 @@ module.exports = {
   },
   data: new SlashCommandBuilder()
   .setName('kick')
-  .setDescription("kick a user.")
-  .addMentionableOption(option =>
+  .setDescription("Kick a user")
+  .addUserOption(option =>
     option.setName('user')
     .setDescription('The users who u want to kick')
     .setRequired(true)),

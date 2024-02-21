@@ -47,6 +47,12 @@ module.exports = {
      const ticket = await Ticket.findOne({ guildId: interaction.guild.id });
      if (subcommand === 'setup' ) {
         const channel = interaction.options.getChannel('channel')
+        if (!interaction.guild.members.me.permissionsIn(channel).has(PermissionsBitField.Flags.ViewChannel) || !interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.SendMessages)) {
+            interaction.editReply({
+                content: 'Hey there... I dont have permission to send messages in that channel.',
+                ephemeral: true })
+                return;
+        }
         const category = interaction.options.getChannel('category')
         const accessRole = interaction.options.getRole('access-role')
         const ticketmessage = interaction.options.getString('message')
@@ -86,6 +92,12 @@ module.exports = {
      }
      if (subcommand === 'quick-setup' ) {
         const channel = interaction.options.getChannel('channel')
+        if (!interaction.guild.members.me.permissionsIn(channel).has(PermissionsBitField.Flags.ViewChannel) || !interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.SendMessages)) {
+            interaction.editReply({
+                content: 'Hey there... I dont have permission to send messages in that channel.',
+                ephemeral: true })
+                return;
+        }
 
         if (ticket) {
             await interaction.editReply(`Ticket system has already been setup tickets will be created in ${Ticket.category} to disable run **/ticket disable**`)

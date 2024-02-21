@@ -21,11 +21,9 @@ module.exports =  {
      return;
     }
     const channel = interaction.member.voice.channel;
-    if (!channel) return interaction.reply({content: 'You are not connected to a voice channel',ephemeral: true,})
-    if (!interaction.guild.members.me.permissionsIn(channel).has(PermissionsBitField.Flags.ViewChannel)) {
-      interaction.reply("I dont have access to that channel")
-      return;
-    }
+    if (!channel) return interaction.reply({content: 'You are not connected to a voice channel',ephemeral: true})
+    if (!interaction.guild.members.me.permissionsIn(channel).has(PermissionsBitField.Flags.ViewChannel)) return interaction.reply({content: "I dont have access to that channel",ephemeral: true})
+    if (channel.full) return interaction.reply({content: 'That voice channel is full',ephemeral: true})
     await interaction.deferReply();
     const name = interaction.options.getString('query'); 
 

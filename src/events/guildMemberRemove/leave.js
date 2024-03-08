@@ -16,7 +16,7 @@ module.exports = async (member, client, handler) => {
                 const userMessage = welcome.leaveMessage.replace('(user)', `${member.user.username}#${member.user.discriminator}`);
                 const message = userMessage.replace('(server)', `${member.guild}`);
                 channel.send(`${message}`).catch((err) => {
-                    client.users.send(guild.ownerId, `I do not have permissions to send messages in ${channel}`);
+                    client.users.send(guild.ownerId, `I do not have permissions to send messages in ${channel}`).catch((err) => {console.log("Unable to send owner message. owner: ", guild.ownerId, "guild: ", guild.name, "error: ", err)});
                 });
             }
         }

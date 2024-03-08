@@ -12,7 +12,7 @@ module.exports = async (member, client ,handler) => {
             const channel = client.channels.cache.get(welcome.channel);
             const userMessage = welcome.welcomeMessage.replace('(user)',`${member.user}`);
             const message = userMessage.replace('(server)',`${member.guild}`);
-            channel.send(`${message}`).catch((err) => {client.users.send(guild.ownerId, `I do not have permissions to send messages in ${channel}`);});
+            channel.send(`${message}`).catch((err) => {client.users.send(guild.ownerId, `I do not have permissions to send messages in ${channel}`).catch((err) => {console.log("Unable to send owner message. owner: ", guild.ownerId, "guild: ", guild.name, "error: ", err)});});
     }
 }
     } catch (error) {

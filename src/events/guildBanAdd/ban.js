@@ -13,7 +13,7 @@ module.exports = async (ban, client ,handler) => {
     const channel = client.channels.cache.get(welcome.channel);
     const userMessage = welcome.banMessage.replace('(user)',`${ban.user}`);
     const message = userMessage.replace('(server)',`${ban.guild}`);
-    channel.send(`${message}`).catch((err) => {client.users.send(guild.ownerId, `I do not have permissions to send messages in ${channel}`);});
+    channel.send(`${message}`).catch((err) => {client.users.send(guild.ownerId, `I do not have permissions to send messages in ${channel}`).catch((err) => {console.log("Unable to send owner message. owner: ", guild.ownerId, "guild: ", guild.name, "error: ", err)});});
     }
 } catch (error) {
    client.users.send(guild.ownerId, 'Welcome channel has been deleted please disable welcome or set it up again');

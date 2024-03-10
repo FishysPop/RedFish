@@ -7,7 +7,7 @@ const { Player } = require('discord-player');
 const { Kazagumo, Plugins } = require("kazagumo");
 const Spotify = require('kazagumo-spotify');
 const { Connectors } = require("shoukaku");
-
+const { HttpsProxyAgent } = require("https-proxy-agent");
 
 const path = require('path');
 const client = new Client({
@@ -22,6 +22,9 @@ const client = new Client({
 });
 
 if (process.env.DISCORD_PLAYER === 'true') {
+  const proxy = "http://51.75.75.162:8000";
+  const agent = new HttpsProxyAgent(proxy);
+
   player = new Player(client, {
     deafenOnJoin: true,
     lagMonitor: 1000,
@@ -31,6 +34,7 @@ if (process.env.DISCORD_PLAYER === 'true') {
       quality: 'highestaudio',
       highWaterMark: 1 << 30,
       dlChunkSize: 0,
+      requestOptions: { agent }
     },
   });
   require('./events/playerEvents/playerEvents')

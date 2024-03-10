@@ -22,6 +22,7 @@
     "discord.js": "^14.9.0",
     "djs-commander": "^0.0.45",
     "dotenv": "^16.0.3",
+    "https-proxy-agent": "^7.0.4",
     "kazagumo": "^3.0.1",
     "kazagumo-spotify": "^2.0.1",
     "mediaplex": "^0.0.8",

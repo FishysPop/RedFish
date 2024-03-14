@@ -60,7 +60,7 @@ var timerID = setInterval(async function() {
         message.edit({
           embeds: [giveawayEmbed],
           components: []
-        }).catch((err) => {console.log("error while sending message for giveaway enter:", err)});
+        }).catch((err) => {console.log("error while checking giveaway.:", err)});
       } catch (error) {
       }
     }

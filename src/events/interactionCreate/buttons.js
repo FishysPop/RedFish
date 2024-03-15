@@ -370,7 +370,7 @@ module.exports = async (interaction, client, handler) => {
             });
             return;
           }
-          if (!giveaway.requiredRole !== "null") {
+          if (giveaway.requiredRole !== "null") {
             const roleRequired = giveaway.requiredRole;
             if (!interaction.member.roles.cache.has(roleRequired)) {
               interaction.reply({

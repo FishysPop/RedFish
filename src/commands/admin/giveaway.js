@@ -61,7 +61,7 @@ module.exports = {
       const duration = interaction.options.getString('duration')
       const message = interaction.options.getString('message')
       const date = new Date();
-      const requiredRole = interaction.options.getRole('required-role').id || 'null';  
+      const requiredRole = interaction.options.getRole('required-role')?.id || 'null';  
       if (!interaction.guild.members.me?.permissionsIn(channel).has(PermissionsBitField.Flags.SendMessages)) {
         interaction.reply({
           content: "I do not have permissons to send messages in that channel",

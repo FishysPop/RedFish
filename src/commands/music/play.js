@@ -153,7 +153,7 @@ module.exports =  {
                 } 
                   catch (e) {
                     console.log(`[${interaction.guild.name}] (ID:${channel}) request:(${name}) Error emitted from play: ${e}`)
-                return interaction.editReply(`Oops... something went wrong`);
+                return interaction.editReply(`Oops... something went wrong`).catch((e) => { });
             }
         break;
 

@@ -25,14 +25,14 @@ module.exports =  {
        return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
       }
       if (Discordplayer) {
-        if (amount > queue.tracks.data.length) {
+        if (amount > Discordplayer.tracks.data.length) {
           interaction.reply({
-              content: `There are \`${queue.tracks.data.length}\` tracks in the queue. You cant skip to \`${amount}\`.\n\nView all tracks in the queue with **\`/queue\`**.`,
+              content: `There are \`${Discordplayer.tracks.data.length}\` tracks in the queue. You cant skip to \`${amount}\`.\n\nView all tracks in the queue with **\`/queue\`**.`,
               ephemeral: true,
             });
             return;
       } 
-      queue.node.skipTo(amount - 1);
+      Discordplayer.node.skipTo(amount - 1);
       interaction.reply(`${amount} Tracks Skipped`)
       } else if (Lavaplayer) {
         const player = client.manager.players.get(interaction.guild.id);
@@ -57,6 +57,7 @@ module.exports =  {
 
     break;
     case "discord_player":
+      const queue = useQueue(interaction.guildId)
       if (amount > queue.tracks.data.length) {
         interaction.reply({
             content: `There are \`${queue.tracks.data.length}\` tracks in the queue. You cant skip to \`${amount}\`.\n\nView all tracks in the queue with **\`/queue\`**.`,

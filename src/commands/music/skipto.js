@@ -6,25 +6,58 @@ module.exports =  {
     .setDescription("Skip to a certain song in the queue.")
     .addIntegerOption((option) => option.setName("amount").setDescription("The amount of seconds to seek to.").setRequired(true)),
 
-  run: ({ interaction, client, handler }) => {
+  run: async ({ interaction, client, handler }) => {
     if (!interaction.inGuild()) {
-      interaction.reply({
-        content: "You can only run this command in a server.",
-        ephemeral: true,
-      });
+      interaction.reply({ content: "You can only run this command in a server.", ephemeral: true,});
      return;
     }
-   const queue = useQueue(interaction.guildId)
-   const amount = interaction.options.getInteger("amount")
-   if (!interaction.member.voice.channel) {
-    interaction.reply({content: 'You are not connected to a voice channel.',ephemeral: true})
-    return;
-}
-if (!queue || !queue.isPlaying()) {
-    interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
-    return;
-}
-    if (amount > queue.tracks.data.length) {
+    if (!interaction.member.voice.channel) {
+      interaction.reply({content: 'You are not connected to a voice channel.',ephemeral: true})
+      return;
+  }
+  const amount = interaction.options.getInteger("amount")
+
+  switch (client.playerType) {
+    case "both":
+      const Lavaplayer = client.manager.players.get(interaction.guild.id);
+      const Discordplayer = useQueue(interaction.guild.id)
+      if (!Lavaplayer && !Discordplayer) {
+       return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+      }
+      if (Discordplayer) {
+        if (amount > queue.tracks.data.length) {
+          interaction.reply({
+              content: `There are \`${queue.tracks.data.length}\` tracks in the queue. You cant skip to \`${amount}\`.\n\nView all tracks in the queue with **\`/queue\`**.`,
+              ephemeral: true,
+            });
+            return;
+      } 
+      queue.node.skipTo(amount - 1);
+      interaction.reply(`${amount} Tracks Skipped`)
+      } else if (Lavaplayer) {
+        const player = client.manager.players.get(interaction.guild.id);
+        if ((amount > player.queue.size) || (amount && !player.queue[amount - 1])) return           interaction.reply({ content: `There are \`${player.queue.size}\` tracks in the queue. You cant skip to \`${amount}\`.\n\nView all tracks in the queue with **\`/queue\`**.`, ephemeral: true,  });;
+        if (amount == 1) player.skip();
+    
+        await player.queue.splice(0, amount - 1);
+            await player.skip();
+         interaction.reply(`${amount} Tracks Skipped`)
+      } else {
+        return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+      }
+    break;
+    case "lavalink":
+      const player = client.manager.players.get(interaction.guild.id);
+      if ((amount > player.queue.size) || (amount && !player.queue[amount - 1])) return           interaction.reply({ content: `There are \`${player.queue.size}\` tracks in the queue. You cant skip to \`${amount}\`.\n\nView all tracks in the queue with **\`/queue\`**.`, ephemeral: true,  });;
+      if (amount == 1) player.skip();
+  
+      await player.queue.splice(0, amount - 1);
+          await player.skip();
+       interaction.reply(`${amount} Tracks Skipped`)
+
+    break;
+    case "discord_player":
+      if (amount > queue.tracks.data.length) {
         interaction.reply({
             content: `There are \`${queue.tracks.data.length}\` tracks in the queue. You cant skip to \`${amount}\`.\n\nView all tracks in the queue with **\`/queue\`**.`,
             ephemeral: true,
@@ -33,6 +66,8 @@ if (!queue || !queue.isPlaying()) {
     } 
     queue.node.skipTo(amount - 1);
     interaction.reply(`${amount} Tracks Skipped`)
+    break;
+  }
   },
 
   // devOnly: Boolean,

@@ -7,7 +7,9 @@ const { Player } = require('discord-player');
 const { Kazagumo, Plugins } = require("kazagumo");
 const Spotify = require('kazagumo-spotify');
 const { Connectors } = require("shoukaku");
-const { HttpsProxyAgent } = require("https-proxy-agent");
+const ytdl = require("@distube/ytdl-core");
+const fs = require('fs');
+
 
 const path = require('path');
 const client = new Client({
@@ -21,9 +23,27 @@ const client = new Client({
   ],
 });
 
+
 if (process.env.DISCORD_PLAYER === 'true') {
-  const proxy = "http://51.75.75.162:8000";
-  const agent = new HttpsProxyAgent(proxy);
+  const fileExists = fs.existsSync('YT_cookies.json');
+  let YTCookies = ''
+
+if (fileExists) {
+  const data = fs.readFileSync('YT_cookies.json', 'utf8');
+   YTCookies = JSON.parse(data);
+ } else {
+  YTCookies =  ''
+  console.log("Youtube Cookies Disabled")
+  /*
+  if you want to enable cookies create a file called YT_cookies.json
+  How to get cookies
+  Install EditThisCookie extension for your browser.
+  Go to YouTube.
+  Log in to your account. (You should use a new account for this purpose)
+  Click on the extension icon and click "Export" icon.
+  Your cookie will be added to your clipboard and paste it into your code.
+  */
+  }
 
   player = new Player(client, {
     deafenOnJoin: true,
@@ -34,7 +54,11 @@ if (process.env.DISCORD_PLAYER === 'true') {
       quality: 'highestaudio',
       highWaterMark: 1 << 30,
       dlChunkSize: 0,
-      requestOptions: { agent }
+      requestOptions: {
+        headers: {
+            cookie: YTCookies
+        }
+    }
     },
   });
   require('./events/playerEvents/playerEvents')

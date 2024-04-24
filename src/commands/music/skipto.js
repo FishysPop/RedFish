@@ -35,12 +35,11 @@ module.exports =  {
       Discordplayer.node.skipTo(amount - 1);
       interaction.reply(`${amount} Tracks Skipped`)
       } else if (Lavaplayer) {
-        const player = client.manager.players.get(interaction.guild.id);
-        if ((amount > player.queue.size) || (amount && !player.queue[amount - 1])) return           interaction.reply({ content: `There are \`${player.queue.size}\` tracks in the queue. You cant skip to \`${amount}\`.\n\nView all tracks in the queue with **\`/queue\`**.`, ephemeral: true,  });;
-        if (amount == 1) player.skip();
+        if ((amount > Lavaplayer.queue.size) || (amount && !Lavaplayer.queue[amount - 1])) return           interaction.reply({ content: `There are \`${Lavaplayer.queue.size}\` tracks in the queue. You cant skip to \`${amount}\`.\n\nView all tracks in the queue with **\`/queue\`**.`, ephemeral: true,  });;
+        if (amount == 1) Lavaplayer.skip();
     
-        await player.queue.splice(0, amount - 1);
-            await player.skip();
+        await Lavaplayer.queue.splice(0, amount - 1);
+            await Lavaplayer.skip();
          interaction.reply(`${amount} Tracks Skipped`)
       } else {
         return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})

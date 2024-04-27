@@ -11,6 +11,6 @@ module.exports = async (member, client ,handler) => {
 
     await member.roles.add(autoRole.roleId);
   } catch (error) {
-    console.log(`Error giving role automatically: ${error}, Guild: (${guild.name})[${guild.id}]`);
+    console.log(`Error giving role automatically: ${error}, Guild: (${member.guild.name})[${member.guild.id}]`);
   }
 };

@@ -35,7 +35,7 @@ if (fileExists) {
   YTCookies =  ''
   console.log("Youtube Cookies Disabled")
   /*
-  if you want to enable cookies create a file called YT_cookies.json
+  if you want to enable cookies create a file called YT_cookies.json in the main directory
   How to get cookies
   Install EditThisCookie extension for your browser.
   Go to YouTube.
@@ -44,11 +44,16 @@ if (fileExists) {
   Your cookie will be added to your clipboard and paste it into your code.
   */
   }
+  const ipconfig = process.env.IPV6_BLOCK ? {
+    blocks: [process.env.IPV6_BLOCK],
+    maxRetries: 5
+  } : null;
 
   player = new Player(client, {
     deafenOnJoin: true,
     lagMonitor: 1000,
     skipFFmpeg: false,
+    ipconfig,
     ytdlOptions: {
       filter: 'audioonly',
       quality: 'highestaudio',

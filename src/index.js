@@ -7,7 +7,6 @@ const { Player } = require('discord-player');
 const { Kazagumo, Plugins } = require("kazagumo");
 const Spotify = require('kazagumo-spotify');
 const { Connectors } = require("shoukaku");
-const ytdl = require("@distube/ytdl-core");
 const fs = require('fs');
 
 

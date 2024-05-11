@@ -4,17 +4,16 @@ const Ticket = require("../../models/Ticket");
 const Giveaway = require("../../models/Giveaway");
 
 module.exports = async (interaction, client, handler) => {
-  const queue = useQueue(interaction.guildId);
-  let player;
-  if (client.playerType === 'lavalink') { 
-    player = client.manager.players.get(interaction.guildId);
-   }
-
   if (interaction.isButton()) {
     const buttonname = interaction.customId;
     const user = interaction.user.username;
     const usera = interaction.user;
     const discriminator = interaction.user.discriminator;
+    const queue = useQueue(interaction.guildId);
+    let player;
+    if (client.playerType === 'lavalink') { 
+      player = client.manager.players.get(interaction.guildId);
+     }
     try {
       switch (buttonname) {
         case "LavaPause":

@@ -14,6 +14,10 @@ module.exports =  {
       });
      return;
     }
+    if (!interaction.member.voice.channel) {
+      interaction.reply({content: 'You are not connected to a voice channel.',ephemeral: true})
+      return;
+  }
    switch (client.playerType) {
     case "both":
       const Lavaplayer = client.manager.players.get(interaction.guild.id);

@@ -109,7 +109,7 @@ if (process.env.DISCORD_PLAYER === 'true' && process.env.LAVALINK === 'true') {
   playerType = 'lavalink';
 }
 client.playerType = playerType;
-console.log(client.playerType);
+console.log("Player Type:",client.playerType);
 require('./events/errors/handleErrors.js')(client);
 
 

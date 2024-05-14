@@ -14,13 +14,45 @@ module.exports =  {
       });
      return;
     }
-   const queue = useQueue(interaction.guildId)
-   try {
-    queue.delete();
-    interaction.reply("Disconnected")
-   } catch {
-    interaction.reply({content: 'There is no music playing',ephemeral: true,})
-   }
+   switch (client.playerType) {
+    case "both":
+      const Lavaplayer = client.manager.players.get(interaction.guild.id);
+      const Discordplayer = useQueue(interaction.guild.id)
+      if (!Lavaplayer && !Discordplayer) {
+       return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+      }
+      if (Discordplayer) {
+       Discordplayer.delete()
+       interaction.reply("Disconnected")
+      } else if (Lavaplayer) {
+       Lavaplayer.destroy();
+       interaction.reply("Disconnected")
+      } else {
+        return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+      }
+    break;
+    case "lavalink":
+      const player = client.manager.players.get(interaction.guild.id);
+      if (!player) {
+        return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+       }
+        player.destroy();
+        interaction.reply("Disconnected")
+    break;
+    case "discord_player":
+      const queue = useQueue(interaction.guildId)
+      if (!queue || !queue.isPlaying()) {
+        interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+        return;
+    }
+        queue.delete();
+        interaction.reply("Disconnected")
+    break;
+  }
+
+
+
+
   },
 
   // devOnly: Boolean,

@@ -11,7 +11,7 @@ module.exports = async (interaction, client, handler) => {
     const discriminator = interaction.user.discriminator;
     const queue = useQueue(interaction.guildId);
     let player;
-    if (client.playerType === 'lavalink') { 
+    if (client.playerType === 'lavalink' || client.playerType === 'both') { 
       player = client.manager.players.get(interaction.guildId);
      }
     try {

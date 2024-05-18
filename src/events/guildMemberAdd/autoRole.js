@@ -13,6 +13,7 @@ module.exports = async (member, client, handler) => {
       await AutoRole.deleteOne({ guildId: guild.id });
 
       const owner = guild.ownerId;
+      console.log(`Autorole disabled in ${guild.name} due to missing permissions`)
       try {
       if (owner) {
         client.users.send(owner, `AutoRole has been disabled for your guild "${guild.name}" because the bot does not have the required permissions to manage roles.`);
@@ -27,6 +28,7 @@ module.exports = async (member, client, handler) => {
     if (!role || role.position >= guild.members.me.roles.highest.position) {
 
       await AutoRole.deleteOne({ guildId: guild.id });
+      console.log(`Autorole disabled in ${guild.name} due to role being higher`)
 
       const owner = guild.ownerId;
       

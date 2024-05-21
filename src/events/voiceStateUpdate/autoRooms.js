@@ -17,7 +17,7 @@ module.exports = async (oldChannel, newChannel, client ,handler) => {
                 parent: `${autoroom.category}`,
               });
         } catch (error) {
-            console.log(error)
+            console.log("error while creating channel", error);
         }
         autoroom.autoroomArray.push(newCreatedChannel.id);
         await newChannel.setChannel(newCreatedChannel).catch((error) =>{

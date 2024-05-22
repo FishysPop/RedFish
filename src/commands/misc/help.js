@@ -42,7 +42,7 @@ module.exports = {
       /disconnet | Removes the bot from the vc
       /radio | Play from a radio station
       /pause | Resumes playback
-      \n If need any further assistance please dm fishypop
+      \n If need any further assistance join the [Support Server](https://discord.com/invite/rDHPK2er3j) or please dm fishypop
       `);
  
       interaction.editReply({

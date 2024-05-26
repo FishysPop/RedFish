@@ -57,6 +57,10 @@ module.exports =  {
     break;
     case "discord_player":
       const queue = useQueue(interaction.guildId)
+      if (!queue || !queue.isPlaying()) {
+        interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+        return;
+    }
       if (amount > queue.tracks.data.length) {
         interaction.reply({
             content: `There are \`${queue.tracks.data.length}\` tracks in the queue. You cant skip to \`${amount}\`.\n\nView all tracks in the queue with **\`/queue\`**.`,

@@ -104,24 +104,6 @@ module.exports =  {
              .setDescription(`**Enqueued: [${name}](${res.tracks[0].uri}) -** \`LIVE\``)
             return interaction.editReply({ embeds: [embed] });
     }
-        if (res.type === "PLAYLIST") {
-            for (let track of res.tracks) player.queue.add(track);
-
-            if (!player.playing && !player.paused) player.play();
-
-            const embed = new EmbedBuilder()
-                .setColor('#e66229')
-                .setDescription(`**Enqueued: [${res.playlistName}](${name}) (${res.tracks.length} tracks**)`)
-            return interaction.editReply({ content: " ", embeds: [embed] })
-        } else {
-            player.queue.add(res.tracks[0]);
-
-            if (!player.playing && !player.paused) player.play();
-            const embed = new EmbedBuilder()
-                .setColor('#e66229')
-                .setDescription(`**Enqueued: [${res.tracks[0].title}](${res.tracks[0].uri}) - ${res.tracks[0].author}** \`${convertTime(res.tracks[0].length, true)}\``)
-            return interaction.editReply({ content: " ", embeds: [embed] })
-        }
       }
         catch (e) {
           console.log(e)

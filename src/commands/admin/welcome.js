@@ -513,6 +513,7 @@ module.exports = {
                 embeds: [welcomeAutoEmbed2],
                 components: [],
               });
+              isCollectorActive = false
             }
       
             //disable

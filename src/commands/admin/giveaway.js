@@ -176,76 +176,76 @@ module.exports = {
     
      }
 
-     if (subcommand === 'reroll') {
-      const currentDate = new Date();
-      const messageId = interaction.options.get('message-id').value;
-  
-      // Fetch the giveaway data
-      const giveaway = await Giveaway.find({ messageId: messageId, ended: true });
-      if (giveaway.length === 0) {
-          return interaction.editReply({
-              content: "That giveaway doesn't exist or has not ended",
-              ephemeral: true,
-          });
+     if (subcommand === 'reroll' ) {
+
+    const currentDate = new Date();
+    const messageId = interaction.options.get('message-id').value
+    const giveaway = await Giveaway.find({ messageId: messageId, ended: true });
+    if (giveaway.length > 0) {
+       } else {
+        interaction.editReply({
+          content: "That giveaway doesnt exist or has not ended",
+          ephemeral: true,
+        }); 
+    return;
+    }
+    const unixTimestamp = Math.floor(currentDate.getTime() / 1000);
+    const timestamp = `<t:${unixTimestamp}:R>`;
+    const discordIdCount = giveaway[0].entriesArray.length;
+    let guild = interaction.guild
+    function pickRandomFromArray(array, count) {
+      if (!Array.isArray(array)) {
+        console.log('The input must be an array.');
       }
-  
-      const unixTimestamp = Math.floor(currentDate.getTime() / 1000);
-      const timestamp = `<t:${unixTimestamp}:R>`;
-      const discordIdCount = giveaway[0].entriesArray.length;
-      const guild = interaction.guild;
-  
-      function pickRandomFromArray(array, count) {
-          if (!Array.isArray(array)) {
-              console.log('The input must be an array.');
-              return [];
-          }
-  
-          const shuffledArray = [...array];
-          const selectedElements = [];
-  
-          while (shuffledArray.length > 0 && count > 0) {
-              const randomIndex = Math.floor(Math.random() * shuffledArray.length);
-              const selectedElement = shuffledArray.splice(randomIndex, 1)[0];
-              selectedElements.push(selectedElement);
-              count--;
-          }
-  
-          return selectedElements;
+    
+      const shuffledArray = [...array];
+      const selectedElements = [];
+    
+      while (shuffledArray.length > 0 && count > 0) {
+        const randomIndex = Math.floor(Math.random() * shuffledArray.length);
+        const selectedElement = shuffledArray.splice(randomIndex, 1)[0];
+        selectedElements.push(selectedElement);
+    
+        count--;
       }
-  
-      const winners = pickRandomFromArray(giveaway[0].entriesArray, giveaway[0].winners);
-      const mentionedWinners = winners.map(winnerId => `<@${winnerId}>`);
-      const mentionedWinnersString = mentionedWinners.join(' ');
-  
-      const giveawayEmbed = new EmbedBuilder()
-          .setColor("#e66229")
-          .setTitle(giveaway[0].messageTitle)
-          .setDescription(`Winners: ${mentionedWinnersString}\nEntries: ${discordIdCount}\n Ended: ${timestamp}`)
-          .setFooter({ text: `/giveaway reroll to reroll` });
-  
-      if (guild) {
-          const channel = guild.channels.cache.get(giveaway[0].channelId);
-          if (channel) {
-              try {
-                  const message = await channel.messages.fetch(giveaway[0].messageId);
-                  await message.edit({
-                      embeds: [giveawayEmbed],
-                      components: []
-                  });
-              } catch (err) {
-                  console.log("Error while editing message for giveaway reroll:", err);
-              }
-          }
-      }
-  
-      giveaway[0].ended = true;
-      giveaway[0].endedDate = currentDate;
-      await giveaway[0].save();
-  
-      return interaction.editReply("Giveaway has been rerolled");
-  }
-  
-  if (subcommand === 'view-entries') {
+    
+      return selectedElements;
+    }
+    const winners = pickRandomFromArray(giveaway[0].entriesArray, giveaway[0].winners);
+    const mentionedWinners = [];
+    winners.forEach(winnerId => {
+      const mentionedWinner = `<@${winnerId}>`;
+      mentionedWinners.push(mentionedWinner);
+    });
+    const mentionedWinnersString = mentionedWinners.join(' ');
+    const giveawayEmbed = new EmbedBuilder()
+      .setColor("#e66229")
+      .setTitle(giveaway[0].messageTitle)
+      .setDescription(
+        `Winners: ${mentionedWinnersString}\nEntries: ${discordIdCount}\n Ended: ${timestamp}`
+      )
+      .setFooter({ text: `/giveaway reroll to reroll` });
+    const giveawayEnterButton = new ButtonBuilder()
+      .setCustomId("giveawayEnter")
+      .setEmoji("🎉")
+      .setStyle(ButtonStyle.Success);
+    const row = new ActionRowBuilder().addComponents(giveawayEnterButton);
+    if (guild) {
+      const channel = guild.channels.cache.get(giveaway[0].channelId);
+      const message = await channel.messages.fetch(giveaway[0].messageId);
+      message.edit({
+        embeds: [giveawayEmbed],
+        components: []
+      }).catch((err) => {console.log("error while sending message for giveaway enter:", err)});
+    }
+    giveaway[0].ended = true
+    giveaway[0].endedDate = currentDate
+    giveaway[0].save();
+    interaction.editReply("Giveaway has been rerolled")
+    
+
+     }
+     if (subcommand === 'view-entries') {
       const messageId = interaction.options.get('message-id').value;
   
       // Fetch the giveaway data
@@ -324,108 +324,12 @@ module.exports = {
           });
       } catch (error) {
           console.error('Failed to edit message:', error);
-      }
-  }
-  
-     if (subcommand === 'view-entries' ) {
-
-
-      const messageId = interaction.options.get('message-id').value
-      const giveawayArray = await Giveaway.find({ messageId: messageId});
-      if (giveawayArray.length > 0) {
-         } else {
-          interaction.editReply({
-            content: "That giveaway doesnt exist or is older than a month",
-            ephemeral: true,
-          }); 
-      return;
-      }
-      const giveaway = giveawayArray[0]
-
-      const allEntries = giveaway.entriesArray.map(
-        (entry, idx) => `**${idx + 1}.** <@${entry}>`
-      );
-  
-      const chunkSize = 10;
-      const pages = Math.ceil(allEntries.length / chunkSize);
-  
-      const embeds = [];
-      for (let i = 0; i < pages; i++) {
-        const start = i * chunkSize;
-        const end = start + chunkSize;
-  
-        const embed = new EmbedBuilder()
-          .setColor("#e66229")
-          .setTitle("Entries")
-          .setDescription(
-            allEntries.slice(start, end).join("\n") || "**No entires**"
-          )
-          .setFooter({
-            text: `Page ${i + 1} | Total ${giveaway.entriesArray.length} entires`,
+          interaction.followUp({
+              content: 'There was an error trying to display the entries. Please try again later.',
+              ephemeral: true,
           });
-  
-        embeds.push(embed);
       }
-  
-      if (embeds.length === 1) {
-        return interaction.editReply({
-          embeds: [embeds[0]],
-        });
-      }
-  
-      const prevButton = new ButtonBuilder()
-        .setCustomId("prev")
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji("⬅️");
-  
-      const nextButton = new ButtonBuilder()
-        .setCustomId("next")
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji("➡️");
-  
-      const row = new ActionRowBuilder().addComponents(prevButton, nextButton);
-  
-      const message = await interaction.editReply({
-        embeds: [embeds[0]],
-        components: [row],
-        fetchReply: true,
-      });
-  
-      let currentIndex = 0;
-      const collector = message.createMessageComponentCollector({
-        idle: 60000,
-      });
-  
-      collector.on("collect", (i) => {
-        i.deferUpdate();
-  
-        switch (i.customId) {
-          case "prev":
-            currentIndex =
-              currentIndex === 0 ? embeds.length - 1 : currentIndex - 1;
-            break;
-          case "next":
-            currentIndex =
-              currentIndex === embeds.length - 1 ? 0 : currentIndex + 1;
-            break;
-          default:
-            break;
-        }
-  
-        message.edit({
-          embeds: [embeds[currentIndex]],
-          components: [row],
-        });
-      });
-  
-      collector.on("end", () => {
-        message.edit({
-          components: [],
-        });
-      });
-
-    }
-
+  }  
 
      if (subcommand === 'delete' ) {
       const messageId = interaction.options.get('message-id').value;

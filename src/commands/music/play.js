@@ -91,70 +91,70 @@ module.exports =  {
           }
         break;
 
-        case "discord_player":
-          try {
-              const player = useMainPlayer();
-              let searchResult;
-      
-              // Try searching with Spotify first
-              searchResult = await player.search(name, {
-                  requestedBy: interaction.user,
-                  searchEngine: "SPOTIFY", // Assuming the search method supports specifying a search engine
-              });
-      
-              // If no tracks are found on Spotify, fallback to the normal search
-              if (!searchResult.hasTracks()) {
-                  searchResult = await player.search(name, {
-                      requestedBy: interaction.user,
-                  });
-              }
-      
-              if (!searchResult.hasTracks()) {
-                  return interaction.followUp(`We found no tracks for ${name}`);
-              }
-      
-              const res = await player.play(
-                  interaction.member.voice.channel.id,
-                  searchResult,
-                  {
-                      nodeOptions: {
-                          metadata: {
-                              channel: interaction.channel,
-                              client: interaction.guild.members.me,
-                              requestedBy: interaction.user,
-                          },
-                          volume: 30,
-                          bufferingTimeout: 500,
-                          leaveOnEmpty: true,
-                          leaveOnEnd: false,
-                          leaveOnEmptyCooldown: 300000,
-                          skipOnNoStream: true,
-                          connectionTimeout: 999_999_999,
-                      },
-                  }
-              );
-      
-              const hasViewChannelPermission = interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.ViewChannel);
-              const hasSendMessagesPermission = interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.SendMessages);
-      
-              const embed = new EmbedBuilder().setColor('#e66229');
-              if (res.track.playlist) {
-                  embed.setDescription(`**Enqueued: [${res.track.playlist.title}](${res.track.playlist.url}) (${res.track.playlist.tracks.length} tracks)**`);
-              } else {
-                  embed.setDescription(`**Enqueued: [${res.track.title}](${res.track.url}) - ${res.track.author}** \`${res.track.duration}\``);
-              }
-      
-              if (!hasViewChannelPermission || !hasSendMessagesPermission) {
-                  embed.setFooter({ text: `Media Controls Disabled: Missing Permissions` });
-              }
-      
-              return interaction.editReply({ embeds: [embed] });
-          } catch (e) {
-              console.log(`[${interaction.guild.name}] (ID:${interaction.channel.id}) request:(${name}) Error emitted from play: ${e}`);
-              return interaction.editReply(`Oops... something went wrong`).catch(() => { });
-          }
-          break;
-      
+case "discord_player":
+    try {
+        const player = useMainPlayer();
+        let searchResult;
+
+        // Try searching with Spotify first
+        searchResult = await player.search(name, {
+            requestedBy: interaction.user,
+            searchEngine: "SPOTIFY", // Assuming the search method supports specifying a search engine
+        });
+
+        // If no tracks are found on Spotify, fallback to the normal search
+        if (!searchResult.hasTracks()) {
+            searchResult = await player.search(name, {
+                requestedBy: interaction.user,
+            });
+        }
+
+        if (!searchResult.hasTracks()) {
+            return interaction.followUp(`We found no tracks for ${name}`);
+        }
+
+        const res = await player.play(
+            interaction.member.voice.channel.id,
+            searchResult,
+            {
+                nodeOptions: {
+                    metadata: {
+                        channel: interaction.channel,
+                        client: interaction.guild.members.me,
+                        requestedBy: interaction.user,
+                    },
+                    volume: 30,
+                    bufferingTimeout: 500,
+                    leaveOnEmpty: true,
+                    leaveOnEnd: false,
+                    leaveOnEmptyCooldown: 300000,
+                    skipOnNoStream: true,
+                    connectionTimeout: 999_999_999,
+                },
+            }
+        );
+
+        const hasViewChannelPermission = interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.ViewChannel);
+        const hasSendMessagesPermission = interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.SendMessages);
+
+        const embed = new EmbedBuilder().setColor('#e66229');
+        if (res.track.playlist) {
+            embed.setDescription(`**Enqueued: [${res.track.playlist.title}](${res.track.playlist.url}) (${res.track.playlist.tracks.length} tracks)**`);
+        } else {
+            embed.setDescription(`**Enqueued: [${res.track.title}](${res.track.url}) - ${res.track.author}** \`${res.track.duration}\``);
+        }
+
+        if (!hasViewChannelPermission || !hasSendMessagesPermission) {
+            embed.setFooter({ text: `Media Controls Disabled: Missing Permissions` });
+        }
+
+        return interaction.editReply({ embeds: [embed] });
+    } catch (e) {
+        console.log(`[${interaction.guild.name}] (ID:${interaction.channel.id}) request:(${name}) Error emitted from play: ${e}`);
+        return interaction.editReply(`Oops... something went wrong`).catch(() => { });
+    }
+    break;
+
 
         case "lavalink":
           try {

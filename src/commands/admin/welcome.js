@@ -500,7 +500,7 @@ module.exports = {
               Welcome.create({
                 guildId: interaction.guild.id,
                 channel: createdChannel,
-                type: ["leaveMessage","banMessage","joinMessage"],
+                typeArray: ["leaveMessage","banMessage","joinMessage"],
                 welcomeMessage: `Welcome (user) to (server)!`,  
                 banMessage: '(user) has been banned from (server)!',     
                 leaveMessage: '(user) has left (server).',

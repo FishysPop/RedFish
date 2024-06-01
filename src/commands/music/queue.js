@@ -101,7 +101,7 @@ module.exports =  {
           break;
       }
 
-      message.edit({
+      interaction.editReply({
         embeds: [embeds[currentIndex]],
         components: [row],
       });

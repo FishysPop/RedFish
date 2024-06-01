@@ -313,7 +313,7 @@ module.exports = {
                   currentIndex = currentIndex === embeds.length - 1 ? 0 : currentIndex + 1;
               }
   
-              await message.edit({
+              await interaction.editReply({
                   embeds: [embeds[currentIndex]],
                   components: [row],
               });

@@ -24,25 +24,16 @@ const client = new Client({
 
 
 if (process.env.DISCORD_PLAYER === 'true') {
-  const fileExists = fs.existsSync('YT_cookies.json');
-  let YTCookies = ''
 
-if (fileExists) {
-  const data = fs.readFileSync('YT_cookies.json', 'utf8');
-   YTCookies = JSON.parse(data);
- } else {
-  YTCookies =  ''
-  console.log("Youtube Cookies Disabled")
   /*
-  if you want to enable cookies create a file called YT_cookies.json in the main directory
-  How to get cookies
+  For cookies
   Install EditThisCookie extension for your browser.
   Go to YouTube.
   Log in to your account. (You should use a new account for this purpose)
-  Click on the extension icon and click "Export" icon.
-  Your cookie will be added to your clipboard and paste it into your code.
+  Click on the extension icon and click "Export" icon and export as header string.
+  Your cookie will be added to your clipboard and paste it into the .env file .
   */
-  }
+  
   const ipconfig = process.env.IPV6_BLOCK ? {
     blocks: [process.env.IPV6_BLOCK],
     maxRetries: 5
@@ -54,13 +45,12 @@ if (fileExists) {
     skipFFmpeg: false,
     ipconfig,
     ytdlOptions: {
-      filter: 'audioonly',
       quality: 'highestaudio',
       highWaterMark: 1 << 30,
       dlChunkSize: 0,
       requestOptions: {
         headers: {
-            cookie: YTCookies
+             cookie: process.env.YT_COOKIE || ''
         }
     }
     },

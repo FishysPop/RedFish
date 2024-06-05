@@ -99,7 +99,7 @@ case "discord_player":
         // Try searching with Spotify first
         searchResult = await player.search(name, {
             requestedBy: interaction.user,
-            searchEngine: "SPOTIFY", // Assuming the search method supports specifying a search engine
+            searchEngine: QueryType.SPOTIFY_SEARCH, 
         });
 
         // If no tracks are found on Spotify, fallback to the normal search

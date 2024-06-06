@@ -133,7 +133,7 @@ case "discord_player":
                         client: interaction.guild.members.me,
                         requestedBy: interaction.user,
                     },
-                    volume: 1,
+                    volume: 30,
                     bufferingTimeout: 500,
                     leaveOnEmpty: true,
                     leaveOnEnd: false,

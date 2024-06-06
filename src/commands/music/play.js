@@ -93,30 +93,34 @@ module.exports =  {
 
 case "discord_player":
     try {
+      const isLink = name.startsWith('https://') || name.startsWith('http://');
         const player = useMainPlayer();
         let searchResult;
+        if (!isLink) {
 
-        // Try searching with Spotify first
+        // Only search with spotify if no link
         searchResult = await player.search(name, {
             requestedBy: interaction.user,
             searchEngine: QueryType.SPOTIFY_SEARCH, 
         });
+      }
 
-        // If no tracks are found on Spotify, fallback to the normal search
-        if (!searchResult.hasTracks()) {
+        // If no tracks are found on Spotify, fallback to youtube
+        if (!searchResult || searchResult.tracks.length === 0) {
             searchResult = await player.search(name, {
                 requestedBy: interaction.user,
                 searchEngine: QueryType.YOUTUBE 
-            });
-        }
-        if (!searchResult.hasTracks()) {
+            });        
+      }
+      
+        if (!searchResult || searchResult.tracks.length === 0) {
           searchResult = await player.search(name, {
               requestedBy: interaction.user,
-              searchEngine: QueryType.SPOTIFY_SEARCH, 
           });
+          console.log("default tracks:",searchResult.tracks[0])
       }
 
-        if (!searchResult.hasTracks()) {
+        if (!searchResult || searchResult.tracks.length === 0) {
             return interaction.followUp(`We found no tracks for ${name}`);
         }
 
@@ -130,7 +134,7 @@ case "discord_player":
                         client: interaction.guild.members.me,
                         requestedBy: interaction.user,
                     },
-                    volume: 30,
+                    volume: 1,
                     bufferingTimeout: 500,
                     leaveOnEmpty: true,
                     leaveOnEnd: false,

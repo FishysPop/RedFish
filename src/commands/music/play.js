@@ -106,8 +106,15 @@ case "discord_player":
         if (!searchResult.hasTracks()) {
             searchResult = await player.search(name, {
                 requestedBy: interaction.user,
+                searchEngine: QueryType.YOUTUBE 
             });
         }
+        if (!searchResult.hasTracks()) {
+          searchResult = await player.search(name, {
+              requestedBy: interaction.user,
+              searchEngine: QueryType.SPOTIFY_SEARCH, 
+          });
+      }
 
         if (!searchResult.hasTracks()) {
             return interaction.followUp(`We found no tracks for ${name}`);

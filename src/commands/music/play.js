@@ -117,7 +117,6 @@ case "discord_player":
           searchResult = await player.search(name, {
               requestedBy: interaction.user,
           });
-          console.log("default tracks:",searchResult.tracks[0])
       }
 
         if (!searchResult || searchResult.tracks.length === 0) {

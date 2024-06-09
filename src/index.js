@@ -107,6 +107,7 @@ if (process.env.DISCORD_PLAYER === 'true' && process.env.LAVALINK === 'true') {
 } else if (process.env.LAVALINK === 'true') {
   playerType = 'lavalink';
 }
+client.totalTracksPlayed = 0;
 client.playerType = playerType;
 console.log("Player Type:",client.playerType);
 require('./events/errors/handleErrors.js')(client);

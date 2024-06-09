@@ -150,14 +150,16 @@ case "discord_player":
         const embed = new EmbedBuilder().setColor('#e66229');
         if (res.track.playlist) {
             embed.setDescription(`**Enqueued: [${res.track.playlist.title}](${res.track.playlist.url}) (${res.track.playlist.tracks.length} tracks)**`);
+            client.totalTracksPlayed += res.track.playlist.tracks.length;
         } else {
             embed.setDescription(`**Enqueued: [${res.track.title}](${res.track.url}) - ${res.track.author}** \`${res.track.duration}\``);
+            client.totalTracksPlayed += 1;
         }
 
         if (!hasViewChannelPermission || !hasSendMessagesPermission) {
             embed.setFooter({ text: `Media Controls Disabled: Missing Permissions` });
         }
-
+        
         return interaction.editReply({ embeds: [embed] });
     } catch (e) {
         console.log(`[${interaction.guild.name}] (ID:${interaction.channel.id}) request:(${name}) Error emitted from play: ${e}`);
@@ -183,6 +185,7 @@ case "discord_player":
             for (let track of res.tracks) player.queue.add(track);
 
             if (!player.playing && !player.paused) player.play();
+            client.totalTracksPlayed += res.tracks.length;
 
             const embed = new EmbedBuilder()
                 .setColor('#e66229')
@@ -192,6 +195,7 @@ case "discord_player":
             player.queue.add(res.tracks[0]);
 
             if (!player.playing && !player.paused) player.play();
+            client.totalTracksPlayed += 1;
             const embed = new EmbedBuilder()
                 .setColor('#e66229')
                 .setDescription(`**Enqueued: [${res.tracks[0].title}](${res.tracks[0].uri}) - ${res.tracks[0].author}** \`${convertTime(res.tracks[0].length, true)}\``)

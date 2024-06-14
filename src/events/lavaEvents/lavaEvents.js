@@ -1,5 +1,7 @@
 const { EmbedBuilder, Client, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField} = require('discord.js')
 const { convertTime } = require("../../utils/ConvertTime.js");
+const MetadataFilter = require('@web-scrobbler/metadata-filter');
+
 
 module.exports = (client) => {
 client.manager.shoukaku.on('ready', (name) => console.log(`Lavalink ${name}: Ready!`));
@@ -58,10 +60,64 @@ client.manager.on("playerEnd", (player) => {
       })
 });
 
-client.manager.shoukaku.on("playerEmpty", player => {
-    client.channels.cache.get(player.textId)?.send({content: `Destroyed player due to inactivity.`})
-        .then(x => player.data.set("message", x));
-    player.destroy();
+client.manager.on("playerEmpty", async player => {
+  try {
+  if (player.customData.autoPlay === false) return;
+    const history = player.queue.previous.reverse()
+    const lastOption = history[0]
+  let res;
+  const randomNumber = Math.floor(Math.random() * 4) + 1;
+  if (randomNumber === 2) {
+    res = await player.search(`${lastOption.title}`, {engine: 'youtube_music' ,requester: { username: "Autoplay" } })
+  } else {
+    res = await player.search(`${lastOption.author}`, {engine: 'youtube_music' ,requester: { username: "Autoplay" } })
+
+  }
+ const filter = MetadataFilter.createSpotifyFilter();
+ filter.extend(MetadataFilter.createAmazonFilter());
+ const lastFiveTracks = history.slice(0, 5);
+
+
+  const filteredHistoryTitles = []; // Initialize an empty array
+  lastFiveTracks.forEach(async track => {
+    let title = MetadataFilter.youtube(track.title)
+    filteredHistoryTitles.push(title) // Push the filtered title to the array
 });
+  const filteredlastOptionTitle = MetadataFilter.youtube(lastOption.title)
+
+
+  // Filter the search results to only include tracks with titles that match the last played track's title (ignoring case)
+  const filteredTracks = res.tracks.filter(track => {
+    return !track.title.toLowerCase().includes(filteredlastOptionTitle.toLowerCase());
+  });
+  // Filter the search results to only include tracks that are not in the last 5 tracks of the history
+  const filteredTracks2 = filteredTracks.filter(track => {
+    return !filteredHistoryTitles.some(historyTrack => track.title.toLowerCase().includes(historyTrack.toLowerCase()));
+  });
+
+  const diffResult = filteredTracks.filter(track => !filteredTracks2.some(track2 => track.title === track2.title));
+  if (diffResult.length > 0) {
+    console.log("Differences between filteredTracks and filteredTracks2:");
+    diffResult.forEach(track => {
+      console.log(`- ${track.title} | ${track.author}`);
+    });
+  } else {
+    console.log("No differences found between filteredTracks and filteredTracks2.");
+  }
+  let randomTrack;
+  if (filteredTracks2.length < 1 ) {    
+    const randomIndex = Math.floor(Math.random() * res.tracks.length);
+    randomTrack = res.tracks[randomIndex];
+} else {
+  const randomIndex = Math.floor(Math.random() * filteredTracks2.length);
+  randomTrack = filteredTracks2[randomIndex];
+}
+  player.queue.add(randomTrack);
+  if (!player.playing && !player.paused) player.play();
+} catch (error) {
+    console.log("error while running lavalink autoplay", error)
+}
+});
+
 
 }

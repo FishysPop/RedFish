@@ -175,7 +175,10 @@ case "discord_player":
             textId: interaction.channel.id,
             voiceId: channel.id,
             volume: 30,
-            deaf: true
+            deaf: true,
+            data: {
+              autoPlay: false
+            }
         });
 
         const res = await player.search(name, { requester: interaction.user });

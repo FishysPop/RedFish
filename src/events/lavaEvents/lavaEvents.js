@@ -95,15 +95,6 @@ client.manager.on("playerEmpty", async player => {
     return !filteredHistoryTitles.some(historyTrack => track.title.toLowerCase().includes(historyTrack.toLowerCase()));
   });
 
-  const diffResult = filteredTracks.filter(track => !filteredTracks2.some(track2 => track.title === track2.title));
-  if (diffResult.length > 0) {
-    console.log("Differences between filteredTracks and filteredTracks2:");
-    diffResult.forEach(track => {
-      console.log(`- ${track.title} | ${track.author}`);
-    });
-  } else {
-    console.log("No differences found between filteredTracks and filteredTracks2.");
-  }
   let randomTrack;
   if (filteredTracks2.length < 1 ) {    
     const randomIndex = Math.floor(Math.random() * res.tracks.length);

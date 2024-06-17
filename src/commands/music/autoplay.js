@@ -13,6 +13,10 @@ module.exports = {
       });
       return;
     }
+    if (!interaction.member.voice.channel) {
+      interaction.reply({content: 'You are not connected to a voice channel.',ephemeral: true})
+      return;
+  }
      try {
     switch (client.playerType) {
       case "both":
@@ -51,6 +55,8 @@ module.exports = {
               .setFooter({ text: `Run this command again to disable it.` });
             interaction.reply({ embeds: [embed] });
             Lavaplayer.customData.autoPlay = true
+            Lavaplayer.setLoop("none")
+
           } else {
             const embed2 = new EmbedBuilder()
               .setColor("#e66229")
@@ -82,6 +88,8 @@ module.exports = {
             .setFooter({ text: `Run this command again to disable it.` });
           interaction.reply({ embeds: [embed] });
           player.customData.autoPlay = true
+          player.setLoop("none")
+
         } else {
           const embed2 = new EmbedBuilder()
             .setColor("#e66229")

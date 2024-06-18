@@ -15,7 +15,6 @@ module.exports =  {
       });
      return;
     }
-    const queue = useQueue(interaction.guildId);
     if (!interaction.member.voice.channel) {
       interaction.reply({content: 'You are not connected to a voice channel.',ephemeral: true})
       return;

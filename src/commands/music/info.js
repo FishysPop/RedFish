@@ -22,7 +22,6 @@ module.exports =  {
       let autoPlayEmoji = '❌'
       let repeatModeEmoji = '❌'
       function createProgressBar(currentPosition, totalLength, options = {}) {
-        console.log(currentPosition, totalLength)
         const { indicator = '\u{1F518}', leftChar = '\u25AC', rightChar = '\u25AC', length = 15, timecodes = true, separator = '\u2503' } = options;
       
         if (isNaN(length) || length < 0 || !Number.isFinite(length)) {
@@ -99,7 +98,6 @@ module.exports =  {
           const currentTrack = Lavaplayer.queue.current
           const currentPos = Lavaplayer.queue.kazagumoPlayer.shoukaku.position ; 
           const songLength = Lavaplayer.queue.current.length; 
-          console.log(currentTrack)
           if (Lavaplayer.loop === "queue") {
            repeatModeEmoji = '✅'
           } 
@@ -139,7 +137,6 @@ module.exports =  {
          const currentTrack = player.queue.current
          const currentPos = player.queue.kazagumoPlayer.shoukaku.position ; 
          const songLength = player.queue.current.length; 
-         console.log(currentTrack)
          if (player.loop === "queue") {
           repeatModeEmoji = '✅'
          } 

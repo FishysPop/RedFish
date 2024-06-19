@@ -19,7 +19,7 @@ module.exports = async (oldChannel, newChannel, client ) => {
 			const vcMembers = oldChannel.guild.members.me.voice.channel?.members.size;
 			if (!vcMembers || vcMembers === 1) {
 				if(!player) return;
-				await player.destroy();
+				await player.destroy().catch(err => err);
 			}
 		}
 	}

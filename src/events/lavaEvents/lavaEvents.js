@@ -10,8 +10,11 @@ client.manager.shoukaku.on('close', (name, code, reason) => console.warn(`Lavali
 client.manager.shoukaku.on('debug', (name, info) => console.debug(`Lavalink ${name}: Debug,`, info));
 client.manager.shoukaku.on('disconnect', (name, players, moved) => {
     if (moved) return;
+    try {
     players.map(player => player.connection.disconnect())
     console.warn(`Lavalink ${name}: Disconnected`);
+  } catch (error) {   
+  }
 });
 
 client.manager.on("playerStart", async (player, track) => {

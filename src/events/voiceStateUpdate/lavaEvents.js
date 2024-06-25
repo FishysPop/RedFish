@@ -5,7 +5,7 @@ module.exports = async (oldChannel, newChannel, client ) => {
 	const player = await client.manager?.players.get(newChannel.guild.id);
 	if (!player) return;
 	
-	if (!newChannel.guild.members.cache.get(client.user.id).voice.channelId) { 
+	if (!newChannel.guild.members.cache.get(client.user.id)?.voice.channelId) { 
 		player.destroy().catch(err => err);
 		// ignore KazagumoError: Player is already destroyed error
 	}

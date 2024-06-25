@@ -70,12 +70,28 @@ if (fileExists) {
   client.commands.set('play', playCommand);
 }
 if (process.env.LAVALINK === 'true') {
-  const Nodes = [{
-    name: process.env.NAME,
-    url: process.env.LAVALINK_URL,
-    auth: process.env.LAVALINK_AUTH,
-    secure: false
-}];
+  const lavaNodes = []
+  const lavaURI = process.env.LAVALINK_URI; 
+  if (lavaURI) {
+    const nodes = lavaURI?.split(';'); 
+    for (const node of nodes) {
+      const [ip, portAndAuth] = node.split(':'); 
+      if (portAndAuth) { // Check if portAndAuth is defined
+        const [port, password] = portAndAuth.split('@'); // Split the remaining part by '@'
+        lavaNodes.push({
+          name: process.env.NAME, // Use the name from the environment variable
+          url: `${ip}:${port}`, // Construct the WebSocket URL
+          auth: password, // Set the password
+          secure: false // Assuming the connection is not secure
+        });
+      } else {
+        console.warn(`Invalid Lavalink node configuration: ${node}`);
+      }
+    }
+  } else {
+    console.warn('No Lavalink node configuration found. eg LAVALINK_URI = YOUR_IP:PORT@PASSWORD');
+  }
+  const Nodes = lavaNodes
   client.manager = new Kazagumo({
     defaultSearchEngine: "youtube",
     plugins: [

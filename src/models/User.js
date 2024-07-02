@@ -12,7 +12,9 @@ const userSchema = new Schema({
   },
   lastDaily: {
     type: Date,
-    required: true,
+  },
+  lastVote: {
+    type: Date,
   },
 });
 

@@ -35,7 +35,16 @@ client.manager.on("playerStart", async (player, track) => {
     const row = new ActionRowBuilder()
    .addComponents(playPauseButton, skipButton, stopButton, loopButton, shuffleButton);
    const channel = client.channels.cache.get(player.textId);
-   const message = await channel.send({ embeds: [playerStartEmbed], components: [row] })
+   let message;
+   try {
+    message = await channel.send({ embeds: [playerStartEmbed], components: [row] });
+   } catch (err) {
+    if (err.code === 50035) {
+        return;
+    } else {
+        console.error("Error sending playerStart message:", err);
+    }
+   }
    player.data.set("message", message);
        let ms = track.length
        if (ms < "300000") {

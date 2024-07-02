@@ -16,6 +16,7 @@
     "@discord-player/extractor": "^4.4.7",
     "@distube/ytdl-core": "^4.13.4",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@top-gg/sdk": "^3.1.6",
     "@web-scrobbler/metadata-filter": "^3.1.0",
     "axios": "^1.4.0",
     "canvacord": "^5.4.10",

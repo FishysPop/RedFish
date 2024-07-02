@@ -176,6 +176,7 @@ case "discord_player":
             voiceId: channel.id,
             volume: 30,
             deaf: true,
+            loadBalancer: true,
             data: {
               autoPlay: false
             }

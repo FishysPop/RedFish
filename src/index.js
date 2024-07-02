@@ -8,6 +8,8 @@ const { Kazagumo, Plugins } = require("kazagumo");
 const Spotify = require('kazagumo-spotify');
 const { Connectors } = require("shoukaku");
 const fs = require('fs');
+const Topgg = require("@top-gg/sdk");
+
 
 
 const path = require('path');
@@ -127,6 +129,13 @@ client.totalTracksPlayed = 0;
 client.playerType = playerType;
 console.log("Player Type:",client.playerType);
 require('./events/errors/handleErrors.js')(client);
+
+if (process.env.TOP_GG) {
+  client.topgg = new Topgg.Api(process.env.TOP_GG);
+} else {
+  console.log("Top.gg Disabled")
+}
+
 
 
 new CommandHandler({

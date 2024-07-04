@@ -1,13 +1,15 @@
 const { EmbedBuilder, Client, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField} = require('discord.js')
 const { convertTime } = require("../../utils/ConvertTime.js");
 const MetadataFilter = require('@web-scrobbler/metadata-filter');
+require("dotenv").config();
 
 
 module.exports = (client) => {
+  console.log(process.env.DEBUG)
 client.manager.shoukaku.on('ready', (name) => console.log(`Lavalink ${name}: Ready!`));
 client.manager.shoukaku.on('error', (name, error) => console.error(`Lavalink ${name}: Error Caught,`, error));
 client.manager.shoukaku.on('close', (name, code, reason) => console.warn(`Lavalink ${name}: Closed, Code ${code}, Reason ${reason || 'No reason'}`));
-client.manager.shoukaku.on('debug', (name, info) => console.debug(`Lavalink ${name}: Debug,`, info));
+if (process.env.DEBUG === "true") client.manager.shoukaku.on('debug', (name, info) => console.debug(`Lavalink ${name}: Debug,`, info));
 client.manager.shoukaku.on('disconnect', (name, players, moved) => {
     if (moved) return;
     try {

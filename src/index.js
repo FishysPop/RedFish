@@ -75,13 +75,13 @@ if (process.env.LAVALINK === 'true') {
   const lavaNodes = []
   const lavaURI = process.env.LAVALINK_URI; 
   if (lavaURI) {
-    const nodes = lavaURI?.split(';'); 
-    for (const node of nodes) {
-      const [ip, portAndAuth] = node.split(':'); 
-      if (portAndAuth) { // Check if portAndAuth is defined
-        const [port, password] = portAndAuth.split('@'); // Split the remaining part by '@'
+    const nodes = lavaURI.split(';');
+    nodes.forEach((node, index) => {
+      const [ip, portAndAuth] = node.split(':');
+      if (portAndAuth) {
+        const [port, password] = portAndAuth.split('@');
         lavaNodes.push({
-          name: process.env.NAME, // Use the name from the environment variable
+          name: `${process.env.NAME}${index + 1}`, // Use the name from the environment variable and append the index
           url: `${ip}:${port}`, // Construct the WebSocket URL
           auth: password, // Set the password
           secure: false // Assuming the connection is not secure
@@ -89,11 +89,10 @@ if (process.env.LAVALINK === 'true') {
       } else {
         console.warn(`Invalid Lavalink node configuration: ${node}`);
       }
-    }
+    });
   } else {
     console.warn('No Lavalink node configuration found. eg LAVALINK_URI = YOUR_IP:PORT@PASSWORD');
   }
-  const Nodes = lavaNodes
   client.manager = new Kazagumo({
     defaultSearchEngine: "youtube",
     plugins: [
@@ -110,7 +109,7 @@ if (process.env.LAVALINK === 'true') {
         const guild = client.guilds.cache.get(guildId);
         if (guild) guild.shard.send(payload);
     }
-}, new Connectors.DiscordJS(client), Nodes);
+}, new Connectors.DiscordJS(client), lavaNodes);
 require('./events/lavaEvents/lavaEvents.js')(client)
 }
 

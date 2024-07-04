@@ -5,7 +5,6 @@ require("dotenv").config();
 
 
 module.exports = (client) => {
-  console.log(process.env.DEBUG)
 client.manager.shoukaku.on('ready', (name) => console.log(`Lavalink ${name}: Ready!`));
 client.manager.shoukaku.on('error', (name, error) => console.error(`Lavalink ${name}: Error Caught,`, error));
 client.manager.shoukaku.on('close', (name, code, reason) => console.warn(`Lavalink ${name}: Closed, Code ${code}, Reason ${reason || 'No reason'}`));

@@ -95,6 +95,9 @@ module.exports =  {
       
           return interaction.reply({ embeds: [embed] });
         } else if (Lavaplayer) {
+          if (Lavaplayer.queue.length === 0) {
+            return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+           }
           const currentTrack = Lavaplayer.queue.current
           const currentPos = Lavaplayer.queue.kazagumoPlayer.shoukaku.position ; 
           const songLength = Lavaplayer.queue.current.length; 
@@ -131,7 +134,11 @@ module.exports =  {
       break;
       case "lavalink":
         const player = client.manager.players.get(interaction.guild.id);
+        console.log(player.queue.kazagumoPlayer.shoukaku.node.name)
         if (!player) {
+          return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+         }
+         if (!player.playing) {
           return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
          }
          const currentTrack = player.queue.current
@@ -161,7 +168,7 @@ module.exports =  {
              { name: "Settings", value: `Loop: ${repeatModeEmoji} AutoPlay: ${autoPlayEmoji}` },
      
            ])
-           .setFooter({ text: `Requested by ${currentTrack.requester.username}` });
+           .setFooter({ text: `Requested by ${currentTrack.requester.username} | Node: ${player.queue.kazagumoPlayer.shoukaku.node.name}` });
      
          return interaction.reply({ embeds: [embed2] });
    

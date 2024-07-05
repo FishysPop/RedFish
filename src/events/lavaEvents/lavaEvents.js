@@ -21,7 +21,6 @@ client.manager.shoukaku.on('disconnect', (name, players, moved) => {
 client.manager.on("playerStart", async (player, track) => {
   const channel = client.channels.cache.get(player.textId);
   const guild = client.guilds.cache.get(player.guildId);
-  console.log(guild)
 
   if (!guild.members.me.permissionsIn(channel).has(PermissionsBitField.Flags.ViewChannel)) {
     return;

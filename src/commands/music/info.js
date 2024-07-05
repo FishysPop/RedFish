@@ -134,7 +134,6 @@ module.exports =  {
       break;
       case "lavalink":
         const player = client.manager.players.get(interaction.guild.id);
-        console.log(player.queue.kazagumoPlayer.shoukaku.node.name)
         if (!player) {
           return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
          }

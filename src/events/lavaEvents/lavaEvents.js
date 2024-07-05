@@ -19,6 +19,16 @@ client.manager.shoukaku.on('disconnect', (name, players, moved) => {
 });
 
 client.manager.on("playerStart", async (player, track) => {
+  const channel = client.channels.cache.get(player.textId);
+  const guild = client.guilds.cache.get(player.guildId);
+  console.log(guild)
+
+  if (!guild.members.me.permissionsIn(channel).has(PermissionsBitField.Flags.ViewChannel)) {
+    return;
+  }
+  if (!guild.members.me.permissionsIn(channel).has(PermissionsBitField.Flags.SendMessages)) {
+    return;
+  }
     const playerStartEmbed = await new EmbedBuilder() //embed
 	.setColor('#e66229')
 	.setTitle(track.title)
@@ -35,17 +45,18 @@ client.manager.on("playerStart", async (player, track) => {
     const shuffleButton = new ButtonBuilder().setCustomId('LavaShuffle').setEmoji('<:w_shuffle:1106270712542531624>').setStyle(ButtonStyle.Secondary);
     const row = new ActionRowBuilder()
    .addComponents(playPauseButton, skipButton, stopButton, loopButton, shuffleButton);
-   const channel = client.channels.cache.get(player.textId);
-   let message;
+   let message = null;
    try {
-    message = await channel.send({ embeds: [playerStartEmbed], components: [row] });
+    message = await channel.send({ embeds: [playerStartEmbed], components: [row] }).catch(err => console.log(err));
    } catch (err) {
     if (err.code === 50035) {
         return;
     } else {
         console.error("Error sending playerStart message:", err);
+        return;
     }
    }
+   if (!message) return;
    player.data.set("message", message);
        let ms = track.length
        if (ms < "300000") {

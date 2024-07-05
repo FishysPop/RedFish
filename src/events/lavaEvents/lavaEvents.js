@@ -52,7 +52,7 @@ client.manager.on("playerStart", async (player, track) => {
         } else {
          ms = "300000";
         }
-       const collector = message.createMessageComponentCollector({
+       const collector = message?.createMessageComponentCollector({
         idle: ms,
         });
           collector.on("end", async () => {

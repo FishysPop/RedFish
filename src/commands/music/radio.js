@@ -1,5 +1,6 @@
 const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder, EmbedBuilder ,ComponentType ,PermissionsBitField} = require("discord.js");
 const { Player, QueryType, useMainPlayer } = require('discord-player');
+require("dotenv").config();
 const axios = require('axios')
 module.exports =  {
     data: new SlashCommandBuilder()
@@ -85,6 +86,7 @@ module.exports =  {
             voiceId: channel.id,
             volume: 30,
             deaf: true,
+            nodeName: `${process.env.NAME}1`,
             data: {
               autoPlay: false
             }

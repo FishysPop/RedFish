@@ -84,7 +84,10 @@ module.exports =  {
             textId: interaction.channel.id,
             voiceId: channel.id,
             volume: 30,
-            deaf: true
+            deaf: true,
+            data: {
+              autoPlay: false
+            }
         });
 
         const res = await player.search(data[0].url_resolved, { requester: interaction.user });

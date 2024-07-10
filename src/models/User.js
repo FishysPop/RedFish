@@ -12,10 +12,7 @@ const userSchema = new Schema({
   },
   lastDaily: {
     type: Date,
-  },
-  lastVote: {
-    type: Date,
-  },
+  }
 });
 
 module.exports = model('User', userSchema);

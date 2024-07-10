@@ -9,6 +9,9 @@ const guildSettingsSchema = new Schema({
     type: String,
     required: true,
   },
+  defaultVolume: {
+    type: Number,
+  },
 
 });
 

@@ -11,12 +11,12 @@ module.exports = async (oldChannel, newChannel, client ) => {
 	}
 
 
-    if (oldChannel.guild.members.cache.get(client.user.id).voice.channelId === oldChannel.channelId) {
+    if (oldChannel.guild.members.cache.get(client.user.id)?.voice.channelId === oldChannel.channelId) {
 		if (oldChannel.guild.members.me.voice?.channel && oldChannel.guild.members.me.voice.channel.members.filter((m) => !m.user.bot).size === 0) {
 
 			await delay(300000);
 
-			const vcMembers = oldChannel.guild.members.me.voice.channel?.members.size;
+			const vcMembers = oldChannel.guild.members.me?.voice.channel?.members.size;
 			if (!vcMembers || vcMembers === 1) {
 				if(!player) return;
 				await player.destroy().catch(err => err);

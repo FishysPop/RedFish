@@ -6,6 +6,7 @@ const { CommandHandler } = require('djs-commander');
 const { Player } = require('discord-player');
 const { Kazagumo, Plugins } = require("kazagumo");
 const Spotify = require('kazagumo-spotify');
+const Deezer = require('kazagumo-deezer');
 const { Connectors } = require("shoukaku");
 const fs = require('fs');
 const Topgg = require("@top-gg/sdk");
@@ -81,10 +82,10 @@ if (process.env.LAVALINK === 'true') {
       if (portAndAuth) {
         const [port, password] = portAndAuth.split('@');
         lavaNodes.push({
-          name: `${process.env.NAME}${index + 1}`, // Use the name from the environment variable and append the index
-          url: `${ip}:${port}`, // Construct the WebSocket URL
-          auth: password, // Set the password
-          secure: false // Assuming the connection is not secure
+          name: `${process.env.NAME}${index + 1}`,
+          url: `${ip}:${port}`, 
+          auth: password, 
+          secure: false 
         });
       } else {
         console.warn(`Invalid Lavalink node configuration: ${node}`);
@@ -97,6 +98,9 @@ if (process.env.LAVALINK === 'true') {
     defaultSearchEngine: "youtube",
     plugins: [
       new Plugins.PlayerMoved(client),
+      new Deezer({
+        playlistLimit: 20
+      }),
       new Spotify({
       clientId: process.env.SPOTIFY_ID,
       clientSecret: process.env.SPOTIFY_SECRET,
@@ -109,7 +113,14 @@ if (process.env.LAVALINK === 'true') {
         const guild = client.guilds.cache.get(guildId);
         if (guild) guild.shard.send(payload);
     }
-}, new Connectors.DiscordJS(client), lavaNodes);
+}, new Connectors.DiscordJS(client), lavaNodes, {
+  reconnectInterval: 20,
+  moveOnDisconnect: true,
+  resume: true,
+  resumeByLibrary: true,
+  reconnectTries: 10,
+  resumeTimeout: 60,
+});
 require('./events/lavaEvents/lavaEvents.js')(client)
 }
 

@@ -1,4 +1,5 @@
 const { EmbedBuilder, Client, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField} = require('discord.js')
+require("dotenv").config();
 
 player.events.on('playerStart', async (queue, track) => {
   if (!queue.guild.members.me.permissionsIn(queue.metadata.channel).has(PermissionsBitField.Flags.ViewChannel)) {
@@ -88,3 +89,6 @@ player.events.on("playerError", async (queue, error) => {
   console.log(`[${queue.guild.name}] (ID:${queue.metadata.channel}) Error emitted from the player: ${error.message}`);
   queue.metadata.channel.send({ embeds: [playeErrorEmbed]})
 });
+
+if (process.env.DEBUG === "true") player.events.on('debug', (_, msg) => console.debug("Discord Player Debug: ",msg))
+

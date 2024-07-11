@@ -57,6 +57,7 @@ module.exports = async (interaction, client, handler) => {
           break;
         case "LavaStop":
           try {
+            if (!player ) return interaction.reply({content: `The bot is not in a voice channel`,ephemeral: true });
             player.destroy();
             const LavaPlayerStopEmbed = await new EmbedBuilder()
               .setColor("#e66229")

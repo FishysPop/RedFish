@@ -30,10 +30,10 @@ client.manager.on("playerStart", async (player, track) => {
   }
     const playerStartEmbed = await new EmbedBuilder() //embed
 	.setColor('#e66229')
-	.setTitle(track.title)
+	.setTitle(track?.title)
 	.setURL(track.realUri)
 	.setAuthor({ name: 'Now Playing'})
-	.setThumbnail(track.thumbnail)
+	.setThumbnail(track?.thumbnail)
     .setDescription(`Duration: **${convertTime(track.length, true)}**`)
     .setTimestamp()
     .setFooter({ text: `Requested by: ${track.requester.username}`});

@@ -42,6 +42,7 @@ module.exports = {
       /disconnet | Removes the bot from the vc
       /radio | Play from a radio station
       /pause | Resumes playback
+      /player-settings | Customize the music player to your liking
       \n If need any further assistance join the [Support Server](https://discord.com/invite/rDHPK2er3j) or please dm fishypop
       `);
  

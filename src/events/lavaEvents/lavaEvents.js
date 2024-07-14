@@ -48,7 +48,7 @@ client.manager.on("playerStart", async (player, track) => {
    try {
     message = await channel.send({ embeds: [playerStartEmbed], components: [row] }).catch(err => console.log("Error sending playerStart message:", err));
    } catch (err) {
-    if (err.code === 50035) {
+    if (err.code === 50013) {
         return;
     } else {
         console.error("Error sending playerStart message:", err);

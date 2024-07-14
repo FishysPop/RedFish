@@ -46,7 +46,7 @@ client.manager.on("playerStart", async (player, track) => {
    .addComponents(playPauseButton, skipButton, stopButton, loopButton, shuffleButton);
    let message = null;
    try {
-    message = await channel.send({ embeds: [playerStartEmbed], components: [row] }).catch(err => console.log(err));
+    message = await channel.send({ embeds: [playerStartEmbed], components: [row] }).catch(err => console.log("Error sending playerStart message:", err));
    } catch (err) {
     if (err.code === 50035) {
         return;

@@ -249,7 +249,7 @@ case "discord_player":
         //temp spotfiy only mode due it it "ddosing" the lavalink node 
         //const resultsYouTubeLavalink = await client.manager.search(query, { searchEngine: 'youtube_music'});
         const resultsYouTubeLavalink = []
-        const resultsSpotifyLavalink = await client.manager.search(query, { searchEngine: 'spotify'});
+        const resultsSpotifyLavalink = await client.manager.search(query, { engine: 'spotify'});
     /*    const tracksYouTubeLavalink = resultsYouTubeLavalink.tracks.slice(0, 5).map((t) => ({
           name: `YouTube: ${`${t.title} - ${t.author} (${t.duration})`.length > 75 ? `${`${t.title} - ${t.author}`.substring(0, 75)}... (${convertTime(t.length, true)})` : `${t.title} - ${t.author} (${convertTime(t.length, true)})`}`,
           value: t.uri,

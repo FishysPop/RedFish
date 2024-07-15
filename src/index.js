@@ -122,6 +122,9 @@ if (process.env.LAVALINK === 'true') {
   resumeTimeout: 60,
 });
 require('./events/lavaEvents/lavaEvents.js')(client)
+const playCommand = require('./commands/music/play');
+client.commands = new Collection();
+client.commands.set('play', playCommand);
 }
 
 if (process.env.DISCORD_PLAYER !== 'true' && process.env.LAVALINK !== 'true') {

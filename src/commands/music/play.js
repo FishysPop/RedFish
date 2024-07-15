@@ -221,28 +221,72 @@ case "discord_player":
   
 
   },
-  async autocompleteRun(interaction) {
-    const player = useMainPlayer();
+  async autocompleteRun(interaction, client) {
     const query = interaction.options.getString("query", true);
-    const resultsYouTube = await player.search(query, { searchEngine: QueryType.YOUTUBE });
-    const resultsSpotify = await player.search(query, { searchEngine: QueryType.SPOTIFY_SEARCH });
+    if (!query) return;
+    switch (client.playerType) {
+      case "both":
+       if (client.playerType === "both") {
+        const resultsYouTubeLavalink = await client.manager.search(query, { searchEngine: 'youtube_music'});
+        const resultsSpotifyLavalink = await client.manager.search(query, { searchEngine: 'spotify'});
+        const tracksYouTubeLavalink = resultsYouTubeLavalink.tracks.slice(0, 5).map((t) => ({
+          name: `YouTube: ${`${t.title} - ${t.author} (${t.duration})`.length > 75 ? `${`${t.title} - ${t.author}`.substring(0, 75)}... (${convertTime(t.length, true)})` : `${t.title} - ${t.author} (${convertTime(t.length, true)})`}`,
+          value: t.uri,
+      }));
+  
+      const tracksSpotifyLavalink = resultsSpotifyLavalink.tracks.slice(0, 5).map((t) => ({
+          name: `Spotify: ${`${t.title} - ${t.author} (${t.duration})`.length > 75 ? `${`${t.title} - ${t.author}`.substring(0, 75)}... (${convertTime(t.length, true)})` : `${t.title} - ${t.author} (${convertTime(t.length, true)})`}`,
+          value: t.uri,
+      }));
+      const tracksLavalink = [];
+    
+      tracksYouTubeLavalink.forEach((t) => tracksLavalink.push({ name: t.name, value: t.value }));
+      tracksSpotifyLavalink.forEach((t) => tracksLavalink.push({ name: t.name, value: t.value }));
+      return interaction.respond(tracksLavalink);
+       }
+      break;
+      case "lavalink":
+        const resultsYouTubeLavalink = await client.manager.search(query, { searchEngine: 'youtube_music'});
+        const resultsSpotifyLavalink = await client.manager.search(query, { searchEngine: 'spotify'});
+        const tracksYouTubeLavalink = resultsYouTubeLavalink.tracks.slice(0, 5).map((t) => ({
+          name: `YouTube: ${`${t.title} - ${t.author} (${t.duration})`.length > 75 ? `${`${t.title} - ${t.author}`.substring(0, 75)}... (${convertTime(t.length, true)})` : `${t.title} - ${t.author} (${convertTime(t.length, true)})`}`,
+          value: t.uri,
+      }));
+  
+      const tracksSpotifyLavalink = resultsSpotifyLavalink.tracks.slice(0, 5).map((t) => ({
+          name: `Spotify: ${`${t.title} - ${t.author} (${t.duration})`.length > 75 ? `${`${t.title} - ${t.author}`.substring(0, 75)}... (${convertTime(t.length, true)})` : `${t.title} - ${t.author} (${convertTime(t.length, true)})`}`,
+          value: t.uri,
+      }));
+      const tracksLavalink = [];
+    
+      tracksYouTubeLavalink.forEach((t) => tracksLavalink.push({ name: t.name, value: t.value }));
+      tracksSpotifyLavalink.forEach((t) => tracksLavalink.push({ name: t.name, value: t.value }));
+      return interaction.respond(tracksLavalink);
 
-    const tracksYouTube = resultsYouTube.tracks.slice(0, 5).map((t) => ({
-        name: `YouTube: ${`${t.title} - ${t.author} (${t.duration})`.length > 75 ? `${`${t.title} - ${t.author}`.substring(0, 75)}... (${t.duration})` : `${t.title} - ${t.author} (${t.duration})`}`,
-        value: t.url,
-    }));
-
-    const tracksSpotify = resultsSpotify.tracks.slice(0, 5).map((t) => ({
-        name: `Spotify: ${`${t.title} - ${t.author} (${t.duration})`.length > 75 ? `${`${t.title} - ${t.author}`.substring(0, 75)}... (${t.duration})` : `${t.title} - ${t.author} (${t.duration})`}`,
-        value: t.url,
-    }));
-
-    const tracks = [];
-
-    tracksYouTube.forEach((t) => tracks.push({ name: t.name, value: t.value }));
-    tracksSpotify.forEach((t) => tracks.push({ name: t.name, value: t.value }));
-
-    return interaction.respond(tracks);
+      break;
+      case "discord_player":
+        const player = useMainPlayer();
+        const resultsYouTube = await player.search(query, { searchEngine: QueryType.YOUTUBE });
+        const resultsSpotify = await player.search(query, { searchEngine: QueryType.SPOTIFY_SEARCH });
+    
+        const tracksYouTube = resultsYouTube.tracks.slice(0, 5).map((t) => ({
+            name: `YouTube: ${`${t.title} - ${t.author} (${t.duration})`.length > 75 ? `${`${t.title} - ${t.author}`.substring(0, 75)}... (${t.duration})` : `${t.title} - ${t.author} (${t.duration})`}`,
+            value: t.url,
+        }));
+    
+        const tracksSpotify = resultsSpotify.tracks.slice(0, 5).map((t) => ({
+            name: `Spotify: ${`${t.title} - ${t.author} (${t.duration})`.length > 75 ? `${`${t.title} - ${t.author}`.substring(0, 75)}... (${t.duration})` : `${t.title} - ${t.author} (${t.duration})`}`,
+            value: t.url,
+        }));
+    
+        const tracks = [];
+    
+        tracksYouTube.forEach((t) => tracks.push({ name: t.name, value: t.value }));
+        tracksSpotify.forEach((t) => tracks.push({ name: t.name, value: t.value }));
+    
+        return interaction.respond(tracks);
+      break;
+    }
 },
 
   // devOnly: Boolean,

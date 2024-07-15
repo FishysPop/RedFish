@@ -246,6 +246,7 @@ case "discord_player":
        }
       break;
       case "lavalink":
+        return; //temp disable 
         const resultsYouTubeLavalink = await client.manager.search(query, { searchEngine: 'youtube_music'});
         const resultsSpotifyLavalink = await client.manager.search(query, { searchEngine: 'spotify'});
         const tracksYouTubeLavalink = resultsYouTubeLavalink.tracks.slice(0, 5).map((t) => ({

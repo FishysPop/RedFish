@@ -246,13 +246,14 @@ case "discord_player":
        }
       break;
       case "lavalink":
-        return; //temp disable 
-        const resultsYouTubeLavalink = await client.manager.search(query, { searchEngine: 'youtube_music'});
+        //temp spotfiy only mode due it it "ddosing" the lavalink node 
+        //const resultsYouTubeLavalink = await client.manager.search(query, { searchEngine: 'youtube_music'});
+        const resultsYouTubeLavalink = []
         const resultsSpotifyLavalink = await client.manager.search(query, { searchEngine: 'spotify'});
-        const tracksYouTubeLavalink = resultsYouTubeLavalink.tracks.slice(0, 5).map((t) => ({
+    /*    const tracksYouTubeLavalink = resultsYouTubeLavalink.tracks.slice(0, 5).map((t) => ({
           name: `YouTube: ${`${t.title} - ${t.author} (${t.duration})`.length > 75 ? `${`${t.title} - ${t.author}`.substring(0, 75)}... (${convertTime(t.length, true)})` : `${t.title} - ${t.author} (${convertTime(t.length, true)})`}`,
           value: t.uri,
-      }));
+      }));  */
   
       const tracksSpotifyLavalink = resultsSpotifyLavalink.tracks.slice(0, 5).map((t) => ({
           name: `Spotify: ${`${t.title} - ${t.author} (${t.duration})`.length > 75 ? `${`${t.title} - ${t.author}`.substring(0, 75)}... (${convertTime(t.length, true)})` : `${t.title} - ${t.author} (${convertTime(t.length, true)})`}`,
@@ -260,7 +261,7 @@ case "discord_player":
       }));
       const tracksLavalink = [];
     
-      tracksYouTubeLavalink.forEach((t) => tracksLavalink.push({ name: t.name, value: t.value }));
+    //  tracksYouTubeLavalink.forEach((t) => tracksLavalink.push({ name: t.name, value: t.value }));
       tracksSpotifyLavalink.forEach((t) => tracksLavalink.push({ name: t.name, value: t.value }));
       return interaction.respond(tracksLavalink);
 

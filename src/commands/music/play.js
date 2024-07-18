@@ -261,7 +261,6 @@ case "discord_player":
     
       tracksSoundcloudLavalink.forEach((t) => tracksLavalink.push({ name: t.name, value: t.value }));
       tracksSpotifyLavalink.forEach((t) => tracksLavalink.push({ name: t.name, value: t.value }));
-      console.log(tracksLavalink)
       return interaction.respond(tracksLavalink);
 
       break;

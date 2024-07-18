@@ -284,8 +284,10 @@ client.on("guildUpdate", function (oldGuild, newGuild) {
                 PARAMETER     TYPE          DESCRIPTION
                 interaction   Interaction   The interaction which was created  */
 client.on("interactionCreate", function (interaction) {
-  console.log(`an interaction has been created`);
+  console.log(`an interaction has been created:`, );
   console.log({ interaction });
+  console.log(interaction?.options);
+
 });
 
 // invalidated

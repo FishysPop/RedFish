@@ -1,6 +1,8 @@
 const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder, EmbedBuilder ,PermissionsBitField} = require("discord.js");
 const { Player, QueryType, useMainPlayer } = require('discord-player');
 const { convertTime } = require("../../utils/ConvertTime.js");
+const User = require("../../models/UserPlayerSettings");
+const GuildSettings = require("../../models/GuildSettings");
 
 module.exports =  {
     data: new SlashCommandBuilder()
@@ -26,7 +28,15 @@ module.exports =  {
     if (channel.full) return interaction.reply({content: 'That voice channel is full',ephemeral: true})
     await interaction.deferReply();
     const name = interaction.options.getString('query'); 
+    const user = await User.findOne({ userId: interaction.user.id });
+    const serverSettings = await GuildSettings.findOne({ guildId: interaction.guild.id });
 
+    let playerSettings = {
+      volume: serverSettings?.defaultVolume || '30',
+      searchEngine: user?.defaultSearchEngine || null,
+      betaPlayer: user?.betaPlayer || false,
+      playerMessages: serverSettings?.playerMessages || "default"
+    }
     switch (client.playerType) {
       case "both":
         try {
@@ -174,15 +184,16 @@ case "discord_player":
             guildId: interaction.guild.id,
             textId: interaction.channel.id,
             voiceId: channel.id,
-            volume: 30,
+            volume: playerSettings.volume,
             deaf: true,
             loadBalancer: true,
             data: {
-              autoPlay: false
+              autoPlay: false,
+              playerMessages: playerSettings.playerMessages
             }
         });
 
-        const res = await player.search(name, { requester: interaction.user });
+        const res = await player.search(name, { requester: interaction.user, engine: playerSettings.searchEngine ? playerSettings.searchEngine : 'youtube_music' });
         if (!res.tracks.length) return interaction.editReply("No results found!");
 
         if (res.type === "PLAYLIST") {

@@ -12,6 +12,10 @@ const guildSettingsSchema = new Schema({
   defaultVolume: {
     type: Number,
   },
+  playerMessages: {
+    type: String,
+    default: "default",
+  }
 
 });
 

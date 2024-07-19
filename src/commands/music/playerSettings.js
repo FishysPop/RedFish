@@ -59,6 +59,7 @@ module.exports = {
     let row = new ActionRowBuilder()
     let row2 = null;
     let row3 = null;
+    let row4 = null;
     let guildSettings;
     function capitalizeSearchEngine(searchEngine) {
       return {
@@ -67,10 +68,17 @@ module.exports = {
         "deezer": "Deezer (Beta Player Only)",
       }[searchEngine] || searchEngine.charAt(0).toUpperCase() + searchEngine.slice(1);
     }
+    function formatNowPlaying(searchEngine) {
+      return {
+        "noMessage": "Disabled",
+        "deleteAfter": "Deletes After Song Finishes",
+        "default": "Default",
+      }[searchEngine] || searchEngine.charAt(0).toUpperCase() + searchEngine.slice(1);
+    }
     if (hasVoted) {
       const embed = new EmbedBuilder()
         .setTitle("Player Settings")
-        .setDescription("Welcome to the player Settings, Here you can customise the music player to your liking! \n\n Please note whoever first creates the queue(when the bot joins the vc) the bot will uses their settings \n\n Currently the beta player is enabled by default and changing it does nothing")
+        .setDescription("Welcome to the player Settings, Here you can customise the music player to your liking! \n\n Please note whoever first creates the queue(when the bot joins the vc) the bot will use their settings \n\n Currently the beta player is enabled by default and changing it does nothing")
         .setColor("#e66229")
         .setFooter({ text : "More Settings Coming Soon!"}); // Green for success
 
@@ -92,8 +100,8 @@ module.exports = {
             .setLabel('SoundCloud')
             .setValue('soundcloud'),
             new StringSelectMenuOptionBuilder()
-            .setLabel('Deezer')
-            .setValue('Deezer'),
+            .setLabel('Deezer (beta player only)')
+            .setValue('deezer'),
         )
         .setMaxValues(1);
         row2 = new ActionRowBuilder().addComponents(defaultSearchEngineSelectMenu);
@@ -101,14 +109,18 @@ module.exports = {
       if (hasAdmin) {
         guildSettings = await GuildSettings.findOne({ guildId: interaction.guildId });
         if (!guildSettings) {
-          guildSettings = await GuildSettings.create({ guildId: interaction.guildId, levels: false, defaultVolume: 30 });
+          guildSettings = await GuildSettings.create({ guildId: interaction.guildId, levels: false, defaultVolume: 30 , playerMessages: "default"});
         } else {
           if (!guildSettings.defaultVolume) {
             guildSettings.defaultVolume = 30;
             await guildSettings.save();
           }
+          if (!guildSettings.playerMessages) {
+            guildSettings.playerMessages = "default";
+            await guildSettings.save();
+          }
         }
-        embed.addFields({ name: "Server Settings", value: `Default volume: ${guildSettings.defaultVolume}%`,});
+        embed.addFields({ name: "Server Settings", value: `Default volume: ${guildSettings.defaultVolume}%\n Now Playing Message: ${formatNowPlaying(guildSettings.playerMessages)}`,});
         const adminVolumeSelectMenu = new StringSelectMenuBuilder()
         .setCustomId('adminVolumeSelectMenu')
         .setPlaceholder('Server volume.')
@@ -146,10 +158,26 @@ module.exports = {
         )
         .setMaxValues(1);
          row3 = new ActionRowBuilder().addComponents(adminVolumeSelectMenu);
+         const adminPlayerMessageSelectMenu = new StringSelectMenuBuilder()
+         .setCustomId('adminPlayerMessageSelectMenu')
+         .setPlaceholder('Now Playing Message.')
+         .addOptions(
+           new StringSelectMenuOptionBuilder()
+             .setLabel('Disabled')
+             .setValue('noMessage'),
+             new StringSelectMenuOptionBuilder()
+             .setLabel('Delete After Finish')
+             .setValue('deleteAfter'),
+             new StringSelectMenuOptionBuilder()
+             .setLabel('Default')
+             .setValue('default'),
+         )
+         .setMaxValues(1);
+          row4 = new ActionRowBuilder().addComponents(adminPlayerMessageSelectMenu);
       }
       const message = await interaction.editReply({ 
         embeds: [embed], 
-        components: [row, row2, row3].filter(Boolean), 
+        components: [row, row2, row3, row4].filter(Boolean), 
         fetchReply: true 
       });
       const collector = message.createMessageComponentCollector({
@@ -168,27 +196,33 @@ module.exports = {
             embed.data.fields[0].value = `Beta Player: ${ user.betaPlayer ? "Enabled" : "Disabled" }\n Default Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
             row.components[0].data.label = "Enable Beta Player";
             row.components[0].data.style = ButtonStyle.Success;
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3].filter(Boolean), fetchReply: true })
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4].filter(Boolean), fetchReply: true })
           } else {
             user.betaPlayer = true;
             await user.save();
             embed.data.fields[0].value = `Beta Player: ${ user.betaPlayer ? "Enabled" : "Disabled" }\n Default Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
             row.components[0].data.label = "Disable Beta Player";
             row.components[0].data.style = ButtonStyle.Danger;
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3].filter(Boolean), fetchReply: true })
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4].filter(Boolean), fetchReply: true })
           }
           break;
           case "adminVolumeSelectMenu":
             guildSettings.defaultVolume = i.values[0]
             await guildSettings.save()
-            embed.data.fields[1].value = `Default volume: ${guildSettings.defaultVolume}%`;
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3].filter(Boolean), fetchReply: true })
+            embed.data.fields[1].value = `Default volume: ${guildSettings.defaultVolume}%\n Now Playing Message: ${formatNowPlaying(guildSettings.playerMessages)}`;
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4].filter(Boolean), fetchReply: true })
           break;
           case "defaultSearchEngineSelectMenu":
             user.defaultSearchEngine = i.values[0];
             await user.save();
             embed.data.fields[0].value = `Beta Player: ${ user.betaPlayer ? "Enabled" : "Disabled" }\n Default Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3].filter(Boolean), fetchReply: true })
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4].filter(Boolean), fetchReply: true })
+          break;
+          case "adminPlayerMessageSelectMenu":
+            guildSettings.playerMessages = i.values[0];
+            await guildSettings.save();
+            embed.data.fields[1].value = `Default volume: ${guildSettings.defaultVolume}%\n Now Playing Message: ${formatNowPlaying(guildSettings.playerMessages)}`;
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4].filter(Boolean), fetchReply: true })
           break;
         }
       })

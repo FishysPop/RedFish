@@ -31,12 +31,12 @@ client.manager.on("playerStart", async (player, track) => {
     const playerStartEmbed = await new EmbedBuilder() //embed
 	.setColor('#e66229')
 	.setTitle(track?.title)
-	.setURL(track.realUri)
+	.setURL(track?.realUri)
 	.setAuthor({ name: 'Now Playing'})
 	.setThumbnail(track?.thumbnail)
-    .setDescription(`Duration: **${convertTime(track.length, true)}**`)
+    .setDescription(`Duration: **${convertTime(track?.length || 0, true)}**`)
     .setTimestamp()
-    .setFooter({ text: `Requested by: ${track.requester.username}`});
+    .setFooter({ text: `Requested by: ${track?.requester?.username}`});
     const playPauseButton = new ButtonBuilder().setCustomId('LavaPause').setEmoji('<:w_playpause:1106270708243386428').setStyle(ButtonStyle.Primary);
     const skipButton = new ButtonBuilder().setCustomId('LavaSkip').setEmoji('<:w_next:1106270714664849448').setStyle(ButtonStyle.Success);
     const stopButton = new ButtonBuilder().setCustomId('LavaStop').setEmoji('<:w_stop:1106272001909346386>').setStyle(ButtonStyle.Danger);

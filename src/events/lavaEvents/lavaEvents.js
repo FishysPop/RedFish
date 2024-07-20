@@ -19,6 +19,7 @@ client.manager.shoukaku.on('disconnect', (name, players, moved) => {
 });
 
 client.manager.on("playerStart", async (player, track) => {
+  if (player.customData.playerMessages === "noMessage") return;
   const channel = client.channels.cache.get(player.textId);
   const guild = client.guilds.cache.get(player.guildId);
 
@@ -66,21 +67,36 @@ client.manager.on("playerStart", async (player, track) => {
         idle: ms,
         });
           collector.on("end", async () => {
+            if (player.customData.playerMessages === "default") {
             try {
               const fetchedMessage = await message.channel.messages.fetch(message.id)
               fetchedMessage.edit({
                 components: [],
-              });
+              }).catch(err => { if (!err.code === 50013) console.log("Error removing playerStart Buttons", err)});
             } catch (error) {
               return;
             }
+          } else {
+            try {
+              const fetchedMessage = await message.channel.messages.fetch(message.id)
+              fetchedMessage.delete().catch(err => { if (!err.code === 50013) console.log("Error Deleting playerStart Message", err)});
+            } catch (error) {
+              return;
+            }
+          }
+
           })
 });
 
 client.manager.on("playerEnd", (player) => {
+  if (player.customData.playerMessages === "default") {
     player.data.get("message")?.edit({
         components: [],
-      })
+      }).catch(err => { if (!err.code === 50013) console.log("Error editing playerEnd message:", err)});
+    } else {
+      player.data.get("message")?.delete().catch(err => { if (!err.code === 50013) console.log("Error editing playerEnd message:", err)});
+    }
+
 });
 
 client.manager.on("playerEmpty", async player => {

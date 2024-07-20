@@ -1,5 +1,8 @@
 const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder, EmbedBuilder ,ComponentType ,PermissionsBitField} = require("discord.js");
 const { Player, QueryType, useMainPlayer } = require('discord-player');
+const User = require("../../models/UserPlayerSettings");
+const GuildSettings = require("../../models/GuildSettings");
+
 require("dotenv").config();
 const axios = require('axios')
 module.exports =  {
@@ -24,6 +27,14 @@ module.exports =  {
     if (!channel) return interaction.reply({content: 'You are not connected to a voice channel',ephemeral: true,}); 
    
     await interaction.deferReply();
+    const user = await User.findOne({ userId: interaction.user.id });
+    const serverSettings = await GuildSettings.findOne({ guildId: interaction.guild.id });
+
+    let playerSettings = {
+      volume: serverSettings?.defaultVolume || '30',
+      betaPlayer: user?.betaPlayer || false,
+      playerMessages: serverSettings?.playerMessages || "default"
+    }
 
 
     const name = interaction.options.getString('name'); 
@@ -34,6 +45,7 @@ module.exports =  {
 
     switch (client.playerType) {
       case "both":
+        interaction.editReply("Both players not supported yet")
         break;
 
         case "discord_player":
@@ -50,9 +62,9 @@ module.exports =  {
                     channel: interaction.channel,
                     client: interaction.guild.members.me,
                     requestedBy: interaction.user,
-  
-  
+                    playerMessages: playerSettings.playerMessages
                   },
+                  volume: playerSettings.volume,
                   bufferingTimeout: 15000,
                   leaveOnEmpty: true,
                   leaveOnEmptyCooldown: 300000,
@@ -84,11 +96,12 @@ module.exports =  {
             guildId: interaction.guild.id,
             textId: interaction.channel.id,
             voiceId: channel.id,
-            volume: 30,
+            volume: playerSettings.volume,
             deaf: true,
             nodeName: `${process.env.NAME}1`,
             data: {
-              autoPlay: false
+              autoPlay: false,
+              playerMessages: playerSettings.playerMessages
             }
         });
 

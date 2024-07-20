@@ -142,8 +142,9 @@ case "discord_player":
                         channel: interaction.channel,
                         client: interaction.guild.members.me,
                         requestedBy: interaction.user,
+                        playerMessages: playerSettings.playerMessages
                     },
-                    volume: 30,
+                    volume: playerSettings.volume,
                     bufferingTimeout: 500,
                     leaveOnEmpty: true,
                     leaveOnEnd: false,

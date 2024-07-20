@@ -79,7 +79,6 @@ module.exports = {
                       let RateLimited = '';
                       if (options === "yes")  {
                      const search = await client.manager.search("https://www.youtube.com/watch?v=C0DPdy98e4c", {engine: 'youtube', nodeName: node.name})
-                     console.log(search.tracks?.length)
                       if (search.tracks?.length) {
                         RateLimited = '\n Rate Limited: False' 
                       } else {

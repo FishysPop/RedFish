@@ -20,7 +20,7 @@ player.events.on('playerStart', async (queue, track) => {
 	.setThumbnail('https://img.freepik.com/premium-vector/online-radio-station-vintage-icon-symbol_8071-25787.jpg')
     .setDescription(`Duration: **LIVE**`)
     .setTimestamp()
-    .setFooter({ text: `Requested by ${requestedByString}`});
+    .setFooter({ text: `Requested by ${requestedByString}${Math.random() < 0.04 ? ' | Dont want these messages? Disable them with /player-settings' : ''}`});
     const playPauseButton = new ButtonBuilder().setCustomId('Pause').setEmoji('<:w_playpause:1106270708243386428').setStyle(ButtonStyle.Primary);
     const skipButton = new ButtonBuilder().setCustomId('Skip').setEmoji('<:w_next:1106270714664849448').setStyle(ButtonStyle.Success);
     const stopButton = new ButtonBuilder().setCustomId('Stop').setEmoji('<:w_stop:1106272001909346386>').setStyle(ButtonStyle.Danger);
@@ -38,7 +38,6 @@ player.events.on('playerStart', async (queue, track) => {
    return;
   }
 
-
     const playerStartEmbed = await new EmbedBuilder() //embed
 	.setColor('#e66229')
 	.setTitle(track.title)
@@ -47,7 +46,7 @@ player.events.on('playerStart', async (queue, track) => {
 	.setThumbnail(track.thumbnail)
     .setDescription(`Duration: **${track.duration}**`)
     .setTimestamp()
-    .setFooter({ text: `Requested by ${requestedByString}`});
+    .setFooter({ text: `Requested by ${requestedByString}${Math.random() < 0.30 ? ' | Dont want these messages? Disable them with /player-settings' : ''}`});
     const playPauseButton = new ButtonBuilder().setCustomId('Pause').setEmoji('<:w_playpause:1106270708243386428').setStyle(ButtonStyle.Primary);
     const skipButton = new ButtonBuilder().setCustomId('Skip').setEmoji('<:w_next:1106270714664849448').setStyle(ButtonStyle.Success);
     const stopButton = new ButtonBuilder().setCustomId('Stop').setEmoji('<:w_stop:1106272001909346386>').setStyle(ButtonStyle.Danger);

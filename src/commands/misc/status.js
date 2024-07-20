@@ -12,7 +12,14 @@ async function getPrettyMs() {
 module.exports = {
   data: new SlashCommandBuilder()
   .setName('status')
-  .setDescription('Shows stats about the bot.'),
+  .setDescription('Shows stats about the bot')
+  .addStringOption(option => option
+    .setName('ratelimit_check')
+    .setDescription('Checks the nodes if they are ratelimited')
+    .addChoices(
+        { name: 'Yes', value: 'yes' },
+        { name: 'No', value: 'false' },
+    )),
 
 
   run: async ({ interaction, client, handler }) => {
@@ -68,9 +75,20 @@ module.exports = {
                       **${memUsage} MB** Memory Usage
                     **${client.totalTracksPlayed}** Tracks Since Restart`)
                     for (const node of playerStats2.values()) {
+                      const options = interaction.options.get('ratelimit_check')?.value;
+                      let RateLimited = '';
+                      if (options === "yes")  {
+                     const search = await client.manager.search("https://www.youtube.com/watch?v=C0DPdy98e4c", {engine: 'youtube', nodeName: node.name})
+                     console.log(search.tracks?.length)
+                      if (search.tracks?.length) {
+                        RateLimited = '\n Rate Limited: False' 
+                      } else {
+                        RateLimited = '\n Rate Limited: True' 
+                      }
+                    }
                       embed2.addFields({
                         name: `Node: ${node.name}`,
-                        value: `Players: ${node.stats?.players ? node.stats.players : '0'}\nPlaying: ${node.stats?.playingPlayers ? node.stats.playingPlayers : '0'}\nUptime: ${node.stats?.uptime ? prettyMs(node.stats?.uptime, {compact: true}) : 'N/A'}\nMemory: ${node.stats?.memory ? (node.stats.memory.used / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}\nCPU: ${node.stats?.cpu.systemLoad ? (node.stats.cpu.systemLoad * 100).toFixed(2) + '%' : 'N/A'}`,
+                        value: `Players: ${node.stats?.players ? node.stats.players : '0'}\nPlaying: ${node.stats?.playingPlayers ? node.stats.playingPlayers : '0'}\nUptime: ${node.stats?.uptime ? prettyMs(node.stats?.uptime, {compact: true}) : 'N/A'}\nMemory: ${node.stats?.memory ? (node.stats.memory.used / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}\nCPU: ${node.stats?.cpu.systemLoad ? (node.stats.cpu.systemLoad * 100).toFixed(2) + '%' : 'N/A'}${RateLimited}`,
                       });
           }
        interaction.editReply({ embeds: [embed2] });

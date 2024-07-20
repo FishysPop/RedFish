@@ -1,6 +1,11 @@
 const { EmbedBuilder, Client, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField} = require('discord.js')
 require("dotenv").config();
 
+(async () => {
+  
+})();
+
+
 player.events.on('playerStart', async (queue, track) => {
   if (!queue.guild.members.me.permissionsIn(queue.metadata.channel).has(PermissionsBitField.Flags.ViewChannel)) {
     return;

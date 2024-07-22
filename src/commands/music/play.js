@@ -30,6 +30,8 @@ module.exports =  {
     const name = interaction.options.getString('query'); 
     const user = await User.findOne({ userId: interaction.user.id });
     const serverSettings = await GuildSettings.findOne({ guildId: interaction.guild.id });
+    const hasViewChannelPermission = interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.ViewChannel);
+    const hasSendMessagesPermission = interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.SendMessages);
 
     let playerSettings = {
       volume: serverSettings?.defaultVolume || '30',
@@ -155,8 +157,6 @@ case "discord_player":
             }
         );
 
-        const hasViewChannelPermission = interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.ViewChannel);
-        const hasSendMessagesPermission = interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.SendMessages);
 
         const embed = new EmbedBuilder().setColor('#e66229');
         if (res.track.playlist) {
@@ -169,6 +169,15 @@ case "discord_player":
 
         if (!hasViewChannelPermission || !hasSendMessagesPermission) {
             embed.setFooter({ text: `Media Controls Disabled: Missing Permissions` });
+        } else {
+          const randomNumber = Math.random()
+          if (randomNumber < 0.08) {
+            if (randomNumber < 0.04) {
+              embed.setFooter({ text: `Change the default volume with /player-settings!` });
+            } else {
+              embed.setFooter({ text: `Want to use another search engine? /player-settings!` });
+            }
+          }
         }
         
         return interaction.editReply({ embeds: [embed] });
@@ -195,7 +204,8 @@ case "discord_player":
         });
 
         const res = await player.search(name, { requester: interaction.user, engine: playerSettings.searchEngine ? playerSettings.searchEngine : 'youtube_music' });
-        if (!res.tracks.length) return interaction.editReply("No results found!");
+        if (!res.tracks.length) return interaction.editReply("No results found!")
+        let embed = new EmbedBuilder()
 
         if (res.type === "PLAYLIST") {
             for (let track of res.tracks) player.queue.add(track);
@@ -203,20 +213,28 @@ case "discord_player":
             if (!player.playing && !player.paused) player.play();
             client.totalTracksPlayed += res.tracks.length;
 
-            const embed = new EmbedBuilder()
-                .setColor('#e66229')
-                .setDescription(`**Enqueued: [${res.playlistName}](${name}) (${res.tracks.length} tracks**)`)
-            return interaction.editReply({ content: " ", embeds: [embed] })
+            embed.setColor('#e66229').setDescription(`**Enqueued: [${res.playlistName}](${name}) (${res.tracks.length} tracks**)`);
         } else {
             player.queue.add(res.tracks[0]);
 
             if (!player.playing && !player.paused) player.play();
             client.totalTracksPlayed += 1;
-            const embed = new EmbedBuilder()
-                .setColor('#e66229')
-                .setDescription(`**Enqueued: [${res.tracks[0].title}](${res.tracks[0].uri}) - ${res.tracks[0].author}** \`${convertTime(res.tracks[0].length, true)}\``)
-            return interaction.editReply({ content: " ", embeds: [embed] })
+            embed.setColor('#e66229').setDescription(`**Enqueued: [${res.tracks[0].title}](${res.tracks[0].uri}) - ${res.tracks[0].author}** \`${convertTime(res.tracks[0].length, true)}\``);
         }
+        if (!hasViewChannelPermission || !hasSendMessagesPermission) {
+          embed.setFooter({ text: `Media Controls Disabled: Missing Permissions` });
+      } else {
+        const randomNumber = Math.random()
+        if (randomNumber < 0.08) {
+          if (randomNumber < 0.04) {
+            embed.setFooter({ text: `Change the default volume with /player-settings!` });
+          } else {
+            embed.setFooter({ text: `Want to use another search engine? Change it with /player-settings!` });
+          }
+        }
+      }
+      return interaction.editReply({ content: " ", embeds: [embed] })
+
       }
         catch (e) {
           console.log(e)

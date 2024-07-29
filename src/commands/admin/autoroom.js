@@ -135,7 +135,7 @@ module.exports = {
             .setStyle(ButtonStyle.Success)
             .setCustomId("autoroomEasySetupButton3");
           const easySetupRow3 = new ActionRowBuilder().addComponents(easySetupNext3,backButton);
-          MessageReply.edit({
+          interaction.editReply({
             embeds: [easySetupEmbed3],
             components: [easySetupRow3],
           });
@@ -146,7 +146,7 @@ module.exports = {
             .setColor("#e66229")
             .setTitle("Autoroom Easy Setup - Step 4")
             .setDescription(`You finished the setup, Join ${sourceChannel4} to create your autoroom. \n If you would like to disable autorooms run this command again.`);
-          MessageReply.edit({ embeds: [easySetupEmbed4], components: [] });
+          interaction.editReply({ embeds: [easySetupEmbed4], components: [] });
           break;
         default:
           break;
@@ -170,7 +170,7 @@ module.exports = {
               .setPlaceholder('Select a channel.')
               .setMaxValues(1).addChannelTypes(ChannelType.GuildCategory);
           const SetupRow1 = new ActionRowBuilder().addComponents(ChannelSelect1);
-          MessageReply.edit({embeds: [SetupEmbed1],components: [SetupRow1],});
+          interaction.editReply({embeds: [SetupEmbed1],components: [SetupRow1],});
           break;
         case 2:
           const SetupEmbed2 = new EmbedBuilder()
@@ -186,7 +186,7 @@ module.exports = {
             .setPlaceholder('Select a channel.')
             .setMaxValues(1).addChannelTypes(ChannelType.GuildVoice);
           const SetupRow2 = new ActionRowBuilder().addComponents(ChannelSelect2);
-          MessageReply.edit({embeds: [SetupEmbed2],components: [SetupRow2,backButtonRow],});
+          interaction.editReply({embeds: [SetupEmbed2],components: [SetupRow2,backButtonRow],});
           break;
         case 3:
           const SetupEmbed3 = new EmbedBuilder()
@@ -198,7 +198,7 @@ module.exports = {
             );
             const SetupNext3 = new ButtonBuilder().setLabel("Text").setStyle(ButtonStyle.Primary).setCustomId("autoroomSetupButton3");
             const SetupRow3 = new ActionRowBuilder().addComponents(SetupNext3,backButton);
-            MessageReply.edit({embeds: [SetupEmbed3],components: [SetupRow3]});
+            interaction.editReply({embeds: [SetupEmbed3],components: [SetupRow3]});
           break;
         case 4:
           const modal = new ModalBuilder({
@@ -219,7 +219,7 @@ module.exports = {
           );
           const SetupRow4 = new ActionRowBuilder().addComponents(backButton);
           const SetupModalRow4 = new ActionRowBuilder().addComponents(setupInput4);
-          MessageReply.edit({embeds: [SetupEmbed4],components: [SetupRow4],});
+          interaction.editReply({embeds: [SetupEmbed4],components: [SetupRow4],});
           modal.addComponents(SetupModalRow4);
           return modal
           break;
@@ -236,7 +236,7 @@ module.exports = {
               );
               const SetupNext5 = new ButtonBuilder().setLabel("Confirm").setStyle(ButtonStyle.Success).setCustomId("autoroomSetupButton5");
               const SetupRow5 = new ActionRowBuilder().addComponents(SetupNext5 ,backButton);
-              MessageReply.edit({embeds: [SetupEmbed5],components: [SetupRow5],});
+              interaction.editReply({embeds: [SetupEmbed5],components: [SetupRow5],});
             break;
             case 6:
               const sourceChannel6 = interaction.guild.channels.cache.get(data.source);
@@ -246,7 +246,7 @@ module.exports = {
                 .setDescription(
                   `You finished the setup, Join ${sourceChannel6} to create your autoroom. \n If you would like to disable autorooms run this command again.`
                 );
-                MessageReply.edit({embeds: [SetupEmbed6],components: [],});
+                interaction.editReply({embeds: [SetupEmbed6],components: [],});
               break;
 
 
@@ -424,7 +424,7 @@ module.exports = {
         .setColor("#e66229")
         .setTitle("Autoroom Auto Setup")
         .setDescription(`Creating channels...`);
-        await MessageReply.edit({
+        await interaction.editReply({
           embeds: [autoroomAutoEmbed1],
           components: [],
         });
@@ -460,7 +460,7 @@ module.exports = {
           .setColor("#e66229")
           .setTitle("Autoroom Auto Setup")
           .setDescription(`You finished the setup, Join ${createdChannel} to create your autoroom. \n If you would like to disable autorooms run this command again.`);
-        await MessageReply.edit({
+        await interaction.editReply({
           embeds: [autoroomAutoEmbed2],
           components: [],
         });
@@ -476,7 +476,7 @@ module.exports = {
               Run this command again to set it up again`
           );
         await AutoRoom.findOneAndDelete({ guildId: interaction.guild.id });
-        await MessageReply.edit({
+        await interaction.editReply({
           embeds: [autoroomDisableEmbed1],
           components: [],
         });
@@ -486,7 +486,7 @@ module.exports = {
       if (interaction.customId === "autoroomCancelButton0") {
         await messageCollector.empty();
         isCollectorActive = false;
-        await MessageReply.delete();
+        await interaction.deleteReply();
       }
     });
     
@@ -500,7 +500,7 @@ module.exports = {
           `Oh no.. You have taken too long to respond.\n
             Run this command again to retry`
         );
-        MessageReply.edit({
+        interaction.editReply({
           embeds: [tookToLongEmbed],components: [],
         });
       }

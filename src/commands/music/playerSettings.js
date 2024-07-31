@@ -246,6 +246,7 @@ module.exports = {
           
   } catch (error) {
    console.log("error while running playerSettings",error)   
+   interaction.editReply("Seems something went wrong, please try again later").catch(null)
   }
   },
   // devOnly: Boolean,

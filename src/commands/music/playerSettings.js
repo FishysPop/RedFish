@@ -1,6 +1,9 @@
 const { SlashCommandBuilder,PermissionsBitField, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle ,StringSelectMenuBuilder, StringSelectMenuOptionBuilder} = require('discord.js');
 const User = require("../../models/UserPlayerSettings");
 const GuildSettings = require("../../models/GuildSettings");
+const axios = require('axios');
+require("dotenv").config();
+
 
 
 module.exports = {
@@ -16,7 +19,7 @@ module.exports = {
            return;
           }   
        await interaction.deferReply();
-       const hasVotedInLast12Hrs = await client?.topgg?.hasVoted(interaction.user.id).catch(e => interaction.editReply("Oops... Seems we failed to connect to top.gg's servers, Please Run this command again."));
+       const hasVotedInLast12Hrs = await hasVotedfunction(interaction.user.id)
        const hasAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator); 
        let hasVoted;
        const userId = interaction.user.id;
@@ -248,8 +251,31 @@ module.exports = {
    console.log("error while running playerSettings",error)   
    interaction.editReply("Seems something went wrong, please try again later").catch(null)
   }
+
+  async function hasVotedfunction(id) {
+    if (!id) throw new Error("Missing ID");
+    return axios({
+      method: 'GET',
+      url: 'https://top.gg/api/bots/check',
+      params: { userId: id },
+      headers: {
+        'Authorization': process.env.TOP_GG 
+      },
+      https: {
+        rejectUnauthorized: false, 
+        family: 4 
+      }
+    })
+      .then(response => !!response.data.voted)
+      .catch(error => {
+        console.error("Error checking vote status:", error);
+        throw new Error("Failed to check vote status");
+      });
+  }
   },
   // devOnly: Boolean,
   //testOnly: true,
   //deleted: true,
 };
+
+

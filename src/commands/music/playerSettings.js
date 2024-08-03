@@ -16,7 +16,7 @@ module.exports = {
            return;
           }   
        await interaction.deferReply();
-       const hasVotedInLast12Hrs = await client?.topgg?.hasVoted(interaction.user.id);
+       const hasVotedInLast12Hrs = await client?.topgg?.hasVoted(interaction.user.id).catch(e => interaction.editReply("Oops... Seems we failed to connect to top.gg's servers, Please Run this command again."));
        const hasAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator); 
        let hasVoted;
        const userId = interaction.user.id;

@@ -32,10 +32,10 @@ client.manager.on("playerStart", async (player, track) => {
 
     const playerStartEmbed = await new EmbedBuilder() //embed
 	.setColor('#e66229')
-	.setTitle(track?.title)
-	.setURL(track?.realUri)
+	.setTitle(track?.title || "Missing Title")
+	.setURL(track?.realUri || "https://youtube.com")
 	.setAuthor({ name: 'Now Playing'})
-	.setThumbnail(track?.thumbnail)
+	.setThumbnail(track?.thumbnail || "https://i.imgur.com/K9LWwgw.png")
     .setDescription(`Duration: **${convertTime(track?.length || 0, true)}**`)
     .setTimestamp()
     .setFooter({ text: `Requested by: ${track?.requester?.username}${Math.random() < 0.06 ? ' | Dont want these messages? Disable them with /player-settings' : ''}`});

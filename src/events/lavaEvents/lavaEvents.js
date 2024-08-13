@@ -59,7 +59,7 @@ client.manager.on("playerStart", async (player, track) => {
    }
    if (!message) return;
    player.data.set("message", message);
-       let ms = track.length
+       let ms = track?.length || "300000";
        if (ms < "300000") {
         } else {
          ms = "300000";

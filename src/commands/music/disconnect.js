@@ -29,7 +29,7 @@ module.exports =  {
        Discordplayer.delete()
        interaction.reply("Disconnected")
       } else if (Lavaplayer) {
-       Lavaplayer.destroy();
+       Lavaplayer.destroy().catch(e=>null);
        interaction.reply("Disconnected")
       } else {
         return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
@@ -40,7 +40,7 @@ module.exports =  {
       if (!player) {
         return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
        }
-        player.destroy();
+        player.destroy().catch(e=>null);
         interaction.reply("Disconnected")
     break;
     case "discord_player":

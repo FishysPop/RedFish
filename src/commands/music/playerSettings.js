@@ -254,23 +254,37 @@ module.exports = {
 
   async function hasVotedfunction(id) {
     if (!id) throw new Error("Missing ID");
-    return axios({
-      method: 'GET',
-      url: 'https://top.gg/api/bots/check',
-      params: { userId: id },
-      headers: {
-        'Authorization': process.env.TOP_GG 
-      },
-      https: {
-        rejectUnauthorized: false, 
-        family: 4 
+  
+    const httpsAgent = new (require('https').Agent)({
+      family: 4,  // Force IPv4
+      rejectUnauthorized: false  // Optional: Allows insecure connections
+    });
+  
+    const maxRetries = 5;
+    let attempt = 0;
+  
+    while (attempt < maxRetries) {
+      try {
+        const response = await axios({
+          method: 'GET',
+          url: 'https://top.gg/api/bots/check',
+          params: { userId: id },
+          headers: {
+            'Authorization': process.env.TOP_GG
+          },
+          httpsAgent
+        });
+  
+        return !!response.data.voted;
+      } catch (error) {
+        attempt++;
+        console.error(`Error checking vote status (Attempt ${attempt} of ${maxRetries}):`, error);
+  
+        if (attempt >= maxRetries) {
+          throw new Error("Failed to check vote status after multiple attempts");
+        }
       }
-    })
-      .then(response => !!response.data.voted)
-      .catch(error => {
-        console.error("Error checking vote status:", error);
-        throw new Error("Failed to check vote status");
-      });
+    }
   }
   },
   // devOnly: Boolean,

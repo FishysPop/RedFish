@@ -26,7 +26,7 @@
     "djs-commander": "^0.0.45",
     "dotenv": "^16.4.5",
     "https-proxy-agent": "^7.0.4",
-    "kazagumo": "^3.0.5",
+    "kazagumo": "^3.1.2",
     "kazagumo-deezer": "^2.0.2",
     "kazagumo-spotify": "^2.1.0",
     "mediaplex": "^0.0.9",

@@ -12,11 +12,13 @@ const client = new Client({
 client.once('ready', async () => {
     try {
         console.log('Bot is ready!');
+        console.log(`${client.user.tag} is online`);
 
-        const guilds = Array.from(client.guilds.cache.values()); // Convert guilds collection to an array
+        let guilds = Array.from(client.guilds.cache.values()); 
 
         // Sort guilds by memberCount
         guilds.sort((a, b) => b.memberCount - a.memberCount);
+        guilds = guilds.reverse(); // Reassign the reversed array
 
         console.log('Guild Index:');
         guilds.forEach(guild => {

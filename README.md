@@ -1,4 +1,4 @@
-﻿# RedFish - A Multi-Purpose Music Bot
+# RedFish - A Multi-Purpose Music Bot
 
 <p align="center">
   <a href="https://discord.com/invite/rDHPK2er3j">

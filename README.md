@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://discord.com/invite/rDHPK2er3j">
-    <img src="https://img.shields.io/discord/1105149646612987934?style=for-the-badge" alt="Discord Server">
+    <img src="https://img.shields.io/discord/870670135248158730?style=for-the-badge" alt="Discord Server">
   </a>
 </p>
 

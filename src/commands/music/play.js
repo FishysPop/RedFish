@@ -237,8 +237,8 @@ case "discord_player":
 
       }
         catch (e) {
-          console.log(e)
-      return interaction.editReply(`Something went wrong: ${e}`);
+          console.log("Error running play: ",e)
+      return interaction.editReply(`Oops seems something went wrong: ${e}, Please join the [support server](https://discord.com/invite/rDHPK2er3j) if this keeps happening`);
         }
         break;
     

@@ -15,7 +15,7 @@ const Topgg = require("@top-gg/sdk");
 
 const path = require('path');
 const client = new Client({
-  shards: "auto",
+ // shards: "auto",
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,

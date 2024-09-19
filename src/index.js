@@ -3,7 +3,7 @@ require("dotenv").config();
 
 
 const manager = new ClusterManager(`src/bot.js`, {
-    totalShards: 'auto', // or numeric shard count
+    totalShards: 4, // or numeric shard count
     shardsPerClusters: 2, // 2 shards per process
     mode: 'worker', // you can also choose "worker"
     token: process.env.TOKEN,

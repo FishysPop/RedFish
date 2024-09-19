@@ -54,7 +54,7 @@ module.exports = {
                       **${playerStats3.queues.reduce((acc, queue) => acc + queue.listeners, 0)}** Users listening
                       **${client.totalTracksPlayed}** Tracks Since Restart` 
               }
-            ).setFooter(`Shard: ${interaction.guild.shardId} | Cluster: ${client.clusterId}`)
+            ).setFooter({text: `Shard: ${interaction.guild.shardId} | Cluster: ${client.cluster.id}`})
             for (const node of playerStats4.values()) {
               embed3.addFields({
                 name: `Node: ${node.name}`,
@@ -73,7 +73,7 @@ module.exports = {
                       **${cpuCores}** CPU Cores  
                       **${cpuUsage}%** CPU Usage
                       **${memUsage} MB** Memory Usage
-                    **${client.totalTracksPlayed}** Tracks Since Restart`)
+                    **${client.totalTracksPlayed}** Tracks Since Restart`).setFooter({text: `Shard: ${interaction.guild.shardId} | Cluster: ${client.cluster.id}`})
                     for (const node of playerStats2.values()) {
                       const options = interaction.options.get('ratelimit_check')?.value;
                       let RateLimited = '';
@@ -112,7 +112,7 @@ module.exports = {
                   **${cpuUsage}%** CPU Usage
                   **${memUsage} MB** Memory Usage` 
         }
-      )
+      ).setFooter({text: `Shard: ${interaction.guild.shardId} | Cluster: ${client.cluster.id}`})
       interaction.editReply({ embeds: [embed] });
       break;
     }

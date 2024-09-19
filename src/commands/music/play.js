@@ -189,11 +189,13 @@ case "discord_player":
 
 
         case "lavalink":
+          console.log("Playing in shard:",interaction.guild.shardId)
           try {
           const player = await client.manager.createPlayer({
             guildId: interaction.guild.id,
             textId: interaction.channel.id,
             voiceId: channel.id,
+            shardId: interaction.guild.shardId,
             volume: playerSettings.volume,
             deaf: true,
             loadBalancer: true,

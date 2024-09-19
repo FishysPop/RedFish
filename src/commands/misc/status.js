@@ -54,7 +54,7 @@ module.exports = {
                       **${playerStats3.queues.reduce((acc, queue) => acc + queue.listeners, 0)}** Users listening
                       **${client.totalTracksPlayed}** Tracks Since Restart` 
               }
-            )
+            ).setFooter(`Shard: ${interaction.guild.shardId} | Cluster: ${client.clusterId}`)
             for (const node of playerStats4.values()) {
               embed3.addFields({
                 name: `Node: ${node.name}`,

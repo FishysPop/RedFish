@@ -143,6 +143,7 @@ client.manager.on("playerEmpty", async player => {
   const randomIndex = Math.floor(Math.random() * filteredTracks2.length);
   randomTrack = filteredTracks2[randomIndex];
 }
+if(!randomTrack) randomTrack = res[0]
   player.queue.add(randomTrack);
   if (!player.playing && !player.paused) player.play();
 } catch (error) {

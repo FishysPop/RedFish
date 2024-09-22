@@ -23,7 +23,7 @@
     "canvacord": "^5.4.10",
     "discord-hybrid-sharding": "^2.2.0",
     "discord-player": "^6.6.9",
-    "discord.js": "^14.15.2",
+    "discord.js": "^14.16.2",
     "djs-commander": "^0.0.45",
     "dotenv": "^16.4.5",
     "https-proxy-agent": "^7.0.4",

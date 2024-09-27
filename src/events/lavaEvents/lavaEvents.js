@@ -22,6 +22,7 @@ client.manager.on("playerStart", async (player, track) => {
   if (player.customData.playerMessages === "noMessage") return;
   const channel = client.channels.cache.get(player.textId);
   const guild = client.guilds.cache.get(player.guildId);
+  if (!guild) return; 
 
   if (!guild.members.me.permissionsIn(channel).has(PermissionsBitField.Flags.ViewChannel)) {
     return;

@@ -255,6 +255,11 @@ case "discord_player":
   async autocompleteRun(interaction, client) {
     const query = interaction.options.getString("query", true);
     if (!query) return;
+    const lastInteraction = interaction.client.userInteractions.get(interaction.user.id);
+    if (lastInteraction && Date.now() - lastInteraction < 1000) {
+      return interaction.respond([]); 
+    }
+    interaction.client.userInteractions.set(interaction.user.id, Date.now());
     switch (client.playerType) {
       case "both":
        if (client.playerType === "both") {

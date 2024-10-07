@@ -143,6 +143,17 @@ if (process.env.DISCORD_PLAYER === 'true' && process.env.LAVALINK === 'true') {
 }
 client.totalTracksPlayed = 0;
 client.playerType = playerType;
+client.userInteractions = new Map();
+const interactionCleanupInterval = 60000; 
+
+setInterval(() => {
+  const now = Date.now();
+  client.userInteractions.forEach((timestamp, userId) => {
+    if (now - timestamp > 60000) { 
+      client.userInteractions.delete(userId);
+    }
+  });
+}, interactionCleanupInterval);
 console.log("Player Type:",client.playerType);
 require('./events/errors/handleErrors.js')(client);
 

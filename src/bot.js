@@ -98,7 +98,7 @@ if (process.env.LAVALINK === 'true') {
     console.warn('No Lavalink node configuration found. eg LAVALINK_URI = YOUR_IP:PORT@PASSWORD');
   }
   client.manager = new Kazagumo({
-    defaultSearchEngine: "youtube",
+    defaultSearchEngine: "youtube_music",
     plugins: [
       new Plugins.PlayerMoved(client),
       new Deezer({

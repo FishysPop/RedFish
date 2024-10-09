@@ -24,13 +24,33 @@ module.exports = (client) => {
     
 
 process.on('uncaughtException', (err) => {
-    console.log("Uncaught Exception:", err);
-    try {
+    if (err.code === 10062) {
+        console.log("Unknown interaction error:", err); // Log every unknown interaction error
 
-    client.users.send(process.env.OWNER_ID, `Error Occurred: \`\`\`${err}\`\`\``)
-   } catch (error) {
-        console.log("unable to send owner error.", error)
-  }
+        const now = Date.now();
+        client.unknownInteractionErrors = client.unknownInteractionErrors || [];
+        client.unknownInteractionErrors.push(now);
+
+        // Filter out errors older than a minute
+        client.unknownInteractionErrors = client.unknownInteractionErrors.filter(timestamp => now - timestamp <= 60000);
+
+        if (client.unknownInteractionErrors.length >= 5) {
+            console.log("Five or more unknown interaction errors in the last minute. Dming owner.");
+            try {
+                client.users.send(process.env.OWNER_ID, `Error Occurred: \`\`\`${err}\`\`\``);
+            } catch (error) {
+                console.log("Unable to send owner error.", error);
+            }
+        }
+    } else {
+        // Handle other uncaught exceptions as before
+        console.log("Uncaught Exception:", err);
+        try {
+            client.users.send(process.env.OWNER_ID, `Error Occurred: \`\`\`${err}\`\`\``);
+        } catch (error) {
+            console.log("Unable to send owner error.", error);
+        }
+    }
 });
 
 process.on('uncaughtExceptionMonitor', (err, origin) => {

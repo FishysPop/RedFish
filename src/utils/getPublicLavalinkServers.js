@@ -122,13 +122,13 @@ async function getPublicLavalinkServers() {
   }
 })();
 setTimeout(() => {
-    const workingNodesString = workingLavalinkNodes.map(node => `${node.url}@${node.auth}`).join(';');
-    console.log("Working lavalink servers:")
-    console.log(workingNodesString.replace(/ws:\/\//g, ''))
-    const workingNonRatedLimitedNodesString = NoneRateLimitedNdoes.map(node => `${node.url}@${node.auth}`).join(';');
-    console.log("")
-    console.log("Working lavalink servers with youtube working:")
-    console.log(workingNonRatedLimitedNodesString.replace(/ws:\/\//g, ''))
+  const workingNodesString = workingLavalinkNodes.map(node => `${node.url.replace('/v4/websocket', '')}@${node.auth}`).join(';');
+  console.log("Working lavalink servers:")
+  console.log(workingNodesString.replace(/ws:\/\//g, ''))
+  const workingNonRatedLimitedNodesString = NoneRateLimitedNdoes.map(node => `${node.url.replace('/v4/websocket', '')}@${node.auth}`).join(';');
+  console.log("")
+  console.log("Working lavalink servers with youtube working:")
+  console.log(workingNonRatedLimitedNodesString.replace(/ws:\/\//g, ''))
   }, 10000)
 
 process.on('unhandledRejection', async (reason, promise) => {

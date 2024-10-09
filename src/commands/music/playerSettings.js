@@ -19,12 +19,12 @@ module.exports = {
            return;
           }   
        await interaction.deferReply();
-       const hasVotedInLast12Hrs = await hasVotedfunction(interaction.user.id)
+       const hasVotedInLast12Hrs = client.topgg ? await hasVotedfunction(interaction.user.id) : new Date() 
+       const test = client.topgg ? console.log("topgg enabled")  : console.log("topgg disabled")
        const hasAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator); 
        let hasVoted;
        const userId = interaction.user.id;
        let user;
-       if (client.topgg) {
        user = await User.findOne({ userId });
        const lastVote = hasVotedInLast12Hrs ? new Date() : null;
  
@@ -53,11 +53,6 @@ module.exports = {
          user.lastVote = new Date();
          await user.save();
         }
-    }
-       } else {
-        hasVoted = true;
-        user.betaPlayer = true;
-        user.defaultSearchEngine = "youtube";
     }
     let row = new ActionRowBuilder()
     let row2 = null;

@@ -20,7 +20,6 @@ module.exports = {
           }   
        await interaction.deferReply();
        const hasVotedInLast12Hrs = client.topgg ? await hasVotedfunction(interaction.user.id) : new Date() 
-       const test = client.topgg ? console.log("topgg enabled")  : console.log("topgg disabled")
        const hasAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator); 
        let hasVoted;
        const userId = interaction.user.id;

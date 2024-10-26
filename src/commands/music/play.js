@@ -7,11 +7,11 @@ const GuildSettings = require("../../models/GuildSettings");
 module.exports =  {
     data: new SlashCommandBuilder()
     .setName("play")
-    .setDescription("Play music/playlist in a vc")
+    .setDescription("Play music/playlist in a vc.")
     .addStringOption(option => option
         .setName("query")
         .setDescription("Name/link of the song.")
-        .setRequired(true).setAutocomplete(true)),
+        .setRequired(true)/*.setAutocomplete(true)*/),
 
 
   run: async({ interaction, client, handler }) => {

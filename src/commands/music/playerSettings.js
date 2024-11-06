@@ -152,6 +152,12 @@ module.exports = {
             new StringSelectMenuOptionBuilder()
             .setLabel('100%')
             .setValue('100'),
+            new StringSelectMenuOptionBuilder()
+            .setLabel('125% (May Distort Audio)')
+            .setValue('125'),
+            new StringSelectMenuOptionBuilder()
+            .setLabel('150% (May Distort Audio)')
+            .setValue('150'),
         )
         .setMaxValues(1);
          row3 = new ActionRowBuilder().addComponents(adminVolumeSelectMenu);

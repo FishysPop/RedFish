@@ -6,8 +6,9 @@ require("dotenv").config();
 
 module.exports = (client) => {
 client.manager.shoukaku.on('ready', (name) => console.log(`Lavalink ${name}: Ready!`));
-client.manager.shoukaku.on('error', (name, error) => console.error(`Lavalink ${name}: Error Caught,`, error));
-client.manager.shoukaku.on('close', (name, code, reason) => console.warn(`Lavalink ${name}: Closed, Code ${code}, Reason ${reason || 'No reason'}`));
+client.manager.shoukaku.on('error', (name, error) => {
+  console.error(`Lavalink ${name}: Error Caught:`, error); 
+});client.manager.shoukaku.on('close', (name, code, reason) => console.warn(`Lavalink ${name}: Closed, Code ${code}, Reason ${reason || 'No reason'}`));
 if (process.env.DEBUG === "true") client.manager.shoukaku.on('debug', (name, info) => console.debug(`Lavalink ${name}: Debug,`, info));
 client.manager.shoukaku.on('disconnect', (name, players, moved) => {
     if (moved) return;
@@ -17,7 +18,50 @@ client.manager.shoukaku.on('disconnect', (name, players, moved) => {
   } catch (error) {   
   }
 });
+if (process.env.DEBUG === "true") client.manager.on("debug", (info, data) => {
+  console.error(`debug: ${info} - `, data);
+});
+client.manager.on("playerStuck", (player, data) => {
+  console.error(`Player Stuck: ${player.guildId} - `, data);
+});
+client.manager.on("playerException", async (player, data) => {
+  console.error(`Player Exception: ${player.guildId} - `, data);
 
+  const channel = client.channels.cache.get(player.textId);
+  if (!channel) return;  // Check if channel exists
+
+  if (player.customData.playerMessages !== "noMessage") { 
+    const embed = new EmbedBuilder()
+      .setColor('#e66229')  // Use a consistent color
+      .setTitle('Track Playback Error')
+      .setDescription(`Oops... something went wrong playing that track.\n${data.exception.message}\nPlease try again or choose a different track.`)
+      .addFields(
+          { name: 'Track', value: data.track.info.title, inline: true },
+          { name: 'Error', value: data.exception.cause, inline: true } 
+      );
+
+      try {
+        if (player.customData.playerMessages === "default") { // If playerMessages is "default"
+          const message = player.data.get("message");
+          if (message) { // if a playerMessage exists
+            message.edit({ embeds: [embed], components: []}).catch(err => { if (!err.code === 50013) console.log("Error sending playerEnd message:", err)});
+          } else { // if a playerMessage does not exist
+            channel.send({ embeds: [embed] }).catch(err => { if (!err.code === 50013) console.log("Error sending playerEnd message:", err)});
+          }
+      } else { // If playerMessages is not "default" and is also not equal to "noMessage" delete the playermessage.
+          const message = player.data.get("message");
+          if (message) message.delete().catch(err => { if (!err.code === 50013) console.log("Error sending playerEnd message:", err)});
+      }
+
+      } catch (err) {
+          console.error("Error sending player exception message:", err);
+      }
+  }
+});
+
+if (process.env.DEBUG === "true") client.manager.shoukaku.on('raw', (name,json) => console.log(`RAW: Lavalink ${name}, json:`,json));
+
+  
 client.manager.on("playerStart", async (player, track) => {
   if (player.customData.playerMessages === "noMessage") return;
   const channel = client.channels.cache.get(player.textId);

@@ -1,4 +1,4 @@
-const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder, EmbedBuilder ,ComponentType ,PermissionsBitField} = require("discord.js");
+const { StringSelectMenuBuilder, ActionRowBuilder, ApplicationCommandOptionType , SlashCommandBuilder, EmbedBuilder ,ComponentType ,PermissionsBitField} = require("discord.js");
 const { Player, QueryType, useMainPlayer } = require('discord-player');
 const User = require("../../models/UserPlayerSettings");
 const GuildSettings = require("../../models/GuildSettings");
@@ -37,11 +37,58 @@ module.exports =  {
     }
 
 
-    const name = interaction.options.getString('name'); 
+    const name = interaction.options.getString('name');
+
     try {
-      let { data } = await axios.get(`https://nl1.api.radio-browser.info/json/stations/byname/${encodeURIComponent(name)}`)
-      if (data.length < 1) {
-        return await interaction.followUp({ content: `❌ | No radio station was found, A full list can be found [here](https://www.radio-browser.info/search?page=1&hidebroken=true&order=votes&reverse=true)` })}
+        let { data } = await axios.get(`https://nl1.api.radio-browser.info/json/stations/byname/${encodeURIComponent(name)}`);
+
+        if (data.length < 1) {
+            return interaction.editReply(`❌ | No radio station found for "${name}".  A full list can be found [here](https://www.radio-browser.info/search?page=1&hidebroken=true&order=votes&reverse=true)`);
+        }
+
+        if (data.length > 1) {
+          // If multiple stations are found, present a selection to the user
+          const options = data.slice(0, 5).map((station) => {
+            let description = Array.isArray(station.tags) ? station.tags.slice(0, 3).join(', ') : (station.tags || "No tags available");
+    
+            if (description.length > 100) {
+                description = description.substring(0, 97) + "..."; // Truncate and add ellipsis
+            }
+    
+            return {
+                label: `${station.name} - ${station.country}`,
+                value: station.url_resolved,
+                description: description 
+            };
+        });
+            const row = new ActionRowBuilder().addComponents(
+              new StringSelectMenuBuilder()
+                .setCustomId('radio_select')
+                .setPlaceholder('Select a radio station')
+                .addOptions(options),
+            );
+            const selectMessage = await interaction.editReply({ content: 'Multiple stations found. Please select one:', components: [row]});
+
+
+            const filter = i => i.user.id === interaction.user.id;
+
+            try {
+                const confirmation = await selectMessage.awaitMessageComponent({ filter, time: 30000, componentType: ComponentType.StringSelect })
+               if (confirmation) {
+                const selectedValue = options.find(option => option.value === confirmation.values[0])
+                confirmation.deferUpdate()
+                data[0].url_resolved = selectedValue.value; // Set selected station URL 
+                interaction.editReply({components: []})
+                } else {
+                  interaction.editReply({content: `No station was selected`, components: []}); 
+                  return
+                }
+            } catch (e) {
+              interaction.editReply({ content: 'Selection timed out. Please try the command again.', components: [] })
+              console.log(e)
+              return
+            }
+        }
 
     switch (client.playerType) {
       case "both":
@@ -115,12 +162,13 @@ module.exports =  {
               .setColor('#e66229')
               .setDescription(`**Enqueued: [${name}](${res.tracks[0].uri}) -** \`LIVE\``)
               .setFooter({ text: `Media Controls Disabled: Missing Permissions` });
-            return interaction.editReply({ embeds: [embed] });
+            return interaction.editReply({ embeds: [embed], components: [], content: ''});
        } else {
              const embed = new EmbedBuilder()
              .setColor('#e66229')
              .setDescription(`**Enqueued: [${name}](${res.tracks[0].uri}) -** \`LIVE\``)
-            return interaction.editReply({ embeds: [embed] });
+            return interaction.editReply({ embeds: [embed] ,components: [], content: '',
+            });
     }
       }
         catch (e) {

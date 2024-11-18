@@ -47,7 +47,6 @@ module.exports =  {
         }
 
         if (data.length > 1) {
-          console.log(data)
           const stationMap = new Map(); // Store station URLs keyed by a short ID
       
           const options = data.slice(0, 10).map((station, index) => {

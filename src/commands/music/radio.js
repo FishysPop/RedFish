@@ -47,20 +47,24 @@ module.exports =  {
         }
 
         if (data.length > 1) {
-          // If multiple stations are found, present a selection to the user
-          const options = data.slice(0, 5).map((station) => {
-            let description = Array.isArray(station.tags) ? station.tags.slice(0, 3).join(', ') : (station.tags || "No tags available");
-    
-            if (description.length > 100) {
-                description = description.substring(0, 97) + "..."; // Truncate and add ellipsis
-            }
-    
-            return {
-                label: `${station.name} - ${station.country}`,
-                value: station.url_resolved,
-                description: description 
-            };
-        });
+          console.log(data)
+          const stationMap = new Map(); // Store station URLs keyed by a short ID
+      
+          const options = data.slice(0, 10).map((station, index) => {
+              const stationId = `station_${index}`; // Create a short ID
+              stationMap.set(stationId, station.url_resolved);  // Store the full URL in the map
+      
+              let description = Array.isArray(station.tags) ? station.tags.slice(0, 3).join(', ') : (station.tags || "No tags available");
+              if (description.length > 100) {
+                  description = description.substring(0, 97) + "...";
+              }
+      
+              return {
+                  label: `${station.name} - ${station.country}`,
+                  value: stationId, // Use the short ID as the value
+                  description: description
+              };
+          });
             const row = new ActionRowBuilder().addComponents(
               new StringSelectMenuBuilder()
                 .setCustomId('radio_select')

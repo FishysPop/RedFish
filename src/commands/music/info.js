@@ -71,8 +71,6 @@ module.exports =  {
           if (Discordplayer.repeatMode === 3) {
               autoPlayEmoji = '✅'
          } 
-         let requestedByString = track.requestedBy?.username ? `${track.requestedBy.username}#${track.requestedBy.discriminator}`
-         : "AutoPlay" || `AutoPlay`
           const embed = await new EmbedBuilder()
           .setAuthor({ name: 'Now Playing'})
             .setColor('#e66229')
@@ -91,7 +89,7 @@ module.exports =  {
               { name: "Settings", value: `Loop: ${repeatModeEmoji} AutoPlay: ${autoPlayEmoji}` },
       
             ])
-            .setFooter({ text: `Requested by ${requestedByString}` });
+            .setFooter({ text: `Requested by ${track.requestedBy?.username}` });
       
           return interaction.reply({ embeds: [embed] });
         } else if (Lavaplayer) {
@@ -187,8 +185,6 @@ module.exports =  {
       if (queue.repeatMode === 3) {
           autoPlayEmoji = '✅'
      } 
-     let requestedByString = track.requestedBy?.username ? `${track.requestedBy.username}#${track.requestedBy.discriminator}`
-     : "AutoPlay" || `AutoPlay`
       const embed = await new EmbedBuilder()
       .setAuthor({ name: 'Now Playing'})
         .setColor('#e66229')
@@ -207,22 +203,11 @@ module.exports =  {
           { name: "Settings", value: `Loop: ${repeatModeEmoji} AutoPlay: ${autoPlayEmoji}` },
   
         ])
-        .setFooter({ text: `Requested by ${requestedByString}` });
+        .setFooter({ text: `Requested by ${track.requestedBy?.username}` });
   
       return interaction.reply({ embeds: [embed] });
-
-
-
-
-
       break;
     }
-
-
-
-
-
-
   },
 
 

@@ -25,7 +25,7 @@ client.manager.on("playerStuck", (player, data) => {
   console.error(`Player Stuck: ${player.guildId} - `, data);
 });
 client.manager.on("playerException", async (player, data) => {
-  console.error(`Player Exception: ${player.guildId} - `, data);
+  console.error(`Player Exception: ${player.guildId} - `, data.exception);
 
   const channel = client.channels.cache.get(player.textId);
   if (!channel) return;  // Check if channel exists
@@ -33,13 +33,8 @@ client.manager.on("playerException", async (player, data) => {
   if (player.customData.playerMessages !== "noMessage") { 
     const embed = new EmbedBuilder()
       .setColor('#e66229')  // Use a consistent color
-      .setTitle('Track Playback Error')
-      .setDescription(`Oops... something went wrong playing that track.\n${data.exception.message}\nPlease try again or choose a different track.`)
-      .addFields(
-          { name: 'Track', value: data.track.info.title, inline: true },
-          { name: 'Error', value: data.exception.cause, inline: true } 
-      );
-
+      .setTitle('Oops... seems something went wrong skipping to next!')
+      .setDescription(`Track: ${data.track.info.title}\nError: ${data.exception.cause}\n-# Please join the [support server](https://discord.com/invite/rDHPK2er3j) if this keeps happening`);
       try {
         if (player.customData.playerMessages === "default") { // If playerMessages is "default"
           const message = player.data.get("message");
@@ -59,7 +54,7 @@ client.manager.on("playerException", async (player, data) => {
   }
 });
 
-if (process.env.DEBUG === "true") client.manager.shoukaku.on('raw', (name,json) => console.log(`RAW: Lavalink ${name}, json:`,json));
+//if (process.env.DEBUG === "true") client.manager.shoukaku.on('raw', (name,json) => console.log(`RAW: Lavalink ${name}, json:`,json));
 
   
 client.manager.on("playerStart", async (player, track) => {

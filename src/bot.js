@@ -99,6 +99,7 @@ if (process.env.LAVALINK === 'true') {
   }
   client.manager = new Kazagumo({
     defaultSearchEngine: "youtube_music",
+    sourceForceResolve : "deezer",  
     plugins: [
       new Plugins.PlayerMoved(client),
       new Deezer({

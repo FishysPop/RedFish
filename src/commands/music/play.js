@@ -204,8 +204,7 @@ case "discord_player":
             }
         });
 
-        const res = await player.search(name, { requester: interaction.user, source: "dzsearch:" });
-        if (!res.tracks.length) return interaction.editReply("No results found!")
+        const res = await player.search(name, { requester: interaction.user, engine: playerSettings.searchEngine ? playerSettings.searchEngine : 'youtube_music' });        if (!res.tracks.length) return interaction.editReply("No results found!")
         let embed = new EmbedBuilder()
 
         if (res.type === "PLAYLIST") {

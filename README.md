@@ -54,7 +54,7 @@ Create a .env file in the root directory and copy the contents of .env.example i
 
 ### 3. Music Setup:
 #### 1. Using Lavalink (Recommended for better performance): 
-Host your own lavalink server ([Setup Guide](https://lavalink.dev/getting-started/index.html))
+Host your own lavalink server ([Setup Guide](https://lavalink.dev/getting-started/index.html)) with ([Youtube Source Plugin](https://github.com/lavalink-devs/youtube-source))
 or use public lavalink servers with ```npm run publicLavalinkServers``` or at https://lavalink.darrennathanael.com/
 ```
 #.env

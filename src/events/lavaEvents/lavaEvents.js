@@ -25,7 +25,10 @@ client.manager.on("playerStuck", (player, data) => {
   console.error(`Player Stuck: ${player.guildId} - `, data);
 });
 client.manager.on("playerException", async (player, data) => {
-  console.error(`Player Exception: ${player.guildId} - `, data.exception);
+  const guild = client.guilds.cache.get(player.guildId);
+  const guildName = guild ? guild.name : "Unknown Guild"; // Handle cases where guild is not found
+
+  console.error(`Player Exception Error: Node: ${player.shoukaku.node.name}, Guild: ${guildName}(${player.guildId}) - `, data.exception); 
 
   const channel = client.channels.cache.get(player.textId);
   if (!channel) return;  // Check if channel exists
@@ -34,7 +37,7 @@ client.manager.on("playerException", async (player, data) => {
     const embed = new EmbedBuilder()
       .setColor('#e66229')  // Use a consistent color
       .setTitle('Oops... seems something went wrong skipping to next!')
-      .setDescription(`Track: ${data.track.info.title}\nError: ${data.exception.cause}\n-# Please join the [support server](https://discord.com/invite/rDHPK2er3j) if this keeps happening`);
+      .setDescription(`Track: ${data.track.info.title}\nError: ${data.exception.cause},Node: ${player.shoukaku.node.name}\n-# Please join the [support server](https://discord.com/invite/rDHPK2er3j) if this keeps happening`);
       try {
         if (player.customData.playerMessages === "default") { // If playerMessages is "default"
           const message = player.data.get("message");

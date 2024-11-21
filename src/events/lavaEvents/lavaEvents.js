@@ -1,6 +1,7 @@
 const { EmbedBuilder, Client, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField} = require('discord.js')
 const { convertTime } = require("../../utils/ConvertTime.js");
 const MetadataFilter = require('@web-scrobbler/metadata-filter');
+const handleExcessiveLavalinkErrors = require("../../utils/handleExcessiveLavaErrors.js")
 require("dotenv").config();
 
 
@@ -27,9 +28,9 @@ client.manager.on("playerStuck", (player, data) => {
 client.manager.on("playerException", async (player, data) => {
   const guild = client.guilds.cache.get(player.guildId);
   const guildName = guild ? guild.name : "Unknown Guild"; // Handle cases where guild is not found
-
+  
   console.error(`Player Exception Error: Node: ${player.shoukaku.node.name}, Guild: ${guildName}(${player.guildId}) - `, data.exception); 
-
+  //handleExcessiveLavalinkErrors(player, client.manager)
   const channel = client.channels.cache.get(player.textId);
   if (!channel) return;  // Check if channel exists
 
@@ -39,14 +40,14 @@ client.manager.on("playerException", async (player, data) => {
       .setTitle('Oops... seems something went wrong skipping to next!')
       .setDescription(`Track: ${data.track.info.title}\nError: ${data.exception.cause},Node: ${player.shoukaku.node.name}\n-# Please join the [support server](https://discord.com/invite/rDHPK2er3j) if this keeps happening`);
       try {
-        if (player.customData.playerMessages === "default") { // If playerMessages is "default"
+        if (player.customData.playerMessages === "default") { // 
           const message = player.data.get("message");
-          if (message) { // if a playerMessage exists
+          if (message) { 
             message.edit({ embeds: [embed], components: []}).catch(err => { if (!err.code === 50013) console.log("Error sending playerEnd message:", err)});
-          } else { // if a playerMessage does not exist
+          } else { 
             channel.send({ embeds: [embed] }).catch(err => { if (!err.code === 50013) console.log("Error sending playerEnd message:", err)});
           }
-      } else { // If playerMessages is not "default" and is also not equal to "noMessage" delete the playermessage.
+      } else { 
           const message = player.data.get("message");
           if (message) message.delete().catch(err => { if (!err.code === 50013) console.log("Error sending playerEnd message:", err)});
       }

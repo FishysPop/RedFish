@@ -118,11 +118,11 @@ if (process.env.LAVALINK === 'true') {
         if (guild) guild.shard.send(payload);
     }
 }, new Connectors.DiscordJS(client), lavaNodes, {
-  reconnectInterval: 20,
+  reconnectInterval: 10,
   moveOnDisconnect: true,
   resume: true,
   resumeByLibrary: true,
-  reconnectTries: 10,
+  reconnectTries: 6,
   resumeTimeout: 60,
 });
 require('./events/lavaEvents/lavaEvents.js')(client)

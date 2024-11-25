@@ -198,14 +198,33 @@ case "discord_player":
             volume: playerSettings.volume,
             deaf: true,
             loadBalancer: true,
-            nodeName: client.manager.shoukaku.getIdealNode().name,
+            nodeName: client.manager.shoukaku.getIdealNode()?.name,
             data: {
               autoPlay: false,
               playerMessages: playerSettings.playerMessages
             }
         });
+        const isLink = /^(https?:\/\/.+)/i.test(name); 
+        let res;
+        if (isLink) {
+          res = await player.search(name, { requester: interaction.user });
+        } else {
+          let engine = playerSettings.searchEngine || 'deezer'; // Deezer is now the default
+        
+          if (engine === 'deezer') {
+            res = await player.search(name, { requester: interaction.user, source: 'dzsearch:' });
+        
+            // Fallback to youtube_music if Deezer search fails
+            if (!res.tracks.length) {
+              engine = 'youtube_music';
+              res = await player.search(name, { requester: interaction.user, engine: engine });
+            }
+          } else { // Use the specified engine (not Deezer)
+            res = await player.search(name, { requester: interaction.user, engine: engine });
+          }
+        }
 
-        const res = await player.search(name, { requester: interaction.user, engine: playerSettings.searchEngine ? playerSettings.searchEngine : 'youtube_music' });   
+        //res = await player.search(name, { requester: interaction.user, engine: playerSettings.searchEngine ? playerSettings.searchEngine : 'youtube_music' });   
         if (!res.tracks.length) return interaction.editReply("No results found!")
         let embed = new EmbedBuilder()
 

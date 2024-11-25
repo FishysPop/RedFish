@@ -61,13 +61,15 @@ var timerID = setInterval(async function() {
           embeds: [giveawayEmbed],
           components: []
         }).catch((err) => {console.log("error while checking giveaway.:", err)});
+        firstGiveaway.ended = true
+        firstGiveaway.endedDate = currentDate
+        firstGiveaway.save();
+        
       } catch (error) {
+        console.error("Error editing giveaway message or finding it:", error);
+
       }
     }
-    firstGiveaway.ended = true
-    firstGiveaway.endedDate = currentDate
-    firstGiveaway.save();
-    
 }, 5 * 1000); 
 
 var timerID2 = setInterval(async function() {

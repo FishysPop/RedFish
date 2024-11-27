@@ -3,6 +3,8 @@ const { Player, QueryType, useMainPlayer } = require('discord-player');
 const { convertTime } = require("../../utils/ConvertTime.js");
 const User = require("../../models/UserPlayerSettings");
 const GuildSettings = require("../../models/GuildSettings");
+const Analytics = require("../../models/Analytics");  
+
 
 module.exports =  {
     data: new SlashCommandBuilder()
@@ -16,22 +18,17 @@ module.exports =  {
 
   run: async({ interaction, client, handler }) => {
     if (!interaction.inGuild()) {
-      interaction.reply({
-        content: "You can only run this command in a server.",
-        ephemeral: true,
-      });
-     return;
-    }
+      return interaction.reply({ content: "You can only run this command in a server.", ephemeral: true });
+  }
     const channel = interaction.member.voice.channel;
-    if (!channel) return interaction.reply({content: 'You are not connected to a voice channel',ephemeral: true})
-    if (!interaction.guild.members.me.permissionsIn(channel).has(PermissionsBitField.Flags.ViewChannel)) return interaction.reply({content: "I dont have access to that channel",ephemeral: true})
-    if (channel.full) return interaction.reply({content: 'That voice channel is full',ephemeral: true})
+    if (!channel) return interaction.reply({content: 'You are not connected to a voice channel', ephemeral: true})
+    if (!interaction.guild.members.me.permissionsIn(channel).has(PermissionsBitField.Flags.ViewChannel)) return interaction.reply({ content: "I dont have access to that channel", ephemeral: true})
+    if (channel.full) return interaction.reply({content: 'That voice channel is full', ephemeral: true})
     await interaction.deferReply();
+
     const name = interaction.options.getString('query'); 
     const user = await User.findOne({ userId: interaction.user.id });
     const serverSettings = await GuildSettings.findOne({ guildId: interaction.guild.id });
-    const hasViewChannelPermission = interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.ViewChannel);
-    const hasSendMessagesPermission = interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.SendMessages);
 
     let playerSettings = {
       volume: serverSettings?.defaultVolume || '30',
@@ -39,101 +36,105 @@ module.exports =  {
       betaPlayer: user?.betaPlayer || false,
       playerMessages: serverSettings?.playerMessages || "default"
     }
+    const hasPlayerSettings = !!user;
+    let usedSearchEngine;
+    let embed = new EmbedBuilder().setColor('#e66229');
+    try { 
     switch (client.playerType) {
-      case "both":
+      case "both":{
         try {
           const player = useMainPlayer();
-          const searchResult = await player.search(name, {
-              requestedBy: interaction.user,
-            });
-            if (!searchResult.hasTracks()) {
-              return interaction.followUp(`We found no tracks for ${name}`);
-            }
-              const res = await player.play(
-                  interaction.member.voice.channel.id,
-                  searchResult,
-                  {
-                    nodeOptions: {
-                      metadata: {
-                        channel: interaction.channel,
-                        client: interaction.guild.members.me,
-                        requestedBy: interaction.user,
-                      },
-                      volume: 30,
-                      bufferingTimeout: 500,
-                      leaveOnEmpty: true,
-                      leaveOnEnd: false,
-                      leaveOnEmptyCooldown: 300000,
-                      skipOnNoStream: true,
-                      connectionTimeout: 999_999_999
-                    },
-                  }
-                );
-                if (!interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.ViewChannel)) {
-                  if (res.track.playlist) {
-                    const embed = new EmbedBuilder()
-                    .setColor('#e66229')
-                    .setDescription(`**Enqueued: [${res.track.playlist.title}](${res.track.playlist.url}) (${res.track.playlist.tracks.length} tracks)**`)
-                    .setFooter({ text: `Media Controls Disabled: Missing Permissions`})
-                     return interaction.editReply({ embeds: [embed] });
-                  } else {
-                    const embed = new EmbedBuilder()
-                    .setColor('#e66229')
-                    .setDescription(`**Enqueued: [${res.track.title}](${res.track.url}) - ${res.track.author}** \`${res.track.duration}\``)
-                    .setFooter({ text: `Media Controls Disabled: Missing Permissions`})
-                     return interaction.editReply({ embeds: [embed] });
-                  }
-                } else {
-                  if (res.track.playlist) {
-                    const embed = new EmbedBuilder()
-                    .setColor('#e66229')
-                    .setDescription(`**Enqueued: [${res.track.playlist.title}](${res.track.playlist.url}) (${res.track.playlist.tracks.length} tracks)**`)
-                     return interaction.editReply({ embeds: [embed] });
-                  } else {
-                    const embed = new EmbedBuilder()
-                    .setColor('#e66229')
-                    .setDescription(`**Enqueued: [${res.track.title}](${res.track.url}) - ${res.track.author}** \`${res.track.duration}\``)
-                     return interaction.editReply({ embeds: [embed] });
-                  }
-                }
-              } 
-                catch (e) {
-                   console.log(e)
-              return interaction.editReply(`Something went wrong: ${e}`);
+          const isLink = name.startsWith('https://') || name.startsWith('http://');
+          let searchResult;
+          
+          if (!isLink) {
+              // Try Spotify first
+              searchResult = await player.search(name, {
+                  requestedBy: interaction.user,
+                  searchEngine: QueryType.SPOTIFY_SEARCH,
+              });
           }
+          // Fallback to YouTube if Spotify fails or if it's a link
+          if (!searchResult || !searchResult.hasTracks()) {
+              searchResult = await player.search(name, {
+                  requestedBy: interaction.user,
+                  searchEngine: QueryType.YOUTUBE, 
+              });
+          }
+          // Final fallback to default if YouTube also fails (though unlikely)
+          if (!searchResult || !searchResult.hasTracks()) {
+              searchResult = await player.search(name, {
+                  requestedBy: interaction.user,
+              });
+          }
+          
+          if (!searchResult || !searchResult.hasTracks()) return handleNoResults(interaction, name);
+    
+          usedSearchEngine = 'youtube'; 
+    
+            const res = await player.play(
+                interaction.member.voice.channel.id,
+                searchResult,
+                {
+                    nodeOptions: {
+                        metadata: {
+                            channel: interaction.channel,
+                            client: interaction.guild.members.me,
+                            requestedBy: interaction.user,
+                            playerMessages: playerSettings.playerMessages
+                        },
+                        volume: playerSettings.volume,
+                        bufferingTimeout: 500,
+                        leaveOnEmpty: true,
+                        leaveOnEnd: false,
+                        leaveOnEmptyCooldown: 300000,
+                        skipOnNoStream: true,
+                        connectionTimeout: 999_999_999,
+                    },
+                }
+            );
+    
+            embed.setDescription(res.track.playlist
+              ? `**Enqueued: [${res.playlist.title}](${res.playlist.url}) (${res.playlist.tracks.length} tracks)**`
+              : `**Enqueued: [${res.tracks[0].title}](${res.tracks[0].url}) - ${res.tracks[0].author}** \`${res.tracks[0].duration}\``);
+            client.totalTracksPlayed += res.track.playlist ? res.track.playlist.tracks.length : 1;
+            await sendTrackEmbed(interaction, embed); 
+          } catch (e) {
+            return handlePlayError(interaction, name, e);
+        }
         break;
+      }
 
-case "discord_player":
+case "discord_player": {
     try {
+      const player = useMainPlayer();
       const isLink = name.startsWith('https://') || name.startsWith('http://');
-        const player = useMainPlayer();
-        let searchResult;
-        if (!isLink) {
-
-        // Only search with spotify if no link
-        searchResult = await player.search(name, {
-            requestedBy: interaction.user,
-            searchEngine: QueryType.SPOTIFY_SEARCH, 
-        });
-      }
-
-        // If no tracks are found on Spotify, fallback to youtube
-        if (!searchResult || searchResult.tracks.length === 0) {
-            searchResult = await player.search(name, {
-                requestedBy: interaction.user,
-                searchEngine: QueryType.YOUTUBE 
-            });        
-      }
+      let searchResult;
       
-        if (!searchResult || searchResult.tracks.length === 0) {
+      if (!isLink) {
+          // Try Spotify first
+          searchResult = await player.search(name, {
+              requestedBy: interaction.user,
+              searchEngine: QueryType.SPOTIFY_SEARCH,
+          });
+      }
+      // Fallback to YouTube if Spotify fails or if it's a link
+      if (!searchResult || !searchResult.hasTracks()) {
+          searchResult = await player.search(name, {
+              requestedBy: interaction.user,
+              searchEngine: QueryType.YOUTUBE, 
+          });
+      }
+      // Final fallback to default if YouTube also fails (though unlikely)
+      if (!searchResult || !searchResult.hasTracks()) {
           searchResult = await player.search(name, {
               requestedBy: interaction.user,
           });
       }
+      
+      if (!searchResult || !searchResult.hasTracks()) return handleNoResults(interaction, name);
 
-        if (!searchResult || searchResult.tracks.length === 0) {
-            return interaction.followUp(`We found no tracks for ${name}`);
-        }
+      usedSearchEngine = 'youtube'; 
 
         const res = await player.play(
             interaction.member.voice.channel.id,
@@ -157,38 +158,17 @@ case "discord_player":
             }
         );
 
-
-        const embed = new EmbedBuilder().setColor('#e66229');
-        if (res.track.playlist) {
-            embed.setDescription(`**Enqueued: [${res.track.playlist.title}](${res.track.playlist.url}) (${res.track.playlist.tracks.length} tracks)**`);
-            client.totalTracksPlayed += res.track.playlist.tracks.length;
-        } else {
-            embed.setDescription(`**Enqueued: [${res.track.title}](${res.track.url}) - ${res.track.author}** \`${res.track.duration}\``);
-            client.totalTracksPlayed += 1;
-        }
-
-        if (!hasViewChannelPermission || !hasSendMessagesPermission) {
-            embed.setFooter({ text: `Media Controls Disabled: Missing Permissions` });
-        } else {
-          const randomNumber = Math.random()
-          if (randomNumber < 0.08) {
-            if (randomNumber < 0.04) {
-              embed.setFooter({ text: `Change the default volume with /player-settings!` });
-            } else {
-              embed.setFooter({ text: `Want to use another search engine? /player-settings!` });
-            }
-          }
-        }
-        
-        return interaction.editReply({ embeds: [embed] });
-    } catch (e) {
-        console.log(`[${interaction.guild.name}] (ID:${interaction.channel.id}) request:(${name}) Error emitted from play: ${e}`);
-        return interaction.editReply(`Oops... something went wrong`).catch(() => { });
+        embed.setDescription(res.track.playlist
+          ? `**Enqueued: [${res.playlist.title}](${res.playlist.url}) (${res.playlist.tracks.length} tracks)**`
+          : `**Enqueued: [${res.track.title}](${res.track.url}) - ${res.track.author}** \`${res.track.duration}\``);
+        client.totalTracksPlayed += res.track.playlist ? res.track.playlist.tracks.length : 1;
+        await sendTrackEmbed(interaction, embed); 
+      } catch (e) {
+        return handlePlayError(interaction, name, e);
     }
     break;
-
-
-        case "lavalink":
+  }
+        case "lavalink": {
           try {
           const player = await client.manager.createPlayer({
             guildId: interaction.guild.id,
@@ -204,6 +184,7 @@ case "discord_player":
               playerMessages: playerSettings.playerMessages
             }
         });
+
         const isLink = /^(https?:\/\/.+)/i.test(name); 
         let res;
         if (isLink) {
@@ -224,52 +205,110 @@ case "discord_player":
           }
         }
 
-        //res = await player.search(name, { requester: interaction.user, engine: playerSettings.searchEngine ? playerSettings.searchEngine : 'youtube_music' });   
-        if (!res.tracks.length) return interaction.editReply("No results found!")
-        let embed = new EmbedBuilder()
+        usedSearchEngine = res?.tracks[0]?.sourceName;
+        if (!res.tracks.length) return handleNoResults(interaction, name); 
 
         if (res.type === "PLAYLIST") {
             for (let track of res.tracks) player.queue.add(track);
-
             if (!player.playing && !player.paused) player.play();
-            client.totalTracksPlayed += res.tracks.length;
-
             embed.setColor('#e66229').setDescription(`**Enqueued: [${res.playlistName}](${name}) (${res.tracks.length} tracks**)`);
         } else {
             player.queue.add(res.tracks[0]);
-
             if (!player.playing && !player.paused) player.play();
-            client.totalTracksPlayed += 1;
             embed.setColor('#e66229').setDescription(`**Enqueued: [${res.tracks[0].title}](${res.tracks[0].uri}) - ${res.tracks[0].author}** \`${convertTime(res.tracks[0].length, true)}\``);
         }
-        if (!hasViewChannelPermission || !hasSendMessagesPermission) {
-          embed.setFooter({ text: `Media Controls Disabled: Missing Permissions` });
-      } else {
-        const randomNumber = Math.random()
-        if (randomNumber < 0.08) {
-          if (randomNumber < 0.04) {
-            embed.setFooter({ text: `Change the default volume with /player-settings!` });
-          } else {
-            embed.setFooter({ text: `Want to use another search engine? Change it with /player-settings!` });
-          }
-        }
-      }
-      return interaction.editReply({ content: " ", embeds: [embed] })
 
+        client.totalTracksPlayed += res.type === "PLAYLIST" ? res.tracks.length : 1;
+        await sendTrackEmbed(interaction, embed); 
       }
         catch (e) {
-          console.log("Error running play: ",e)
-      return interaction.editReply(`Oops seems something went wrong: ${e}, Please join the [support server](https://discord.com/invite/rDHPK2er3j) if this keeps happening`);
+          return handlePlayError(interaction, name, e);
         }
         break;
-    
+      }
       default:
         break;
     }
 
 
-
+    //Analytics
+    try {
+      let analytics = await Analytics.findOne();
+      if (!analytics) {
+          analytics = new Analytics({ usedSearchEngines: new Map() }); 
+      } else if (!(analytics.usedSearchEngines instanceof Map)) { 
+          analytics.usedSearchEngines = new Map();
+      }
+      analytics.totalPlayCount++;
+      if (hasPlayerSettings) {
+          analytics.playHasPlayerSettingsCount++;
+      }
   
+      if (usedSearchEngine) {
+        analytics.usedSearchEngines.set(usedSearchEngine, (analytics.usedSearchEngines.get(usedSearchEngine) || 0) + 1);
+    }
+  const guildIndex = analytics.guildPlayCount.findIndex(guild => guild.guildId === interaction.guild.id);
+    if (guildIndex === -1) {
+      analytics.guildPlayCount.push({guildId: interaction.guild.id, playCount: 1})
+    } else {
+      analytics.guildPlayCount[guildIndex].playCount++;
+    }
+    await analytics.save();
+      
+    } catch (error) {
+      console.log("error doing Analytics",error)
+    }
+
+  } catch (e) { 
+    return handlePlayError(interaction, name, e);
+  }
+
+
+
+
+  async function sendTrackEmbed(interaction, embed) {
+    const hasViewChannelPermission = interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.ViewChannel);
+    const hasSendMessagesPermission = interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.SendMessages);
+
+    if (!hasViewChannelPermission || !hasSendMessagesPermission) {
+        embed.setFooter({ text: `Media Controls Disabled: Missing Permissions` });
+    } else if (Math.random() < 0.08) { //  8% chance of showing a tip
+        embed.setFooter({ text: Math.random() < 0.04 ? `Change the default volume with /player-settings!` : `Want to use another search engine? Change it with /player-settings!` });
+    }
+
+    return interaction.editReply({ content: " ", embeds: [embed] });
+}
+
+async function handlePlayError(interaction, name, error) {
+  console.error(`Error Running Play:[${interaction.guild.name}] (ID: ${interaction.guild.id}) Request: (${name}) Error:`, error);
+
+  try {
+      let analytics = await Analytics.findOne();
+      if (!analytics) {
+          analytics = new Analytics();
+      }
+      analytics.failedPlayCount++;
+      await analytics.save();
+  } catch (analyticsError) {
+      console.error("Error updating analytics (handlePlayError):", analyticsError);
+  }
+  return interaction.editReply(`Oops seems something went wrong: ${error}, Please join the [support server](https://discord.com/invite/rDHPK2er3j) if this keeps happening`).catch(() => { });
+}
+
+async function handleNoResults(interaction, query) {
+  try {
+      let analytics = await Analytics.findOne();
+      if (!analytics) {
+          analytics = new Analytics();
+      }
+      analytics.failedSearchCount++; 
+      await analytics.save();
+  } catch (analyticsError) {
+      console.error("Error updating analytics (handleNoResults):", analyticsError);
+  }
+
+  return interaction.followUp(`No results found for: ${query}`);
+}
 
   },
   async autocompleteRun(interaction, client) {

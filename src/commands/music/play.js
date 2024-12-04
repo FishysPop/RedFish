@@ -280,7 +280,7 @@ case "discord_player": {
 }
 
 async function handlePlayError(interaction, name, error) {
-  console.error(`Error Running Play:[${interaction.guild.name}] (ID: ${interaction.guild.id}) Request: (${name}) Error:`, error);
+  console.error(`Error Running Play:[${interaction.guild.name}] (ID: ${interaction.guild.id}) Request: (${name || null}) Error:`, error);
 
   try {
       let analytics = await Analytics.findOne();

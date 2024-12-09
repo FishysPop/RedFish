@@ -66,8 +66,8 @@ module.exports = {
                 .setTitle('Overall Bot Statistics')
                 .addFields(
                     { name: 'Total Searches', value: `${totalPlays.toLocaleString()}`, inline: true },
-                    { name: 'Failed Searches', value: `${analytics.failedPlayCount.toLocaleString()} (${((analytics.failedPlayCount / totalPlays) * 100).toFixed(2) || 0}%)`, inline: true },
-                    { name: 'Search Errors', value: `${analytics.failedSearchCount.toLocaleString()} (${((analytics.failedSearchCount / totalPlays) * 100).toFixed(2) || 0}%)`, inline: true },
+                    { name: 'Search Errors', value: `${analytics.failedPlayCount.toLocaleString()} (${((analytics.failedPlayCount / totalPlays) * 100).toFixed(2) || 0}%)`, inline: true },
+                    { name: 'Failed Searches', value: `${analytics.failedSearchCount.toLocaleString()} (${((analytics.failedSearchCount / totalPlays) * 100).toFixed(2) || 0}%)`, inline: true },
                     { name: 'Searches With Settings', value: `${analytics.playHasPlayerSettingsCount.toLocaleString()} (${((analytics.playHasPlayerSettingsCount / (totalPlays > 0 ? totalPlays : client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)) ) * 100).toFixed(2)}%)`, inline: true },
                     { name: 'Channels Connected', value: `${channelsConnected}`, inline: true },
                     { name: 'Search Engine Usage', value: usedSearchEnginesStringWithPercentages(analytics.usedSearchEngines), inline: false }, 

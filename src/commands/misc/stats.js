@@ -16,39 +16,50 @@ module.exports = {
             const analytics = await Analytics.findOne({}).lean(); 
             if (!analytics) return interaction.editReply('No analytics data found.');
             let channelsConnected = 0;
+            let topGuildsData = []; 
             if (client.cluster) {
                 const results = await client.cluster.broadcastEval(async (c) => {
-                    let channelsConnected;
-                    if (c.playerType === 'discord_player' ||c.playerType === 'both') {
-                        const { useMainPlayer } = require("discord-player");
+                    let localChannelsConnected = 0;
+                    let localTopGuilds = [];
+
+                    if (c.playerType === 'discord_player' || c.playerType === 'both') {
                         const player = useMainPlayer();
                         const playerStats = player.generateStatistics();
-                        channelsConnected = playerStats.queues.length;
+                        localChannelsConnected = playerStats.queues.length;
                     } else {
-                          channelsConnected = c.manager.players.size;
+                        localChannelsConnected = c.manager.players.size;
                     }
-                        return {
-                         channelsConnected: channelsConnected,
-                       };
-                });
-                 for (const result of results) {
-                    channelsConnected += result.channelsConnected;
-                 }
 
-            }
-            const totalPlays = analytics.totalPlayCount;
-            const topGuilds = analytics.guildPlayCount
-                .sort((a, b) => b.playCount - a.playCount)
-                .filter(guildData => client.guilds.cache.has(guildData.guildId)) 
-                .slice(0, 5)
-                .map(guildData => {
-                    const guild = client.guilds.cache.get(guildData.guildId);
-                    return {
+                    // Retrieve essential guild data in each shard/worker
+                    localTopGuilds = c.guilds.cache.map(guild => ({
+                        guildId: guild.id,
                         name: guild.name,
                         memberCount: guild.memberCount,
-                        playCount: guildData.playCount
+                    }));
+
+                    return {
+                        channelsConnected: localChannelsConnected,
+                        topGuilds: localTopGuilds,
                     };
                 });
+
+                for (const result of results) {
+                    channelsConnected += result.channelsConnected;
+                    topGuildsData = topGuildsData.concat(result.topGuilds);
+                }
+            }
+            const totalPlays = analytics.totalPlayCount;
+            const topGuilds = topGuildsData
+                .map(guildData => {
+                    const guildPlayCount = analytics.guildPlayCount.find(g => g.guildId === guildData.guildId);
+                    return {
+                        name: guildData.name,
+                        memberCount: guildData.memberCount,
+                        playCount: guildPlayCount?.playCount || 0,
+                    };
+                })
+                .sort((a, b) => b.playCount - a.playCount)
+                .slice(0, 5);
 
             const embed = new EmbedBuilder()
                 .setColor('#e66229')

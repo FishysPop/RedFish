@@ -16,13 +16,6 @@ module.exports = {
             const analytics = await Analytics.findOne({}).lean(); 
             if (!analytics) return interaction.editReply('No analytics data found.');
             let channelsConnected = 0;
-            if (client.playerType === 'discord_player' ||client.playerType === 'both') {
-                const player = useMainPlayer();
-                const playerStats = player.generateStatistics();
-                channelsConnected = playerStats.queues.length;
-            } else {
-                  channelsConnected = client.manager.players.size;
-            }
             if (client.cluster) {
                 const results = await client.cluster.broadcastEval(async (c) => {
                     let channelsConnected;

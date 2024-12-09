@@ -43,6 +43,8 @@ module.exports = {
       /radio | Play from a radio station
       /pause | Resumes playback
       /player-settings | Customize the music player to your liking
+      /status | Shows the current status of the music engine
+      /stats | Shows some cool musis stats
       \n If need any further assistance join the [Support Server](https://discord.com/invite/rDHPK2er3j) or please dm fishypop
       `);
  

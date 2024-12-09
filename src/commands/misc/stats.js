@@ -23,6 +23,26 @@ module.exports = {
             } else {
                   channelsConnected = client.manager.players.size;
             }
+            if (client.cluster) {
+                const results = await client.cluster.broadcastEval(async (c) => {
+                    let channelsConnected;
+                    if (c.playerType === 'discord_player' ||c.playerType === 'both') {
+                        const { useMainPlayer } = require("discord-player");
+                        const player = useMainPlayer();
+                        const playerStats = player.generateStatistics();
+                        channelsConnected = playerStats.queues.length;
+                    } else {
+                          channelsConnected = c.manager.players.size;
+                    }
+                        return {
+                         channelsConnected: channelsConnected,
+                       };
+                });
+                 for (const result of results) {
+                    channelsConnected += result.channelsConnected;
+                 }
+
+            }
             const totalPlays = analytics.totalPlayCount;
             const topGuilds = analytics.guildPlayCount
                 .sort((a, b) => b.playCount - a.playCount)

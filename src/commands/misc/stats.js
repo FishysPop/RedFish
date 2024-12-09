@@ -19,16 +19,17 @@ module.exports = {
             const playerStats = player.generateStatistics();
             const channelsConnected = playerStats.queues.length;
     
-            const topGuilds = client.guilds.cache
-                .filter(guild => analytics.guildPlayCount.some(g => g.guildId === guild.id)) 
-                .map(guild => ({
-                    name: guild.name,
-                    memberCount: guild.memberCount,
-                    playCount: analytics.guildPlayCount.find(g => g.guildId === guild.id).playCount
-                }))
-                .sort((a, b) => b.playCount - a.playCount)
-                .slice(0, 5);
-    
+            const topGuilds = analytics.guildPlayCount // Start with the data you already have
+            .sort((a, b) => b.playCount - a.playCount) // Sort by play count
+            .slice(0, 5) // Take the top 5
+            .map(guildData => { // Map only the top 5
+                const guild = client.guilds.cache.get(guildData.guildId);
+                return {
+                    name: guild ? guild.name : "Unknown Guild", // Handle cases where the guild is no longer in the cache
+                    memberCount: guild ? guild.memberCount : "N/A",
+                    playCount: guildData.playCount
+                };
+            });
     
             let topGuildsString = '';
             topGuilds.forEach(guild => {

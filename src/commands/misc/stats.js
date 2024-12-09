@@ -15,12 +15,16 @@ module.exports = {
             await interaction.deferReply();
             const analytics = await Analytics.findOne({}).lean(); 
             if (!analytics) return interaction.editReply('No analytics data found.');
-
-            if (!player) player = new Player(client);
+            let channelsConnected = 0;
+            if (client.playerType === 'discord_player' ||client.playerType === 'both') {
+                const player = useMainPlayer();
+                const playerStats = player.generateStatistics();
+                channelsConnected = playerStats.queues.length;
+            } else {
+                console.log(client.manager)
+                  channelsConnected = client.manager.players.size;
+            }
             const totalPlays = analytics.totalPlayCount;
-            const playerStats = player.generateStatistics();
-            const channelsConnected = playerStats.queues.length;
-
             const topGuilds = analytics.guildPlayCount
                 .sort((a, b) => b.playCount - a.playCount)
                 .filter(guildData => client.guilds.cache.has(guildData.guildId)) 
@@ -38,11 +42,11 @@ module.exports = {
                 .setColor('#e66229')
                 .setTitle('Overall Bot Statistics')
                 .addFields(
-                    { name: 'Total Plays', value: `${totalPlays.toLocaleString()}`, inline: true },
-                    { name: 'Failed Plays', value: `${analytics.failedPlayCount.toLocaleString()} (${((analytics.failedPlayCount / totalPlays) * 100).toFixed(2) || 0}%)`, inline: true },
-                    { name: 'Failed Searches', value: `${analytics.failedSearchCount.toLocaleString()} (${((analytics.failedSearchCount / totalPlays) * 100).toFixed(2) || 0}%)`, inline: true },
-                    { name: 'Players with Custom Settings', value: `${analytics.playHasPlayerSettingsCount.toLocaleString()} (${((analytics.playHasPlayerSettingsCount / (totalPlays > 0 ? totalPlays : client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)) ) * 100).toFixed(2)}%)`, inline: true },
-                    { name: 'Channels Connected', value: `${channelsConnected.toLocaleString()}`, inline: true },
+                    { name: 'Total Searches', value: `${totalPlays.toLocaleString()}`, inline: true },
+                    { name: 'Failed Searches', value: `${analytics.failedPlayCount.toLocaleString()} (${((analytics.failedPlayCount / totalPlays) * 100).toFixed(2) || 0}%)`, inline: true },
+                    { name: 'Search Errors', value: `${analytics.failedSearchCount.toLocaleString()} (${((analytics.failedSearchCount / totalPlays) * 100).toFixed(2) || 0}%)`, inline: true },
+                    { name: 'Searches With Settings', value: `${analytics.playHasPlayerSettingsCount.toLocaleString()} (${((analytics.playHasPlayerSettingsCount / (totalPlays > 0 ? totalPlays : client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)) ) * 100).toFixed(2)}%)`, inline: true },
+                    { name: 'Channels Connected', value: `${channelsConnected}`, inline: true },
                     { name: 'Search Engine Usage', value: usedSearchEnginesStringWithPercentages(analytics.usedSearchEngines), inline: false }, // Use helper function
                     { name: 'Top 5 Guilds', value: topGuildsStringWithPercentages(topGuilds, totalPlays), inline: false } // Use helper function
                 );

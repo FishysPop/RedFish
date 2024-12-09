@@ -1,8 +1,9 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const Analytics = require('../../models/Analytics');
-const { useMainPlayer, Player } = require('discord-player');
+const { Player } = require('discord-player');
 
-let player; // Declare player at higher scope
+
+let player;
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -12,44 +13,39 @@ module.exports = {
     run: async ({ interaction, client }) => {
         try {
             await interaction.deferReply();
-            const analytics = await Analytics.findOne({});
+            const analytics = await Analytics.findOne({}).lean(); 
             if (!analytics) return interaction.editReply('No analytics data found.');
-    
+
             if (!player) player = new Player(client);
+            const totalPlays = analytics.totalPlayCount;
             const playerStats = player.generateStatistics();
             const channelsConnected = playerStats.queues.length;
-    
-            const topGuilds = analytics.guildPlayCount // Start with the data you already have
-            .sort((a, b) => b.playCount - a.playCount) // Sort by play count
-            .slice(0, 5) // Take the top 5
-            .map(guildData => { // Map only the top 5
-                const guild = client.guilds.cache.get(guildData.guildId);
-                return {
-                    name: guild ? guild.name : "Unknown Guild", // Handle cases where the guild is no longer in the cache
-                    memberCount: guild ? guild.memberCount : "N/A",
-                    playCount: guildData.playCount
-                };
-            });
-    
-            let topGuildsString = '';
-            topGuilds.forEach(guild => {
-                topGuildsString += `${guild.name} (Members: ${guild.memberCount}, Plays: ${guild.playCount})\n`;
-            });
-            if (topGuildsString === '') topGuildsString = 'No data';
+
+            const topGuilds = analytics.guildPlayCount
+                .sort((a, b) => b.playCount - a.playCount)
+                .filter(guildData => client.guilds.cache.has(guildData.guildId)) 
+                .slice(0, 5)
+                .map(guildData => {
+                    const guild = client.guilds.cache.get(guildData.guildId);
+                    return {
+                        name: guild.name,
+                        memberCount: guild.memberCount,
+                        playCount: guildData.playCount
+                    };
+                });
+
             const embed = new EmbedBuilder()
                 .setColor('#e66229')
                 .setTitle('Overall Bot Statistics')
                 .addFields(
-                    { name: 'Total Plays', value: analytics.totalPlayCount.toLocaleString(), inline: true },
-                    { name: 'Failed Plays', value: analytics.failedPlayCount.toLocaleString(), inline: true },
-                    { name: 'Failed Searches', value: analytics.failedSearchCount.toLocaleString(), inline: true },
-                    { name: 'Players with Custom Settings', value: analytics.playHasPlayerSettingsCount.toLocaleString(), inline: true },
-                    { name: 'Channels Connected', value: channelsConnected.toLocaleString(), inline: true },
-                    { name: 'Search Engine Usage', value: [...analytics.usedSearchEngines.entries()].map(([engine, count]) => `${engine}: ${count}`).join('\n') || 'No data', inline: false },
-                    { name: 'Top 5 Guilds', value: topGuildsString, inline: false } 
+                    { name: 'Total Plays', value: `${totalPlays.toLocaleString()}`, inline: true },
+                    { name: 'Failed Plays', value: `${analytics.failedPlayCount.toLocaleString()} (${((analytics.failedPlayCount / totalPlays) * 100).toFixed(2) || 0}%)`, inline: true },
+                    { name: 'Failed Searches', value: `${analytics.failedSearchCount.toLocaleString()} (${((analytics.failedSearchCount / totalPlays) * 100).toFixed(2) || 0}%)`, inline: true },
+                    { name: 'Players with Custom Settings', value: `${analytics.playHasPlayerSettingsCount.toLocaleString()} (${((analytics.playHasPlayerSettingsCount / (totalPlays > 0 ? totalPlays : client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)) ) * 100).toFixed(2)}%)`, inline: true },
+                    { name: 'Channels Connected', value: `${channelsConnected.toLocaleString()}`, inline: true },
+                    { name: 'Search Engine Usage', value: usedSearchEnginesStringWithPercentages(analytics.usedSearchEngines), inline: false }, // Use helper function
+                    { name: 'Top 5 Guilds', value: topGuildsStringWithPercentages(topGuilds, totalPlays), inline: false } // Use helper function
                 );
-
-
             interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
@@ -58,3 +54,20 @@ module.exports = {
         }
     },
 };
+
+function usedSearchEnginesStringWithPercentages(usedSearchEngines) {
+    const totalSearches = Object.values(usedSearchEngines).reduce((sum, count) => sum + count, 0);
+    if (totalSearches === 0) return 'No data';
+
+    return Object.entries(usedSearchEngines)
+        .sort(([, countA], [, countB]) => countB - countA) // Sort by count (descending)
+        .map(([engine, count]) => `${engine}: ${count} (${((count / totalSearches) * 100).toFixed(2)}%)`)
+        .join('\n');
+}
+
+function topGuildsStringWithPercentages(topGuilds, totalPlays) {
+    if(topGuilds.length === 0) return "No data"
+
+    return topGuilds.map(guild => `${guild.name} (Members: ${guild.memberCount}, Plays: ${guild.playCount} (${((guild.playCount / totalPlays) * 100).toFixed(2)}%))`).join('\n');
+
+}

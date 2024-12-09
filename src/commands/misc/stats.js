@@ -21,7 +21,6 @@ module.exports = {
                 const playerStats = player.generateStatistics();
                 channelsConnected = playerStats.queues.length;
             } else {
-                console.log(client.manager)
                   channelsConnected = client.manager.players.size;
             }
             const totalPlays = analytics.totalPlayCount;
@@ -47,8 +46,8 @@ module.exports = {
                     { name: 'Search Errors', value: `${analytics.failedSearchCount.toLocaleString()} (${((analytics.failedSearchCount / totalPlays) * 100).toFixed(2) || 0}%)`, inline: true },
                     { name: 'Searches With Settings', value: `${analytics.playHasPlayerSettingsCount.toLocaleString()} (${((analytics.playHasPlayerSettingsCount / (totalPlays > 0 ? totalPlays : client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)) ) * 100).toFixed(2)}%)`, inline: true },
                     { name: 'Channels Connected', value: `${channelsConnected}`, inline: true },
-                    { name: 'Search Engine Usage', value: usedSearchEnginesStringWithPercentages(analytics.usedSearchEngines), inline: false }, // Use helper function
-                    { name: 'Top 5 Guilds', value: topGuildsStringWithPercentages(topGuilds, totalPlays), inline: false } // Use helper function
+                    { name: 'Search Engine Usage', value: usedSearchEnginesStringWithPercentages(analytics.usedSearchEngines), inline: false }, 
+                    { name: 'Top 5 Guilds', value: topGuildsStringWithPercentages(topGuilds, totalPlays), inline: false }
                 );
             interaction.editReply({ embeds: [embed] });
 

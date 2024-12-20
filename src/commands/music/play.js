@@ -159,7 +159,7 @@ case "discord_player": {
         );
 
         embed.setDescription(res.track.playlist
-          ? `**Enqueued: [${res.playlist.title}](${res.playlist.url}) (${res.playlist.tracks.length} tracks)**`
+          ? `**Enqueued: [${res.track.playlist.title}](${res.track.playlist.url}) (${res.track.playlist.tracks.length} tracks)**`
           : `**Enqueued: [${res.track.title}](${res.track.url}) - ${res.track.author}** \`${res.track.duration}\``);
         client.totalTracksPlayed += res.track.playlist ? res.track.playlist.tracks.length : 1;
         await sendTrackEmbed(interaction, embed); 

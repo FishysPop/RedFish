@@ -13,6 +13,10 @@ const userPlayerSettingsSchema = new Schema({
     type: Boolean,
     default: false,
   },
+  convertLinks: {
+    type: Boolean,
+    default: false,
+  },
   defaultSearchEngine: {
     type: String,
     default: 'spotify',

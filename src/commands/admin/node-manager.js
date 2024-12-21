@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, } = require('discord.js');
 async function getPrettyMs() {
   const { default: prettyMilliseconds } = await import('pretty-ms');
   return prettyMilliseconds;
@@ -98,15 +98,141 @@ ${rateLimited}
 
       collector.on("collect", async (i) => {
         if (i.user.id !== interaction.user.id) return i.reply({ content: "This is not your settings", ephemeral: true });
-        i.deferUpdate();
 
         switch (i.customId) {
           case "nodeSelectMenu":
+            i.deferUpdate();
             currentNode = parseInt(i.values[0]); // Get the selected node index
             const updatedEmbed = await createEmbed(currentNode); // Create a new embed with the updated currentNode
             await interaction.editReply({ embeds: [updatedEmbed], components: [row, row2], ephemeral: true });
+          break;
+          case "disconnectButton":
+            i.deferUpdate();
+            const nodeToDisconnect = nodesArray[currentNode][1];
+            await nodeToDisconnect.ws.close();
+            await interaction.followUp({ content: `Node ${nodeToDisconnect.name} disconnected.`, ephemeral: true });
+          break;
+          case "removeButton":
+            i.deferUpdate();
+            const nodeToRemove = nodesArray[currentNode][1];
+          
+            try {
+              client.manager.players.forEach(async (player) => {
+                if (player.node.name === nodeToRemove.name) {
+                  await player.destroy();
+                }
+              });          
+              if (nodeToRemove.state == 2) {
+                console.log(nodeToRemove.destroyed)
+                nodeToRemove.disconnect(5, 'Node removed');
+                await nodeToRemove.ws.close();
+                nodeToRemove.on('close', async () => {
+                  client.manager.shoukaku.removeNode(nodeToRemove.name);
+                  await interaction.followUp({ content: `Node ${nodeToRemove.name} removed.`, ephemeral: true });
+                });
+              } else {
+                console.log("test")
+                client.manager.shoukaku.removeNode(nodeToRemove.name);
+                await interaction.followUp({ content: `Node ${nodeToRemove.name} removed.`, ephemeral: true });
+              }
+            } catch (removeError) {
+              console.error("Error removing node:", removeError);
+              if (removeError.message.includes('This node does not exist.')) {
+                await interaction.followUp({ content: `Node ${nodeToRemove.name} does not exist or is already removed.`, ephemeral: true });
+              } else if (removeError.message.includes('Could not disconnect node')) {
+                await interaction.followUp({ content: `Failed to remove node ${nodeToRemove.name}. It may be busy or in a bad state. Please try again later.`, ephemeral: true });
+              } else {
+                await interaction.followUp({ content: `Failed to remove node ${nodeToRemove.name}: ${removeError.message}`, ephemeral: true });
+              }
+              
+              const updatedNodesArray = Array.from(client.manager.shoukaku.nodes);
+              const updatedEmbed = await createEmbed(0); 
+              await interaction.editReply({ embeds: [updatedEmbed], components: [row, row2], ephemeral: true });
+            }
             break;
-          // Add cases for other buttons (reconnectButton, disconnectButton, etc.)
+          case "reconnectButton":
+              i.deferUpdate();
+              const nodeToReconnect = nodesArray[currentNode][1];
+              console.log(nodeToReconnect.url)
+              let nodeUrl = nodeToReconnect.url.replace('ws://', '').replace('/v4/websocket', '');
+              if (!nodeToReconnect.connected) {
+                client.manager.shoukaku.addNode({
+                  name: nodeToReconnect.name,
+                  url: nodeUrl,
+                  auth: nodeToReconnect.auth,
+                  secure: nodeToReconnect.secure
+                 });
+                await interaction.followUp({ content: `Node ${nodeToReconnect.name} reconnected.`, ephemeral: true });
+              } else {
+                await interaction.followUp({ content: `Node ${nodeToReconnect.name} is already connected.`, ephemeral: true });
+              }
+          break;
+          case "addButton":
+            const modal = new ModalBuilder()
+            .setCustomId('addNodeModal')
+            .setTitle('Add New Node');
+
+           const nameInput = new TextInputBuilder()
+            .setCustomId('nodeName')
+            .setLabel("Node Name")
+            .setStyle(TextInputStyle.Short)
+            .setPlaceholder('Enter node name')
+            .setRequired(true);
+
+           const urlInput = new TextInputBuilder()
+            .setCustomId('nodeUrl')
+            .setLabel("Node URL (host:port)") 
+            .setStyle(TextInputStyle.Short)
+            .setPlaceholder('e.g., 127.0.0.1:2333') 
+            .setRequired(true);
+
+           const authInput = new TextInputBuilder()
+            .setCustomId('nodeAuth')
+            .setLabel("Node Password")
+            .setStyle(TextInputStyle.Short)
+            .setPlaceholder('Enter node password')
+            .setRequired(true);
+
+
+          const firstActionRow = new ActionRowBuilder().addComponents(nameInput);
+          const secondActionRow = new ActionRowBuilder().addComponents(urlInput);
+          const thirdActionRow = new ActionRowBuilder().addComponents(authInput);
+
+
+          modal.addComponents(firstActionRow, secondActionRow, thirdActionRow);
+          await i.showModal(modal);  
+
+            const modalFilter = (interaction) => interaction.isModalSubmit() && interaction.customId === 'addNodeModal' && interaction.user.id === i.user.id; // Important user check
+
+            interaction.awaitModalSubmit({ filter: modalFilter, time: 60000 }) 
+                .then(async (modalInteraction) => {
+                    const nodeName = modalInteraction.fields.getTextInputValue('nodeName');
+                    const nodeUrl = modalInteraction.fields.getTextInputValue('nodeUrl');
+                    const nodeAuth = modalInteraction.fields.getTextInputValue('nodeAuth');
+
+                    try {
+                        const newNode = {
+                            name: nodeName,
+                            url: nodeUrl,  
+                            auth: nodeAuth,
+                            secure: false
+                        };
+                        client.manager.shoukaku.addNode(newNode);
+                        await modalInteraction.reply({ content: `Node ${nodeName} added.`, ephemeral: true });
+
+                        const updatedEmbed = await createEmbed(currentNode);
+                        await interaction.editReply({ embeds: [updatedEmbed], components: [row, row2], ephemeral: true });
+
+                    } catch (error) {
+                        console.error("Failed to add node:", error);
+                        await modalInteraction.reply({ content: `Failed to add node: ${error.message}`, ephemeral: true });
+                    }
+                })
+                .catch(async(error) => {
+                    console.error("Modal submit error:", error)
+                    await interaction.followUp({content: `Modal timed out or there was an error.  Node not added.`, ephemeral: true}) // Handle timeout or other errors
+                });
+              break;
         }
       });
 

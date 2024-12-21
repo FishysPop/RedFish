@@ -4,6 +4,7 @@ const { convertTime } = require("../../utils/ConvertTime.js");
 const User = require("../../models/UserPlayerSettings");
 const GuildSettings = require("../../models/GuildSettings");
 const Analytics = require("../../models/Analytics");  
+const youtubeSr = require("youtube-sr").default;
 
 
 module.exports =  {
@@ -34,7 +35,8 @@ module.exports =  {
       volume: serverSettings?.defaultVolume || '30',
       searchEngine: user?.defaultSearchEngine || null,
       betaPlayer: user?.betaPlayer || false,
-      playerMessages: serverSettings?.playerMessages || "default"
+      playerMessages: serverSettings?.playerMessages || "default",
+      convertLinks: user?.convertLinks || false
     }
     const hasPlayerSettings = !!user;
     let usedSearchEngine;
@@ -187,9 +189,30 @@ case "discord_player": {
 
         const isLink = /^(https?:\/\/.+)/i.test(name); 
         let res;
-        if (isLink) {
+        if (isLink && playerSettings.convertLinks) { // Only convert if it's a link AND convertLinks is enabled
+          try {
+              const searchResults = await youtubeSr.getVideo(name, { limit: 1 });
+              console.log("searchResults:", searchResults)
+              if (searchResults && searchResults.length > 0) {
+                console.log(searchResults)
+                  res = await player.search(`${searchResults[0].title}`,{ requester: interaction.user, source: 'dzsearch:'});
+                  console.log(res)
+                  if (!res.tracks.length) {
+                    res = await player.search(name, { requester: interaction.user});
+                  }
+              } else {
+                  // Fallback: Search directly if youtube-sr fails
+                  res = await player.search(name, { requester: interaction.user });
+              }
+          } catch (youtubeSrError) {
+              console.error("youtube-sr error:", youtubeSrError);
+              // Fallback: Search directly if youtube-sr throws an error
+              res = await player.search(name, { requester: interaction.user });
+          }
+      } else if (isLink) { // if its a link, but not converting, treat it as a normal link
           res = await player.search(name, { requester: interaction.user });
-        } else {
+      }
+      else {   
           let engine = playerSettings.searchEngine || 'deezer'; // Deezer is now the default
         
           if (engine === 'deezer') {

@@ -30,10 +30,11 @@
     "kazagumo": "^3.2.2",
     "kazagumo-deezer": "^2.0.2",
     "kazagumo-spotify": "^2.1.1",
-    "mediaplex": "^0.0.9",
+    "mediaplex": "^1.0.0",
     "mongoose": "^7.8.3",
     "ms": "^2.1.3",
     "node-os-utils": "^1.3.7",
-    "pretty-ms": "^8.0.0"
+    "pretty-ms": "^8.0.0",
+    "youtube-sr": "^4.3.11"
   }
 }

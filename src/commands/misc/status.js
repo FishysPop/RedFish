@@ -31,6 +31,16 @@ module.exports = {
       const cpuUsage = await osu.cpu.usage();
       const memUsage = Math.ceil((await osu.mem.info()).usedMemMb);  
       const cpuCores = osu.cpu.count();
+
+      let totalTracksPlayed = 0; // Initialize to 0
+
+      if (client.cluster) {
+        const results = await client.cluster.broadcastEval(c => c.totalTracksPlayed);
+        totalTracksPlayed = results.reduce((acc, val) => acc + val, 0); // Sum results from all shards
+      } else {
+        totalTracksPlayed = client.totalTracksPlayed; // Use existing value if not sharded
+      }
+
       switch (client.playerType) {
         case "both":
           const player2 = useMainPlayer();
@@ -52,7 +62,7 @@ module.exports = {
                       **${playerStats3.queues.length}** Channels Connected
                       **${playerStats3.queues.reduce((acc, queue) => acc + queue.tracksCount, 0)}** Tracks Queued
                       **${playerStats3.queues.reduce((acc, queue) => acc + queue.listeners, 0)}** Users listening
-                      **${client.totalTracksPlayed}** Tracks Since Restart` 
+                      **${totalTracksPlayed}** Tracks Since Restart` 
               }
             ).setFooter({text: `Shard: ${interaction.guild?.shardId ? interaction.guild?.shardId : '0'} | Cluster: ${client?.cluster.id}`})
             for (const node of playerStats4.values()) {
@@ -73,7 +83,7 @@ module.exports = {
                       **${cpuCores}** CPU Cores  
                       **${cpuUsage}%** CPU Usage
                       **${memUsage} MB** Memory Usage
-                    **${client.totalTracksPlayed}** Tracks Since Restart`).setFooter({text: `Shard: ${interaction.guild?.shardId ? interaction.guild?.shardId : '0'} | Cluster: ${client.cluster.id}`})
+                    **${totalTracksPlayed}** Tracks Since Restart`).setFooter({text: `Shard: ${interaction.guild?.shardId ? interaction.guild?.shardId : '0'} | Cluster: ${client.cluster.id}`})
                     for (const node of playerStats2.values()) {
                       const options = interaction.options.get('ratelimit_check')?.value;
                       let RateLimited = '';
@@ -103,7 +113,7 @@ module.exports = {
                 **${playerStats.queues.length}** Channels Connected
                 **${playerStats.queues.reduce((acc, queue) => acc + queue.tracksCount, 0)}** Tracks Queued
                 **${playerStats.queues.reduce((acc, queue) => acc + queue.listeners, 0)}** Users listening
-                **${client.totalTracksPlayed}** Tracks Since Restart`)
+                **${totalTracksPlayed}** Tracks Since Restart`)
     .addFields(
         {
           name: "**System Status**",

@@ -54,7 +54,7 @@ Status: ${StatusCodes[nodesArray[currentNode][1].state]}
 ${rateLimited}
 \`\`\``) 
           .setColor("#e66229")
-          .setFooter({ text: "test" });
+          .setFooter({text: `Shard: ${interaction.guild?.shardId ? interaction.guild?.shardId : '0'} | Cluster: ${client.cluster.id}`})
 
         nodesArray.forEach((node, index) => {
           embed.addFields({
@@ -109,9 +109,34 @@ ${rateLimited}
           case "disconnectButton":
             i.deferUpdate();
             const nodeToDisconnect = nodesArray[currentNode][1];
-            await nodeToDisconnect.ws.close();
-            await interaction.followUp({ content: `Node ${nodeToDisconnect.name} disconnected.`, ephemeral: true });
-          break;
+            const nodeNameToDisconnect = nodeToDisconnect.name; // Store the node name
+        
+            if (client.cluster) {
+                try {
+                    await client.cluster.broadcastEval(async (c, { nodeName }) => {
+                        const node = c.manager.shoukaku.nodes.get(nodeName);
+                        if (node && node.state === 2) { // Check if node exists and is connected
+                          node.disconnect(5, 'Node disconnected by command');
+                            node.ws.close();  
+                        }
+                    }, { context: { nodeName: nodeNameToDisconnect } });
+                    await interaction.followUp({ content: `Node ${nodeNameToDisconnect} disconnected on all shards.`, ephemeral: true });
+                } catch (disconnectError) {
+                    console.error("Failed to disconnect node on some shards:", disconnectError);
+                    await interaction.followUp({ content: `Failed to disconnect node ${nodeNameToDisconnect} on some shards.  Check logs for details.`, ephemeral: true });
+                }
+        
+            } else { // Non-sharded case
+                if (nodeToDisconnect.state === 2) {
+                    nodeToDisconnect.disconnect(5, 'Node disconnected by command');
+                    nodeToDisconnect.ws.close();  // WebSocket close for immediate disconnect in non-sharded case.
+                    await interaction.followUp({ content: `Node ${nodeNameToDisconnect} disconnected.`, ephemeral: true });
+        
+                } else {
+                    await interaction.followUp({ content: `Node ${nodeNameToDisconnect} is not connected.`, ephemeral: true });
+                }
+            }
+            break;
           case "removeButton":
             i.deferUpdate();
             const nodeToRemove = nodesArray[currentNode][1];
@@ -121,20 +146,42 @@ ${rateLimited}
                 if (player.node.name === nodeToRemove.name) {
                   await player.destroy();
                 }
-              });          
-              if (nodeToRemove.state == 2) {
-                console.log(nodeToRemove.destroyed)
-                nodeToRemove.disconnect(5, 'Node removed');
-                await nodeToRemove.ws.close();
-                nodeToRemove.on('close', async () => {
-                  client.manager.shoukaku.removeNode(nodeToRemove.name);
-                  await interaction.followUp({ content: `Node ${nodeToRemove.name} removed.`, ephemeral: true });
-                });
+              });
+          
+              if (client.cluster) {
+                await client.cluster.broadcastEval(async (c, { nodeName }) => {
+                  const node = c.manager.shoukaku.nodes.get(nodeName); 
+                  if (node) { 
+                    if(node.state === 2){ 
+                      node.disconnect(5, 'Node removed');
+                      node.ws.close();
+                      node.on('close', () => {
+                        c.manager.shoukaku.removeNode(nodeName);
+                      })
+                    } else {
+                      c.manager.shoukaku.removeNode(nodeName); 
+                    }
+                  }
+                }, { context: { nodeName: nodeToRemove.name } });
+                await interaction.followUp({ content: `Node ${nodeToRemove.name} removed from all shards.`, ephemeral: true });
               } else {
-                console.log("test")
-                client.manager.shoukaku.removeNode(nodeToRemove.name);
+                // Handle non-sharded case 
+                if(nodeToRemove.state === 2){
+                  nodeToRemove.disconnect(5, 'Node removed');
+                  nodeToRemove.ws.close();
+                  nodeToRemove.on('close', () => {
+                    client.manager.shoukaku.removeNode(nodeToRemove.name);
+                  })
+          
+                } else{
+                  client.manager.shoukaku.removeNode(nodeToRemove.name)
+                }
                 await interaction.followUp({ content: `Node ${nodeToRemove.name} removed.`, ephemeral: true });
+          
+          
               }
+              const updatedEmbed = await createEmbed(0); 
+              await interaction.editReply({ embeds: [updatedEmbed], components: [row, row2], ephemeral: true });
             } catch (removeError) {
               console.error("Error removing node:", removeError);
               if (removeError.message.includes('This node does not exist.')) {
@@ -150,23 +197,53 @@ ${rateLimited}
               await interaction.editReply({ embeds: [updatedEmbed], components: [row, row2], ephemeral: true });
             }
             break;
-          case "reconnectButton":
+            case "reconnectButton":
               i.deferUpdate();
               const nodeToReconnect = nodesArray[currentNode][1];
-              console.log(nodeToReconnect.url)
+              const nodeNameToReconnect = nodeToReconnect.name; // Store node name for consistent messaging
+          
               let nodeUrl = nodeToReconnect.url.replace('ws://', '').replace('/v4/websocket', '');
-              if (!nodeToReconnect.connected) {
-                client.manager.shoukaku.addNode({
-                  name: nodeToReconnect.name,
+              const newNode = {  // Create a reusable node object
+                  name: nodeNameToReconnect,
                   url: nodeUrl,
                   auth: nodeToReconnect.auth,
                   secure: nodeToReconnect.secure
-                 });
-                await interaction.followUp({ content: `Node ${nodeToReconnect.name} reconnected.`, ephemeral: true });
-              } else {
-                await interaction.followUp({ content: `Node ${nodeToReconnect.name} is already connected.`, ephemeral: true });
+              };
+          
+          
+              if (client.cluster) {
+                  try {
+                      await client.cluster.broadcastEval(async (c, { newNode }) => {
+                          const existingNode = c.manager.shoukaku.nodes.get(newNode.name);
+          
+                          if (existingNode) {
+                              if (!existingNode.connected) { //only reconnect if the node is disconnected
+                                c.manager.shoukaku.removeNode(newNode.name); // Remove the potentially broken node first, if it exists. This also calls .disconnect() if the node was still connected.
+                                c.manager.shoukaku.addNode(newNode);   //then add the new node
+                              }
+                          } else {
+                             c.manager.shoukaku.addNode(newNode);  // If the node doesn't exist, add it.
+                          }
+          
+                      }, { context: { newNode } });
+                      await interaction.followUp({ content: `Node ${nodeNameToReconnect} reconnected on all shards.`, ephemeral: true });
+                  } catch (reconnectError) {
+                      console.error("Failed to reconnect node on some shards:", reconnectError);
+                      await interaction.followUp({ content: `Failed to reconnect node ${nodeNameToReconnect} on some shards. Check logs for details.`, ephemeral: true });
+                  }
+              } else { // Non-sharded case
+                if (!nodeToReconnect.connected) {
+                  client.manager.shoukaku.removeNode(newNode.name); 
+                  client.manager.shoukaku.addNode(newNode);
+                  await interaction.followUp({ content: `Node ${nodeNameToReconnect} reconnected.`, ephemeral: true });
+          
+                } else{
+                  await interaction.followUp({ content: `Node ${nodeNameToReconnect} is already connected.`, ephemeral: true });
+          
+                }
+          
               }
-          break;
+              break;
           case "addButton":
             const modal = new ModalBuilder()
             .setCustomId('addNodeModal')
@@ -217,7 +294,13 @@ ${rateLimited}
                             auth: nodeAuth,
                             secure: false
                         };
-                        client.manager.shoukaku.addNode(newNode);
+                        if (client.cluster) {
+                          await client.cluster.broadcastEval(async (c, { newNode }) => {
+                            c.manager.shoukaku.addNode(newNode);
+                          }, { context: { newNode } });
+                        } else {
+                          client.manager.shoukaku.addNode(newNode);
+                        }
                         await modalInteraction.reply({ content: `Node ${nodeName} added.`, ephemeral: true });
 
                         const updatedEmbed = await createEmbed(currentNode);

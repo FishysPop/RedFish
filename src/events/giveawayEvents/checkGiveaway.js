@@ -55,10 +55,7 @@ var timerID = setInterval(async function() {
     const row = new ActionRowBuilder().addComponents(giveawayEnterButton);
     if (guild) {
       const channel = guild.channels.cache.get(firstGiveaway.channelId);
-      if (!channel) {
-        console.error("Channel not found for giveaway:", giveaway.channelId);
-          await Giveaway.deleteOne({ _id: giveaway._id });
-      }
+      if (!channel) return await Giveaway.deleteOne({ _id: giveaway._id });
       try {
         const message = await channel.messages.fetch(firstGiveaway.messageId);
         message.edit({
@@ -71,7 +68,6 @@ var timerID = setInterval(async function() {
         
       } catch (error) {
         console.error("Error editing giveaway message or finding it:", error);
-        await Giveaway.deleteOne({ _id: giveaway._id });  
 
       }
     }

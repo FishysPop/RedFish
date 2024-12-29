@@ -21,8 +21,8 @@ module.exports = async (player, manager) => {
         
         console.warn(`Removing Lavalink node ${nodeName} due to excessive errors.`);
         if (node && node.state === 2) {
-            if (availableNodes.length === 0) {
-            manager.players.forEach(async (player) => {
+            if (nodesArray.length > 1 && availableNodes.length > 0) { 
+                manager.players.forEach(async (player) => {
                 if (player.node.name === nodeName) {
                     try {
                         await player.shoukaku.move(targetNode.name); 

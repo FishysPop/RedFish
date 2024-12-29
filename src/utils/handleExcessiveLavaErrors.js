@@ -1,4 +1,5 @@
 module.exports = async (player, manager) => {
+    try {
     const node = player.node;
     const nodeName = player.node.name;
     const now = Date.now();
@@ -41,5 +42,9 @@ module.exports = async (player, manager) => {
     }
 
     return false; 
+} catch (error) {
+    console.error('Failed to handle excessive Lavalink errors:', error);
+    return false; 
+}
 };
 

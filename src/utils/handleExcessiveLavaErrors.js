@@ -5,10 +5,8 @@ module.exports = async (player, manager) => {
     const cutoff = now - 900000; 
     const nodes = manager.shoukaku.nodes;
     const nodesArray = Array.from(nodes);
-    const nodeToDisconnect = nodesArray[currentNode][1];
-    const nodeNameToDisconnect = nodeToDisconnect.name;
 
-    const availableNodes = nodesArray.filter(  ([, node]) => node.name !== nodeNameToDisconnect && node.state === 2);
+    const availableNodes = nodesArray.filter(  ([, node]) => node.name !== nodeName && node.state === 2);
     const targetNode = availableNodes[0][1]; 
 
     if (!node.errors) {

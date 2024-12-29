@@ -2,7 +2,14 @@ module.exports = async (player, manager) => {
     const node = player.node;
     const nodeName = player.node.name;
     const now = Date.now();
-    const cutoff = now - 1800000; // 30 minutes in milliseconds
+    const cutoff = now - 900000; 
+    const nodes = manager.shoukaku.nodes;
+    const nodesArray = Array.from(nodes);
+    const nodeToDisconnect = nodesArray[currentNode][1];
+    const nodeNameToDisconnect = nodeToDisconnect.name;
+
+    const availableNodes = nodesArray.filter(  ([, node]) => node.name !== nodeNameToDisconnect && node.state === 2);
+    const targetNode = availableNodes[0][1]; 
 
     if (!node.errors) {
         node.errors = [];
@@ -11,21 +18,27 @@ module.exports = async (player, manager) => {
     node.errors.push(now);
     node.errors = node.errors.filter((timestamp) => timestamp >= cutoff);
 
-    if (node.errors.length > 2) { 
+    if (node.errors.length > 15) { 
+        
         console.warn(`Removing Lavalink node ${nodeName} due to excessive errors.`);
-        manager.shoukaku.removeNode(nodeName, "Excessive errors detected."); 
-        manager.players.forEach(async (player2) => {
-            if (player2.shoukaku.node.name === nodeName) {
-       const Lavaplayer = manager.players.get(player.guildId);
-       await Lavaplayer.destroy();            }
-        }); 
-      // const Lavaplayer = manager.players.get(player.guildId);
-     //  await Lavaplayer.destroy();
-
-
-        await node.ws.close()
-        await manager.shoukaku.removeNode(nodeName);
-        console.log(manager.players)
+        if (node && node.state === 2) {
+            if (availableNodes.length === 0) {
+            manager.players.forEach(async (player) => {
+                if (player.node.name === nodeName) {
+                    try {
+                        await player.shoukaku.move(targetNode.name); 
+                    } catch (moveError) {
+                        console.error('Failed to move player:', moveError);
+                    }
+                }
+            });
+        } 
+            setTimeout(() => {
+                node.disconnect(5, 'Node disconnected by command');
+                node.ws.close();
+            }, 5000); 
+          }
+        await manager.shoukaku.removeNode(nodeName, "Excessive errors detected."); 
         return true;
     }
 

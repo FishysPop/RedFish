@@ -25,13 +25,14 @@ if (process.env.DEBUG === "true") client.manager.on("debug", (info, data) => {
 });
 client.manager.on("playerStuck", (player, data) => {
   console.error(`Player Stuck: ${player.guildId} - `, data);
+  handleExcessiveLavalinkErrors(player, client.manager)
 });
 client.manager.on("playerException", async (player, data) => {
   const guild = client.guilds.cache.get(player.guildId);
   const guildName = guild ? guild.name : "Unknown Guild"; // Handle cases where guild is not found
   
   console.error(`Player Exception Error: Node: ${player.shoukaku.node.name}, Guild: ${guildName}(${player.guildId}) - `, data.exception); 
-  //handleExcessiveLavalinkErrors(player, client.manager)
+  handleExcessiveLavalinkErrors(player, client.manager)
   const channel = client.channels.cache.get(player.textId);
   if (!channel) return;  // Check if channel exists
 

@@ -109,28 +109,59 @@ ${rateLimited}
           case "disconnectButton":
             i.deferUpdate();
             const nodeToDisconnect = nodesArray[currentNode][1];
-            const nodeNameToDisconnect = nodeToDisconnect.name; // Store the node name
+            const nodeNameToDisconnect = nodeToDisconnect.name;
+        
+            const availableNodes = nodesArray.filter(  ([, node]) => node.name !== nodeNameToDisconnect && node.state === 2);
+            if (availableNodes.length === 0) {  return interaction.followUp({    content: `No other available nodes to move players from ${nodeNameToDisconnect}.`,  ephemeral: true, });  }
+            const targetNode = availableNodes[0][1]; 
         
             if (client.cluster) {
                 try {
-                    await client.cluster.broadcastEval(async (c, { nodeName }) => {
-                        const node = c.manager.shoukaku.nodes.get(nodeName);
-                        if (node && node.state === 2) { // Check if node exists and is connected
-                          node.disconnect(5, 'Node disconnected by command');
-                            node.ws.close();  
+                    await client.cluster.broadcastEval(async (c, { nodeName, targetNodeName  }) => {
+                      const node = c.manager.shoukaku.nodes.get(nodeName);
+                      if (node && node.state === 2) {
+                          c.manager.players.forEach(async (player) => {
+                              if (player.node.name === nodeName) {
+                                  try {
+                                      await player.shoukaku.move(targetNodeName); 
+                                  } catch (moveError) {
+                                      console.error('Failed to move player:', moveError);
+                                  }
+                              }
+                          });
+                          
+                          setTimeout(() => {
+                              node.disconnect(5, 'Node disconnected by command');
+                              node.ws.close();
+                          }, 5000); 
                         }
-                    }, { context: { nodeName: nodeNameToDisconnect } });
-                    await interaction.followUp({ content: `Node ${nodeNameToDisconnect} disconnected on all shards.`, ephemeral: true });
-                } catch (disconnectError) {
+                      }, { context: { nodeName: nodeNameToDisconnect, targetNodeName: targetNode.name } });
+                      await interaction.followUp({ content: `Node ${nodeNameToDisconnect} disconnected on all shards. Players moved to ${targetNode.name}.`, ephemeral: true });
+                    } catch (disconnectError) {
                     console.error("Failed to disconnect node on some shards:", disconnectError);
                     await interaction.followUp({ content: `Failed to disconnect node ${nodeNameToDisconnect} on some shards.  Check logs for details.`, ephemeral: true });
                 }
         
-            } else { // Non-sharded case
-                if (nodeToDisconnect.state === 2) {
+            } else { 
+              if (nodeToDisconnect.state === 2) {
+                client.manager.players.forEach(async (player) => {
+                    if (player.node.name === nodeNameToDisconnect) {
+                        try {
+                            await player.move(targetNode.name)
+                        } catch (error) {
+                          console.log("failed to move:", error)
+                        }
+                    }
+                });
+    
+    
+                setTimeout(() => {
                     nodeToDisconnect.disconnect(5, 'Node disconnected by command');
-                    nodeToDisconnect.ws.close();  // WebSocket close for immediate disconnect in non-sharded case.
-                    await interaction.followUp({ content: `Node ${nodeNameToDisconnect} disconnected.`, ephemeral: true });
+                    nodeToDisconnect.ws.close();
+                }, 5000);
+    
+    
+                await interaction.followUp({ content: `Node ${nodeNameToDisconnect} disconnected. Players moved to ${targetNode.name}`, ephemeral: true });
         
                 } else {
                     await interaction.followUp({ content: `Node ${nodeNameToDisconnect} is not connected.`, ephemeral: true });
@@ -142,14 +173,13 @@ ${rateLimited}
             const nodeToRemove = nodesArray[currentNode][1];
           
             try {
-              client.manager.players.forEach(async (player) => {
-                if (player.node.name === nodeToRemove.name) {
-                  await player.destroy();
-                }
-              });
-          
               if (client.cluster) {
                 await client.cluster.broadcastEval(async (c, { nodeName }) => {
+                  await c.manager.players.forEach(async (player) => {
+                    if (player.node.name === nodeName) {
+                      await player.destroy();
+                    }
+                  });
                   const node = c.manager.shoukaku.nodes.get(nodeName); 
                   if (node) { 
                     if(node.state === 2){ 

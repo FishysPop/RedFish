@@ -121,7 +121,7 @@ if (process.env.LAVALINK === 'true') {
   reconnectInterval: 10,
   moveOnDisconnect: true,
   resume: true,
-  resumeByLibrary: true,
+  resumeByLibrary: false,
   reconnectTries: 6,
   resumeTimeout: 60,
 });

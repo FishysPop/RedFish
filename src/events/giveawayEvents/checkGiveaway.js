@@ -15,6 +15,7 @@ var timerID = setInterval(async function() {
     const giveawayArray = firstGiveaway.entriesArray
     const discordIdCount = firstGiveaway.entriesArray.length;
     let guild = client.guilds.cache.get(firstGiveaway.guildId);
+    console.log("guild:", guild)
  
     function pickRandomFromArray(array, count) {
       if (!Array.isArray(array)) {
@@ -66,7 +67,7 @@ var timerID = setInterval(async function() {
         firstGiveaway.save();
         
       } catch (error) {
-        console.error("Error editing giveaway message or finding it:", "Id: ", firstGiveaway.messageId, "Error: ", error);
+        console.error("Error editing giveaway message or finding it:", "MessageId: ", firstGiveaway.messageId, "Error: ", error);
         
 
       }

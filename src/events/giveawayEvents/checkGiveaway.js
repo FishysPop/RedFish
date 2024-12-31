@@ -6,14 +6,12 @@ module.exports = (client) => {
     const currentDate = new Date();
     
     const giveaway = await Giveaway.find({ giveawayEnd: { $lt: currentDate }, ended: false });
-    console.log(giveaway)
     if (giveaway.length > 0) {
     } else {
     return;
     }
 
     giveaway.forEach(async firstGiveaway => {
-      console.log(firstGiveaway)
       const unixTimestamp = Math.floor(currentDate.getTime() / 1000);
       const timestamp = `<t:${unixTimestamp}:R>`;
       const giveawayArray = firstGiveaway.entriesArray

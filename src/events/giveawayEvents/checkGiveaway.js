@@ -55,7 +55,6 @@ var timerID = setInterval(async function() {
     const row = new ActionRowBuilder().addComponents(giveawayEnterButton);
     if (guild) {
       const channel = guild.channels.cache.get(firstGiveaway.channelId);
-      if (!channel) return await Giveaway.deleteOne({ _id: giveaway._id });
       try {
         const message = await channel.messages.fetch(firstGiveaway.messageId);
         message.edit({

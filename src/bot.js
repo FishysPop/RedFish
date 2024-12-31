@@ -178,9 +178,9 @@ new CommandHandler({
     mongoose.set("strictQuery", false);
     await mongoose.connect(process.env.MONGODB_URI);
     console.log("Connected to DB.");
-    require('./events/giveawayEvents/checkGiveaway.js')(client);
     if (client.playerType === 'discord_player' | client.playerType === 'both') await player.extractors.loadDefault();
     client.cluster = new ClusterClient(client);
+    require('./events/giveawayEvents/checkGiveaway.js')(client);
     client.login(process.env.TOKEN); 
   } catch (error) {
     console.log(`Error: ${error}`);

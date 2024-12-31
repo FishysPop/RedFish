@@ -66,7 +66,8 @@ var timerID = setInterval(async function() {
         firstGiveaway.save();
         
       } catch (error) {
-        console.error("Error editing giveaway message or finding it:", error);
+        console.error("Error editing giveaway message or finding it:", "Id: ", firstGiveaway.messageId, "Error: ", error);
+        
 
       }
     }

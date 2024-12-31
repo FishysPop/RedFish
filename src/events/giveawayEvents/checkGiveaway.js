@@ -6,6 +6,7 @@ module.exports = (client) => {
     const currentDate = new Date();
     
     const giveaway = await Giveaway.find({ giveawayEnd: { $lt: currentDate }, ended: false });
+    console.log(giveaway)
     if (giveaway.length > 0) {
     } else {
     return;

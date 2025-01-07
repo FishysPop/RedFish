@@ -4,6 +4,7 @@ const { convertTime } = require("../../utils/ConvertTime.js");
 const User = require("../../models/UserPlayerSettings");
 const GuildSettings = require("../../models/GuildSettings");
 const Analytics = require("../../models/Analytics");  
+const handleExcessiveLavaErrors = require("../../utils/handleExcessiveLavaErrors");
 const youtubeSr = require("youtube-sr").default;
 
 
@@ -39,13 +40,14 @@ module.exports =  {
       convertLinks: user?.convertLinks || false
     }
     const hasPlayerSettings = !!user;
+    let player = null;
     let usedSearchEngine;
     let embed = new EmbedBuilder().setColor('#e66229');
     try { 
     switch (client.playerType) {
       case "both":{
         try {
-          const player = useMainPlayer();
+          player = useMainPlayer();
           const isLink = name.startsWith('https://') || name.startsWith('http://');
           let searchResult;
           
@@ -109,7 +111,7 @@ module.exports =  {
 
 case "discord_player": {
     try {
-      const player = useMainPlayer();
+      player = useMainPlayer();
       const isLink = name.startsWith('https://') || name.startsWith('http://');
       let searchResult;
       
@@ -166,13 +168,13 @@ case "discord_player": {
         client.totalTracksPlayed += res.track.playlist ? res.track.playlist.tracks.length : 1;
         await sendTrackEmbed(interaction, embed); 
       } catch (e) {
-        return handlePlayError(interaction, name, e);
+        return handlePlayError(interaction, name, e );
     }
     break;
   }
         case "lavalink": {
           try {
-          const player = await client.manager.createPlayer({
+           player = await client.manager.createPlayer({
             guildId: interaction.guild.id,
             textId: interaction.channel.id,
             voiceId: channel.id,
@@ -192,11 +194,8 @@ case "discord_player": {
         if (isLink && playerSettings.convertLinks) { // Only convert if it's a link AND convertLinks is enabled
           try {
               const searchResults = await youtubeSr.getVideo(name, { limit: 1 });
-              console.log("searchResults:", searchResults)
               if (searchResults && searchResults.length > 0) {
-                console.log(searchResults)
                   res = await player.search(`${searchResults[0].title}`,{ requester: interaction.user, source: 'dzsearch:'});
-                  console.log(res)
                   if (!res.tracks.length) {
                     res = await player.search(name, { requester: interaction.user});
                   }
@@ -245,7 +244,7 @@ case "discord_player": {
         await sendTrackEmbed(interaction, embed); 
       }
         catch (e) {
-          return handlePlayError(interaction, name, e);
+          return handlePlayError(interaction, name, e, player);
         }
         break;
       }
@@ -302,7 +301,7 @@ case "discord_player": {
     return interaction.editReply({ content: " ", embeds: [embed] });
 }
 
-async function handlePlayError(interaction, name, error) {
+async function handlePlayError(interaction, name, error, player) {
   console.error(`Error Running Play:[${interaction.guild.name}] (ID: ${interaction.guild.id}) Request: (${name || null}) Error:`, error);
 
   try {
@@ -312,6 +311,9 @@ async function handlePlayError(interaction, name, error) {
       }
       analytics.failedPlayCount++;
       await analytics.save();
+      if (player) {
+        handleExcessiveLavaErrors(player, client.manager);
+      }
   } catch (analyticsError) {
       console.error("Error updating analytics (handlePlayError):", analyticsError);
   }

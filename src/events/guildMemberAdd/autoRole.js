@@ -42,6 +42,8 @@ module.exports = async (member, client, handler) => {
     }
     }
 
-    await member.roles.add(autoRole.roleId);
+    await member.roles.add(autoRole.roleId).catch(() => { 
+    console.log(`Failed to add role to ${member.user.tag} in (${guild.name})[${guild.id}]`);
+    });
 
 };

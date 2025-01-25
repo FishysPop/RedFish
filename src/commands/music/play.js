@@ -104,7 +104,7 @@ module.exports =  {
             client.totalTracksPlayed += res.track.playlist ? res.track.playlist.tracks.length : 1;
             await sendTrackEmbed(interaction, embed); 
           } catch (e) {
-            return handlePlayError(interaction, name, e);
+            return handlePlayError(interaction, name, e, player);
         }
         break;
       }
@@ -282,7 +282,7 @@ case "discord_player": {
     }
 
   } catch (e) { 
-    return handlePlayError(interaction, name, e);
+    return handlePlayError(interaction, name, e, player);
   }
 
 
@@ -302,7 +302,7 @@ case "discord_player": {
 }
 
 async function handlePlayError(interaction, name, error, player) {
-  console.error(`Error Running Play:[${interaction.guild.name}] (ID: ${interaction.guild.id}) Request: (${name || null}) Error:`, error);
+  console.error(`Error Running Play:[${interaction.guild.name}] (ID: ${interaction.guild.id}) Request: (${name || null}) Node: (${player?.node?.name || null}) Error:`, error);
 
   try {
       let analytics = await Analytics.findOne();

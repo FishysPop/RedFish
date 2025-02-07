@@ -57,6 +57,7 @@ module.exports = {
     let row2 = null;
     let row3 = null;
     let row4 = null;
+    let row5 = null;
     let guildSettings;
     function capitalizeSearchEngine(searchEngine) {
       return {
@@ -107,7 +108,7 @@ module.exports = {
       if (hasAdmin) {
         guildSettings = await GuildSettings.findOne({ guildId: interaction.guildId });
         if (!guildSettings) {
-          guildSettings = await GuildSettings.create({ guildId: interaction.guildId, levels: false, defaultVolume: 30 , playerMessages: "default"});
+          guildSettings = await GuildSettings.create({ guildId: interaction.guildId, levels: false, defaultVolume: 30 , playerMessages: "default", preferredNode: null });
         } else {
           if (!guildSettings.defaultVolume) {
             guildSettings.defaultVolume = 30;
@@ -118,7 +119,7 @@ module.exports = {
             await guildSettings.save();
           }
         }
-        embed.addFields({ name: "Server Settings", value: `Default volume: ${guildSettings.defaultVolume}%\n Now Playing Message: ${formatNowPlaying(guildSettings.playerMessages)}`,});
+        embed.addFields({ name: "Server Settings", value: `Default volume: ${guildSettings.defaultVolume}%\n Now Playing Message: ${formatNowPlaying(guildSettings.playerMessages)}\nPrefered Node: ${guildSettings.preferredNode ? guildSettings.preferredNode : "None"}`});
         const adminVolumeSelectMenu = new StringSelectMenuBuilder()
         .setCustomId('adminVolumeSelectMenu')
         .setPlaceholder('Server volume.')
@@ -177,11 +178,27 @@ module.exports = {
              .setValue('default'),
          )
          .setMaxValues(1);
+         const nodes = client.manager.shoukaku.nodes;
+         const nodesArray = Array.from(nodes);
+
+         const preferedNodeSelectMenu = new StringSelectMenuBuilder()
+           .setCustomId('preferedNodeSelectMenu')
+           .setPlaceholder('Prefered Node');
+   
+         for (const node of nodesArray) {
+           preferedNodeSelectMenu.addOptions(
+             new StringSelectMenuOptionBuilder()
+               .setLabel(node[1].name) 
+               .setValue(node[1].name)   
+           );
+         }
+         row5 = new ActionRowBuilder().addComponents(preferedNodeSelectMenu);
+   
           row4 = new ActionRowBuilder().addComponents(adminPlayerMessageSelectMenu);
       }
       const message = await interaction.editReply({ 
         embeds: [embed], 
-        components: [row, row2, row3, row4].filter(Boolean), 
+        components: [row, row2, row3, row4, row5].filter(Boolean), 
         fetchReply: true 
       });
       const collector = message.createMessageComponentCollector({
@@ -200,14 +217,14 @@ module.exports = {
             embed.data.fields[0].value = `Beta Player: ${ user.betaPlayer ? "Enabled" : "Disabled" }\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled (Converts Youtube Links To Another Platform)" }\n Default Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
             row.components[0].data.label = "Enable Beta Player";
             row.components[0].data.style = ButtonStyle.Success;
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4].filter(Boolean), fetchReply: true })
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), fetchReply: true })
           } else {
             user.betaPlayer = true;
             await user.save();
             embed.data.fields[0].value = `Beta Player: ${ user.betaPlayer ? "Enabled" : "Disabled" }\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled (Converts Youtube Links To Another Platform)" }\n Default Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
             row.components[0].data.label = "Disable Beta Player";
             row.components[0].data.style = ButtonStyle.Danger;
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4].filter(Boolean), fetchReply: true })
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), fetchReply: true })
           }
           break;
           case "convertLinksButton":
@@ -217,33 +234,39 @@ module.exports = {
               embed.data.fields[0].value = `Beta Player: ${ user.betaPlayer ? "Enabled" : "Disabled" }\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled (Converts Youtube Links To Another Platform)" }\n Default Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
               row.components[1].data.label = "Enable Converting links";
               row.components[1].data.style = ButtonStyle.Success;
-              interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4].filter(Boolean), fetchReply: true })
+              interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), fetchReply: true })
             } else {
               user.convertLinks = true;
               await user.save();
               embed.data.fields[0].value = `Beta Player: ${ user.betaPlayer ? "Enabled" : "Disabled" }\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled (Converts Youtube Links To Another Platform)" }\n Default Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
               row.components[1].data.label = "Disable Converting links";
               row.components[1].data.style = ButtonStyle.Danger;
-              interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4].filter(Boolean), fetchReply: true })
+              interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), fetchReply: true })
             }
             break;
           case "adminVolumeSelectMenu":
             guildSettings.defaultVolume = i.values[0]
             await guildSettings.save()
-            embed.data.fields[1].value = `Default volume: ${guildSettings.defaultVolume}%\n Now Playing Message: ${formatNowPlaying(guildSettings.playerMessages)}`;
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4].filter(Boolean), fetchReply: true })
+            embed.data.fields[1].value = `Default volume: ${guildSettings.defaultVolume}%\n Now Playing Message: ${formatNowPlaying(guildSettings.playerMessages)}\nPrefered Node: ${guildSettings.preferredNode ? guildSettings.preferredNode : "None"}`;
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), fetchReply: true })
           break;
           case "defaultSearchEngineSelectMenu":
             user.defaultSearchEngine = i.values[0];
             await user.save();
             embed.data.fields[0].value = `Beta Player: ${ user.betaPlayer ? "Enabled" : "Disabled" }\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled (Converts Youtube Links To Another Platform)" }\n Default Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4].filter(Boolean), fetchReply: true })
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), fetchReply: true })
           break;
           case "adminPlayerMessageSelectMenu":
             guildSettings.playerMessages = i.values[0];
             await guildSettings.save();
-            embed.data.fields[1].value = `Default volume: ${guildSettings.defaultVolume}%\n Now Playing Message: ${formatNowPlaying(guildSettings.playerMessages)}`;
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4].filter(Boolean), fetchReply: true })
+            embed.data.fields[1].value = `Default volume: ${guildSettings.defaultVolume}%\n Now Playing Message: ${formatNowPlaying(guildSettings.playerMessages)}\nPrefered Node: ${guildSettings.preferredNode ? guildSettings.preferredNode : "None"}`;
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), fetchReply: true })
+          break;
+          case "preferedNodeSelectMenu":
+            guildSettings.preferredNode = i.values[0];
+            await guildSettings.save();
+            embed.data.fields[1].value = `Default volume: ${guildSettings.defaultVolume}%\n Now Playing Message: ${formatNowPlaying(guildSettings.playerMessages)}\nPrefered Node: ${guildSettings.preferredNode ? guildSettings.preferredNode : "None"}`;
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), fetchReply: true })
           break;
         }
       })
@@ -274,8 +297,8 @@ module.exports = {
     if (!id) throw new Error("Missing ID");
   
     const httpsAgent = new (require('https').Agent)({
-      family: 4,  // Force IPv4
-      rejectUnauthorized: false  // Optional: Allows insecure connections
+      family: 4,  
+      rejectUnauthorized: false  
     });
   
     const maxRetries = 5;

@@ -22,7 +22,7 @@ module.exports = async (player, manager) => {
     node.errors.push(now);
     node.errors = node.errors.filter((timestamp) => timestamp >= cutoff);
 
-    if (node.errors.length > 15) { 
+    if (node.errors.length > 10) { 
         console.warn(`Removing Lavalink node ${nodeName} due to excessive errors.`);
 
         if (availableNodes.length > 0 && node.state === 2) { 

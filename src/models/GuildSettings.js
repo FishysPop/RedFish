@@ -15,7 +15,11 @@ const guildSettingsSchema = new Schema({
   playerMessages: {
     type: String,
     default: "default",
-  }
+  },
+  preferredNode: {
+    type: String,
+    default: null,
+  } 
 
 });
 

@@ -37,7 +37,8 @@ module.exports =  {
       searchEngine: user?.defaultSearchEngine || null,
       betaPlayer: user?.betaPlayer || false,
       playerMessages: serverSettings?.playerMessages || "default",
-      convertLinks: user?.convertLinks || false
+      convertLinks: user?.convertLinks || false,
+      PreferedNode: serverSettings?.preferredNode || null
     }
     const hasPlayerSettings = !!user;
     let player = null;
@@ -173,6 +174,7 @@ case "discord_player": {
     break;
   }
         case "lavalink": {
+          console.log(`${playerSettings.PreferedNode ? playerSettings.PreferedNode : client.manager.shoukaku.getIdealNode()?.name}`)
           try {
            player = await client.manager.createPlayer({
             guildId: interaction.guild.id,
@@ -181,8 +183,7 @@ case "discord_player": {
             shardId: interaction.guild.shardId,
             volume: playerSettings.volume,
             deaf: true,
-            loadBalancer: true,
-            nodeName: client.manager.shoukaku.getIdealNode()?.name,
+            nodeName: `${playerSettings.PreferedNode ? playerSettings.PreferedNode : client.manager.shoukaku.getIdealNode()?.name}`,
             data: {
               autoPlay: false,
               playerMessages: playerSettings.playerMessages

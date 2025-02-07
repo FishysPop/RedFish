@@ -174,7 +174,6 @@ case "discord_player": {
     break;
   }
         case "lavalink": {
-          console.log(`${playerSettings.PreferedNode ? playerSettings.PreferedNode : client.manager.shoukaku.getIdealNode()?.name}`)
           try {
            player = await client.manager.createPlayer({
             guildId: interaction.guild.id,

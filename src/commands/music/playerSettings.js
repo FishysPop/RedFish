@@ -308,7 +308,7 @@ module.exports = {
       try {
         const response = await axios({
           method: 'GET',
-          url: 'https://top.gg/api/bots/check',
+          url: `https://top.gg/api/bots/${client.id}/check`,
           params: { userId: id },
           headers: {
             'Authorization': process.env.TOP_GG

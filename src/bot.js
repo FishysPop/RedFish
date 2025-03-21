@@ -1,5 +1,5 @@
 require("dotenv").config();
-const { Client, GatewayIntentBits, Collection } = require("discord.js");
+const { Client, GatewayIntentBits, Collection, Options } = require("discord.js");
 const mongoose = require("mongoose");
 const { SpotifyExtractor, SoundCloudExtractor } = require('@discord-player/extractor');
 const { CommandHandler } = require('djs-commander');
@@ -16,9 +16,10 @@ const { ClusterClient, getInfo } = require('discord-hybrid-sharding');
 
 
 const path = require('path');
-const client = new Client({
-  shards: getInfo().SHARD_LIST, 
-  shardCount: getInfo().TOTAL_SHARDS, 
+
+const clientOptions = {
+  shards: getInfo().SHARD_LIST,
+  shardCount: getInfo().TOTAL_SHARDS,
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
@@ -26,7 +27,20 @@ const client = new Client({
     GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.GuildModeration
   ],
-});
+  sweepers: {
+    ...Options.defaultSweeperSettings,
+    messages: {
+      interval: 3600, // Every hour
+      lifetime: 1800, // Remove messages older than 30 minutes
+    },
+    users: {
+      interval: 3600, // Every hour
+      filter: () => user => user.id !== client.user.id,
+    },
+  },
+};
+
+const client = new Client(clientOptions);
 
 
 if (process.env.DISCORD_PLAYER === 'true') {

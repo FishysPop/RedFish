@@ -2,7 +2,7 @@ module.exports = async (player, manager) => {
     try {
         const node = player.node;
         const nodeName = player.node.name;
-        const debugEnabled = process.env.DEBUG === 'true'; // Check if debug is enabled
+        const debugEnabled = process.env.DEBUG === 'true'; 
 
         if (debugEnabled) {
             console.debug(`[DEBUG] Checking node ${nodeName} for excessive errors.`);
@@ -14,19 +14,17 @@ module.exports = async (player, manager) => {
             }
             return false;
         }
-        node.isDisconnecting = true;
 
         const now = Date.now();
-        const cutoff = now - 900000; // 15 minutes
+        const cutoff = now - 900000; 
         const nodes = manager.shoukaku.nodes;
         const nodesArray = Array.from(nodes);
 
         const availableNodes = nodesArray.filter(
-            (node) => node.name !== nodeName && node.state === 2 && !node.isDisconnecting
+            (node) => node[1].name !== nodeName && node[1].state === 2 && !node[1].isDisconnecting 
         );
-
         if (debugEnabled) {
-            console.debug(`[DEBUG] Node ${nodeName} - Available nodes:`, availableNodes.map(n => n.name));
+            console.debug(`[DEBUG] Node ${nodeName} - Available nodes:`, availableNodes.map(n => n[1].name));
         }
 
         if (!node.errors) {
@@ -41,6 +39,7 @@ module.exports = async (player, manager) => {
         }
 
         if (node.errors.length > 10) {
+            node.isDisconnecting = true;
             console.warn(`Removing Lavalink node ${nodeName} due to excessive errors.`);
 
             if (debugEnabled) {
@@ -48,22 +47,16 @@ module.exports = async (player, manager) => {
             }
 
             if (availableNodes.length > 0 && node.state === 2) {
-                const targetNode = availableNodes[0];
+                const targetNode = availableNodes[0][1];
                 if (debugEnabled) {
                     console.debug(`[DEBUG] Node ${nodeName} - Moving players to node: ${targetNode.name}`);
                 }
                 for (const player of manager.players.values()) {
                     if (player.node.name === nodeName) {
                         try {
-                            if (debugEnabled) {
-                                console.debug(`[DEBUG] Node ${nodeName} - Moving player ${player.connection.guildId} to ${targetNode.name}`);
-                            }
                             await player.shoukaku.move(targetNode.name);
-                            if (debugEnabled) {
-                                console.debug(`[DEBUG] Node ${nodeName} - Moved player ${player.connection.guildId} to ${targetNode.name} successfully.`);
-                            }
                         } catch (moveError) {
-                            console.error(`Failed to move player ${player.connection.guildId}:`, moveError);
+                            console.error(`Failed to move player`, moveError);
                         }
                     }
                 }

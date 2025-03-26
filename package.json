@@ -15,7 +15,7 @@
   "license": "MIT",
   "dependencies": {
     "@discord-player/extractor": "^4.4.7",
-    "@distube/ytdl-core": "^4.15.9",
+    "@distube/ytdl-core": "^4.16.5",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@top-gg/sdk": "^3.1.6",
     "@web-scrobbler/metadata-filter": "^3.2.0",

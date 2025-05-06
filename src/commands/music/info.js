@@ -1,4 +1,4 @@
-const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder, EmbedBuilder, MessageFlags } = require("discord.js");
 const { useQueue, useTimeline } = require('discord-player');
 const { convertTime } = require("../../utils/ConvertTime.js");
 
@@ -11,12 +11,12 @@ module.exports =  {
     if (!interaction.inGuild()) {
       interaction.reply({
         content: "You can only run this command in a server.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
      return;
     }
     if (!interaction.member.voice.channel) {
-      interaction.reply({content: 'You are not connected to a voice channel.',ephemeral: true})
+      interaction.reply({content: 'You are not connected to a voice channel.', flags: MessageFlags.Ephemeral})
       return;
   }
       let autoPlayEmoji = '❌'
@@ -59,7 +59,7 @@ module.exports =  {
         const Lavaplayer = client.manager.players.get(interaction.guild.id);
         const Discordplayer = useQueue(interaction.guild.id)
         if (!Lavaplayer && !Discordplayer) {
-         return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+         return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`, flags: MessageFlags.Ephemeral})
         }
         if (Discordplayer) {
           const timeline = useTimeline(interaction.guildId);
@@ -94,7 +94,7 @@ module.exports =  {
           return interaction.reply({ embeds: [embed] });
         } else if (Lavaplayer) {
           if (Lavaplayer.queue.length === 0) {
-            return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+            return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`, flags: MessageFlags.Ephemeral})
            }
           const currentTrack = Lavaplayer.queue.current
           const currentPos = Lavaplayer.queue.kazagumoPlayer.shoukaku.position ; 
@@ -127,16 +127,16 @@ module.exports =  {
       
           return interaction.reply({ embeds: [embed2] });
         } else {
-          return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+          return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`, flags: MessageFlags.Ephemeral})
         }
       break;
       case "lavalink":
         const player = client.manager.players.get(interaction.guild.id);
         if (!player) {
-          return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+          return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`, flags: MessageFlags.Ephemeral})
          }
          if (!player.playing) {
-          return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+          return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`, flags: MessageFlags.Ephemeral})
          }
          const currentTrack = player.queue.current
          const currentPos = player.queue.kazagumoPlayer.shoukaku.position ; 
@@ -173,7 +173,7 @@ module.exports =  {
       case "discord_player":
         const queue = useQueue(interaction.guildId)
         if (!queue || !queue.isPlaying()) {
-          interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+          interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`, flags: MessageFlags.Ephemeral})
           return;
       }
       const timeline = useTimeline(interaction.guildId);

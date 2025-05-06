@@ -1,4 +1,4 @@
-const {Client,Interaction,TextInputStyle,TextInputBuilder,StringSelectMenuOptionBuilder,ModalBuilder,ChannelSelectMenuBuilder,ComponentType,SlashCommandBuilder,PermissionsBitField, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder} = require('discord.js');
+const {Client,Interaction,TextInputStyle,TextInputBuilder,StringSelectMenuOptionBuilder,ModalBuilder,ChannelSelectMenuBuilder,ComponentType,SlashCommandBuilder,PermissionsBitField, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, MessageFlags} = require('discord.js');
 const Welcome = require("../../models/Welcome");
 module.exports = {
     data: new SlashCommandBuilder()
@@ -6,11 +6,11 @@ module.exports = {
     .setDescription('Welcome people in a channel when they join the server.'),
    
     run: async ({ interaction, client, handler }) => {
-      if (!interaction.inGuild()) {interaction.reply({content: "You can only run this command in a server.",ephemeral: true,});
+      if (!interaction.inGuild()) {interaction.reply({content: "You can only run this command in a server.", flags: MessageFlags.Ephemeral,});
        return;
       }
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-            interaction.reply({content: 'Only server admins can run this comamand', ephemeral: true})
+            interaction.reply({content: 'Only server admins can run this comamand', flags: MessageFlags.Ephemeral})
             return;
          }   
           await interaction.deferReply();

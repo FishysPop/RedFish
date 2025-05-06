@@ -1,4 +1,4 @@
-const {Client,Interaction,SlashCommandBuilder,TextInputStyle,TextInputBuilder,ModalBuilder,ChannelSelectMenuBuilder,PermissionsBitField,ChannelType,EmbedBuilder,ActionRowBuilder,ButtonBuilder,ButtonStyle,ComponentType,MessageCollector,} = require("discord.js");
+const {Client,Interaction,SlashCommandBuilder,TextInputStyle,TextInputBuilder,ModalBuilder,ChannelSelectMenuBuilder,PermissionsBitField,ChannelType,EmbedBuilder,ActionRowBuilder,ButtonBuilder,ButtonStyle,ComponentType,MessageCollector, MessageFlags} = require("discord.js");
 const AutoRoom = require("../../models/AutoRoom");
 module.exports = {
   data: new SlashCommandBuilder()
@@ -17,18 +17,19 @@ module.exports = {
     if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator))
       return await interaction.reply({
         content: "Only server admins can run this comamand",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       if (!interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageChannels)) {
         interaction.reply({
           content: 'Hey there... This feature requires me to have Manage Channels Permissions, Since autorooms create channels when a user joins the source channel.',
-          ephemeral: true})
+          flags: MessageFlags.Ephemeral,
+        })
         return;
      }    
     if (!interaction.inGuild())
       return await interaction.reply({
         content: "You can only run this command in a server.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       await interaction.deferReply();
 

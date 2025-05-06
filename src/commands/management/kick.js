@@ -1,19 +1,19 @@
-const {Client,Interaction,SlashCommandBuilder,PermissionFlagsBits,PermissionsBitField} = require('discord.js');
+const {Client,Interaction,SlashCommandBuilder,PermissionFlagsBits,PermissionsBitField, MessageFlags} = require('discord.js');
 
 module.exports = {
   run: async ({client, interaction}) => {
     if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-      interaction.reply({content: 'Only server admins can run this comamand', ephemeral: true})
+      interaction.reply({content: 'Only server admins can run this comamand', flags: MessageFlags.Ephemeral})
       return;
    }    
    if (!interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.BanMembers)) {
-    interaction.reply({content: 'I dont have KickMembers permissions', ephemeral: true})
+    interaction.reply({content: 'I dont have KickMembers permissions', flags: MessageFlags.Ephemeral})
     return;
  }    
    if (!interaction.inGuild()) {
     interaction.reply({
       content: "You can only run this command in a server.",
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
    return;
   }

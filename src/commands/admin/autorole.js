@@ -1,4 +1,4 @@
-const { ApplicationCommandOptionType, Client, Interaction, PermissionFlagsBits , SlashCommandBuilder,PermissionsBitField} = require('discord.js');
+const { ApplicationCommandOptionType, Client, Interaction, PermissionFlagsBits , SlashCommandBuilder,PermissionsBitField, MessageFlags} = require('discord.js');
 const AutoRole = require('../../models/AutoRole');
 
 module.exports = {
@@ -12,7 +12,7 @@ module.exports = {
     
   run: async ({client, interaction})  => {
     if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-      interaction.reply({content: 'Only server admins can run this comamand', ephemeral: true})
+      interaction.reply({content: 'Only server admins can run this comamand', flags: MessageFlags.Ephemeral})
       return;
    }    
     const subcommand = interaction.options.getSubcommand();
@@ -20,13 +20,13 @@ module.exports = {
     if (!interaction.inGuild()) {
         interaction.reply({
           content: "You can only run this command in a server.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       } 
       if (subcommand === 'role' ) {
         if (!interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
-          interaction.reply({content: 'Hey there... This feature requires me to have Manage Roles Permissions, Since autoroles give the user a role when they join.', ephemeral: true})
+          interaction.reply({content: 'Hey there... This feature requires me to have Manage Roles Permissions, Since autoroles give the user a role when they join.', flags: MessageFlags.Ephemeral})
           return;
        }    
         const targetRoleId = interaction.options.get('role').value;

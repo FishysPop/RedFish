@@ -1,4 +1,4 @@
-const {Client,Interaction,SlashCommandBuilder,PermissionsBitField, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle} = require('discord.js');
+const {Client,Interaction,SlashCommandBuilder,PermissionsBitField, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags} = require('discord.js');
 const Giveaway = require("../../models/Giveaway");
 const ms = require('ms');
 module.exports = {
@@ -41,17 +41,17 @@ module.exports = {
 
     run: async ({ interaction, client, handler }) => {
     if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-        interaction.reply({content: 'Only server admins can run this comamand', ephemeral: true})
+        interaction.reply({content: 'Only server admins can run this comamand', flags: MessageFlags.Ephemeral})
         return;
      }  
      await interaction.deferReply();
      const subcommand = interaction.options.getSubcommand();
-    if(!PermissionsBitField.Flags.ManageChannels) return await interaction.editreply({content: 'I do not have manageChannels permission', ephemeral: true})
+    if(!PermissionsBitField.Flags.ManageChannels) return await interaction.editreply({content: 'I do not have manageChannels permission', flags: MessageFlags.Ephemeral})
 
      if (!interaction.inGuild()) {
       interaction.editReply({
         content: "You can only run this command in a server.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
      return;
     }
@@ -65,7 +65,7 @@ module.exports = {
       if (!interaction.guild.members.me?.permissionsIn(channel).has(PermissionsBitField.Flags.SendMessages)) {
         interaction.reply({
           content: "I do not have permissons to send messages in that channel",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });      
         return;
       }
@@ -116,7 +116,7 @@ module.exports = {
        } else {
         interaction.editReply({
           content: "That giveaway doesnt exist or has ended",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         }); 
     return;
     }
@@ -185,7 +185,7 @@ module.exports = {
        } else {
         interaction.editReply({
           content: "That giveaway doesnt exist or has not ended",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         }); 
     return;
     }
@@ -253,7 +253,7 @@ module.exports = {
       if (giveawayArray.length === 0) {
           return interaction.editReply({
               content: "That giveaway doesn't exist or is older than a month",
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
           });
       }
   
@@ -326,7 +326,7 @@ module.exports = {
           console.error('Failed to edit message:', error);
           interaction.followUp({
               content: 'There was an error trying to display the entries. Please try again later.',
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
           });
       }
   }  
@@ -369,7 +369,7 @@ module.exports = {
       } else {
         interaction.editReply({
           content: "That giveaway doesn't exist.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
 

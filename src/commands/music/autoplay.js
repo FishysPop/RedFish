@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require("discord.js");
 const { useQueue } = require("discord-player");
 module.exports = {
   data: new SlashCommandBuilder()
@@ -9,12 +9,12 @@ module.exports = {
     if (!interaction.inGuild()) {
       interaction.reply({
         content: "You can only run this command in a server.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
     if (!interaction.member.voice.channel) {
-      interaction.reply({content: 'You are not connected to a voice channel.',ephemeral: true})
+      interaction.reply({content: 'You are not connected to a voice channel.', flags: MessageFlags.Ephemeral})
       return;
   }
      try {
@@ -25,7 +25,7 @@ module.exports = {
         if (!Lavaplayer && !Discordplayer) {
           return interaction.reply({
             content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
         }
         if (Discordplayer) {
@@ -69,7 +69,7 @@ module.exports = {
         } else {
           return interaction.reply({
             content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
         }
         break;
@@ -78,7 +78,7 @@ module.exports = {
         if (!player) {
           return interaction.reply({
             content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
         }
         if (player.customData.autoPlay === false) {
@@ -104,7 +104,7 @@ module.exports = {
         if (!queue || !queue.isPlaying()) {
           interaction.reply({
             content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
           return;
         }

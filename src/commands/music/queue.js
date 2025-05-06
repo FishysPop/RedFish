@@ -1,4 +1,4 @@
-const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle ,ActionRowBuilder} = require("discord.js");
+const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle ,ActionRowBuilder, MessageFlags} = require("discord.js");
 const { useQueue } = require('discord-player');
 const { convertTime } = require("../../utils/ConvertTime.js");
 
@@ -11,12 +11,12 @@ module.exports =  {
     if (!interaction.inGuild()) {
       interaction.reply({
         content: "You can only run this command in a server.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
      return;
     }
     if (!interaction.member.voice.channel) {
-      interaction.reply({content: 'You are not connected to a voice channel.',ephemeral: true})
+      interaction.reply({content: 'You are not connected to a voice channel.', flags: MessageFlags.Ephemeral})
       return;
   }
   let embeds = [];
@@ -40,7 +40,7 @@ const row = new ActionRowBuilder().addComponents(prevButton, nextButton);
       const Lavaplayer = client.manager.players.get(interaction.guild.id);
       const Discordplayer = useQueue(interaction.guild.id)
       if (!Lavaplayer && !Discordplayer) {
-       return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+       return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`, flags: MessageFlags.Ephemeral})
       }
       if (Discordplayer) {
         const formatTracks = Discordplayer.tracks.toArray();
@@ -48,7 +48,7 @@ const row = new ActionRowBuilder().addComponents(prevButton, nextButton);
         if (formatTracks.length === 0) {
           return interaction.reply({
             content: `There aren't any other tracks in the queue. Use **/info** to show information about the current track.`,
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
         }
     
@@ -122,7 +122,7 @@ const row = new ActionRowBuilder().addComponents(prevButton, nextButton);
         if (Lavaplayer.queue.length === 0) {
           return interaction.reply({
             content: `There aren't any other tracks in the queue. Use **/info** to show information about the current track.`,
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
         }
          const tracks2 = Lavaplayer.queue.map(
@@ -191,18 +191,18 @@ const row = new ActionRowBuilder().addComponents(prevButton, nextButton);
           });
         });
       } else {
-        return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+        return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`, flags: MessageFlags.Ephemeral})
       }
     break;
     case "lavalink":
       const player = client.manager.players.get(interaction.guild.id);
       if (!player) {
-        return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+        return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`, flags: MessageFlags.Ephemeral})
        }
        if (player.queue.length === 0) {
         return interaction.reply({
           content: `There aren't any other tracks in the queue. Use **/info** to show information about the current track.`,
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
        const tracks2 = player.queue.map(
@@ -274,7 +274,7 @@ const row = new ActionRowBuilder().addComponents(prevButton, nextButton);
     case "discord_player":
       const queue = useQueue(interaction.guildId)
       if (!queue || !queue.isPlaying()) {
-        interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+        interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`, flags: MessageFlags.Ephemeral})
         return;
     }
     const formatTracks = queue.tracks.toArray();
@@ -282,7 +282,7 @@ const row = new ActionRowBuilder().addComponents(prevButton, nextButton);
     if (formatTracks.length === 0) {
       return interaction.reply({
         content: `There aren't any other tracks in the queue. Use **/info** to show information about the current track.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 

@@ -1,4 +1,4 @@
-const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder, italic } = require("discord.js");
+const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder, italic, MessageFlags } = require("discord.js");
 const { useQueue } = require('discord-player');
 module.exports =  {
     data: new SlashCommandBuilder()
@@ -10,12 +10,12 @@ module.exports =  {
     if (!interaction.inGuild()) {
       interaction.reply({
         content: "You can only run this command in a server.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
      return;
     }
     if (!interaction.member.voice.channel) {
-      interaction.reply({content: 'You are not connected to a voice channel.',ephemeral: true})
+      interaction.reply({content: 'You are not connected to a voice channel.', flags: MessageFlags.Ephemeral})
       return;
   }
    switch (client.playerType) {
@@ -23,7 +23,7 @@ module.exports =  {
       const Lavaplayer = client.manager.players.get(interaction.guild.id);
       const Discordplayer = useQueue(interaction.guild.id)
       if (!Lavaplayer && !Discordplayer) {
-       return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+       return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`, flags: MessageFlags.Ephemeral})
       }
       if (Discordplayer) {
        Discordplayer.delete()
@@ -32,13 +32,13 @@ module.exports =  {
        Lavaplayer.destroy().catch(e=>null);
        interaction.reply("Disconnected")
       } else {
-        return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+        return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`, flags: MessageFlags.Ephemeral})
       }
     break;
     case "lavalink":
       const player = client.manager.players.get(interaction.guild.id);
       if (!player) {
-        return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+        return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`, flags: MessageFlags.Ephemeral})
        }
         player.destroy().catch(e=>null);
         interaction.reply("Disconnected")
@@ -46,7 +46,7 @@ module.exports =  {
     case "discord_player":
       const queue = useQueue(interaction.guildId)
       if (!queue || !queue.isPlaying()) {
-        interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+        interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`, flags: MessageFlags.Ephemeral})
         return;
     }
         queue.delete();

@@ -1,4 +1,4 @@
-const { Client, Interaction, SlashCommandBuilder ,PermissionsBitField} = require('discord.js');
+const { Client, Interaction, SlashCommandBuilder ,PermissionsBitField, MessageFlags} = require('discord.js');
 const ms = require('ms');
 
 module.exports = {
@@ -6,16 +6,16 @@ module.exports = {
     if (!interaction.inGuild()) {
       interaction.reply({
         content: "You can only run this command in a server.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
      return;
     }
     if (!interaction.member.permissions.has(PermissionsBitField.Flags.ModerateMembers)) {
-      interaction.reply({content: 'Only server admins can run this comamand', ephemeral: true})
+      interaction.reply({content: 'Only server admins can run this comamand', flags: MessageFlags.Ephemeral})
       return;
    }    
   if (!interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.ModerateMembers)) {
-    interaction.reply({content: 'I dont have Time out members permissions', ephemeral: true})
+    interaction.reply({content: 'I dont have Time out members permissions', flags: MessageFlags.Ephemeral})
     return;
  }  
     const mentionable = interaction.options.get('user').value;

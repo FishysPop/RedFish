@@ -1,4 +1,4 @@
-const { StringSelectMenuBuilder, ActionRowBuilder, ApplicationCommandOptionType , SlashCommandBuilder, EmbedBuilder ,ComponentType ,PermissionsBitField} = require("discord.js");
+const { StringSelectMenuBuilder, ActionRowBuilder, ApplicationCommandOptionType , SlashCommandBuilder, EmbedBuilder ,ComponentType ,PermissionsBitField, MessageFlags} = require("discord.js");
 const { Player, QueryType, useMainPlayer } = require('discord-player');
 const User = require("../../models/UserPlayerSettings");
 const GuildSettings = require("../../models/GuildSettings");
@@ -19,13 +19,13 @@ module.exports =  {
     if (!interaction.inGuild()) {
       interaction.reply({
         content: "You can only run this command in a server.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
      return;
     }
     const channel = interaction.member.voice.channel;
-    if (!channel) return interaction.reply({content: 'You are not connected to a voice channel',ephemeral: true,}); 
-   
+    if (!channel) return interaction.reply({content: 'You are not connected to a voice channel', flags: MessageFlags.Ephemeral});
+
     await interaction.deferReply();
     const user = await User.findOne({ userId: interaction.user.id });
     const serverSettings = await GuildSettings.findOne({ guildId: interaction.guild.id });

@@ -1,4 +1,4 @@
-const {Client,Interaction,SlashCommandBuilder,PermissionsBitField, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle} = require('discord.js');
+const {Client,Interaction,SlashCommandBuilder,PermissionsBitField, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags} = require('discord.js');
 const GuildSettings = require('../../models/GuildSettings');
 
 module.exports = {
@@ -17,7 +17,7 @@ module.exports = {
 
         run: async ({ interaction, client, handler }) => {
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-          interaction.reply({content: 'Only server admins can run this comamand', ephemeral: true})
+          interaction.reply({content: 'Only server admins can run this comamand', flags: MessageFlags.Ephemeral})
           return;
        }    
        await interaction.deferReply();

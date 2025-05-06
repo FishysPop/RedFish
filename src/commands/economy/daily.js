@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, MessageFlags } = require("discord.js");
 const User = require("../../models/User");
 
 const dailyAmount = 100;
@@ -14,7 +14,7 @@ module.exports = {
       if (!interaction.inGuild()) {
         return interaction.reply({
           content: "You can only run this command in a server.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
 
@@ -50,7 +50,7 @@ module.exports = {
       return interaction.editReply(`${dailyAmount} was added to your balance. Your new balance is ${user.balance}`);
     } catch (error) {
       console.error('Error with daily command:', error);
-      return interaction.editReply({ content: 'An error occurred while processing your request.', ephemeral: true });
+      return interaction.editReply({ content: 'An error occurred while processing your request.', flags: MessageFlags.Ephemeral });
     }
   },
 };

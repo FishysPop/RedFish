@@ -1,4 +1,4 @@
-const {Client,Interaction,PermissionsBitField,ChannelType,EmbedBuilder,ActionRowBuilder,ButtonBuilder,ButtonStyle,} = require("discord.js");
+const {Client,Interaction,PermissionsBitField,ChannelType,EmbedBuilder,ActionRowBuilder,ButtonBuilder,ButtonStyle, MessageFlags} = require("discord.js");
 const { useQueue } = require("discord-player");
 const Ticket = require("../../models/Ticket");
 const Giveaway = require("../../models/Giveaway");
@@ -35,7 +35,7 @@ module.exports = async (interaction, client, handler) => {
           } catch {
             interaction.reply({
               content: `The bot is not in a voice channel`,
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
           }
 
@@ -44,7 +44,7 @@ module.exports = async (interaction, client, handler) => {
           if (!player) {
             interaction.reply({
               content: `There is no music playing`,
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
           } else {
             player.skip();
@@ -57,7 +57,7 @@ module.exports = async (interaction, client, handler) => {
           break;
         case "LavaStop":
           try {
-            if (!player ) return interaction.reply({content: `The bot is not in a voice channel`,ephemeral: true });
+            if (!player ) return interaction.reply({content: `The bot is not in a voice channel`, flags: MessageFlags.Ephemeral });
             player.destroy().catch(e => null);
             const LavaPlayerStopEmbed = await new EmbedBuilder()
               .setColor("#e66229")
@@ -66,7 +66,7 @@ module.exports = async (interaction, client, handler) => {
           } catch {
             interaction.reply({
               content: `The bot is not in a voice channel`,
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
           }
 
@@ -90,7 +90,7 @@ module.exports = async (interaction, client, handler) => {
           } catch {
             interaction.reply({
               content: `There is no music playing`,
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
           }
 
@@ -105,7 +105,7 @@ module.exports = async (interaction, client, handler) => {
           } catch {
             interaction.reply({
               content: `There is no music playing`,
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
           }
 
@@ -129,7 +129,7 @@ module.exports = async (interaction, client, handler) => {
           } catch {
             interaction.reply({
               content: `There is no music playing`,
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
           }
 
@@ -138,7 +138,7 @@ module.exports = async (interaction, client, handler) => {
           if (!queue || !queue.isPlaying()) {
             interaction.reply({
               content: `There is no music playing`,
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
           } else {
             queue.node.skip();
@@ -160,7 +160,7 @@ module.exports = async (interaction, client, handler) => {
           } catch {
             interaction.reply({
               content: `The bot is not in a voice channel`,
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
           }
 
@@ -184,7 +184,7 @@ module.exports = async (interaction, client, handler) => {
           } catch {
             interaction.reply({
               content: `There is no music playing`,
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
           }
 
@@ -199,7 +199,7 @@ module.exports = async (interaction, client, handler) => {
           } catch {
             interaction.reply({
               content: `There is no music playing`,
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
           }
 
@@ -215,12 +215,12 @@ module.exports = async (interaction, client, handler) => {
           )
             return await interaction.reply({
               content: "I do not have manageChannels permission",
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
           if (!ticket) {
             interaction.reply({
               content: `Tickets have been disabled on this server **/ticket setup** or **/ticket quicksetup** to re-enable it`,
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
             return;
           }
@@ -251,7 +251,7 @@ module.exports = async (interaction, client, handler) => {
             });
             await interaction.reply({
               content: `Ticket Created ${ticketChannel}`,
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
             ticket.ticketNumber = ticket.ticketNumber + 1;
             ticket.save();
@@ -278,7 +278,7 @@ module.exports = async (interaction, client, handler) => {
             console.log(error);
             interaction.reply({
               content: `The ticket category or Ticket staff role was deleted \nPlease run **/ticket disable** then **/ticket quicksetup** or **/ticket setup**`,
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
           }
 
@@ -291,7 +291,7 @@ module.exports = async (interaction, client, handler) => {
           )
             return await interaction.reply({
               content: "I do not have manageChannels permission",
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
           try {
             const channelTarget = interaction.channel;
@@ -299,7 +299,7 @@ module.exports = async (interaction, client, handler) => {
           } catch (error) {
             interaction.reply({
               content: `Error while deleting ${error}`,
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
           }
 
@@ -316,7 +316,7 @@ module.exports = async (interaction, client, handler) => {
           )
             return await interaction.reply({
               content: "I do not have manageChannels permission",
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
 
           try {
@@ -347,14 +347,14 @@ module.exports = async (interaction, client, handler) => {
             } else {
               interaction.reply({
                 content: `The Ticket staff role was deleted \nPlease run **/ticket disable** then **/ticket quicksetup** or **/ticket setup**`,
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
               });
             }
           } catch (error) {
             console.log(error);
             interaction.reply({
               content: `The ticket category or Ticket staff role was deleted \nPlease run **/ticket disable** then **/ticket quicksetup** or **/ticket setup**`,
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
           }
 
@@ -366,7 +366,7 @@ module.exports = async (interaction, client, handler) => {
           if (!giveaway) {
             interaction.reply({
               content: `This giveaway has ended or doesnt exist create a new one with **/giveaway create**`,
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
             return;
           }
@@ -375,7 +375,7 @@ module.exports = async (interaction, client, handler) => {
             if (!interaction.member.roles.cache.has(roleRequired)) {
               interaction.reply({
                 content: `You do not have the required role to enter this giveaway`,
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
               });
               return;
             }
@@ -386,7 +386,7 @@ module.exports = async (interaction, client, handler) => {
           if (existingEntry) {
             interaction.reply({
               content: "You have left the giveaway",
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
             await Giveaway.updateOne(
               { _id: giveaway._id },
@@ -400,7 +400,7 @@ module.exports = async (interaction, client, handler) => {
           } else {
             interaction.reply({
               content: "You have entered the giveaway",
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
             giveaway.entriesArray.push(interaction.user.id);
             await giveaway.save().catch((error) => {

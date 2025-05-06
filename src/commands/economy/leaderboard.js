@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require("discord.js");
+const { SlashCommandBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, MessageFlags } = require("discord.js");
 const Level = require("../../models/Level");
 const GuildSettings = require("../../models/GuildSettings")
 
@@ -10,18 +10,18 @@ module.exports = {
     if (!interaction.inGuild()) {
         interaction.reply({
           content: "You can only run this command in a server.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       } 
     const guildSettings = await GuildSettings.findOne({ guildId: interaction.guild.id });
     if(!guildSettings) return interaction.reply({
       content: "Leveling is not enabled in this server. Enable it with **\`/level-setting\`**",
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
     if(guildSettings.levels === false) return interaction.reply({
       content: "Leveling is not enabled in this server. Enable it with **\`/level-setting\`**",
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
     try {
       const guildId = interaction.guild.id;
@@ -31,7 +31,7 @@ module.exports = {
         .limit(150);
 
       if (!levels || levels.length === 0) {
-        return interaction.reply({ content: 'No levels found in the leaderboard for this guild.', ephemeral: true });
+        return interaction.reply({ content: 'No levels found in the leaderboard for this guild.', flags: MessageFlags.Ephemeral });
       }
 
       const chunkSize = 15;
@@ -113,7 +113,7 @@ module.exports = {
       });
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
-      interaction.reply({ content: 'Error fetching leaderboard.', ephemeral: true });
+      interaction.reply({ content: 'Error fetching leaderboard.', flags: MessageFlags.Ephemeral });
     }
   },
 };

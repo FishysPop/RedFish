@@ -1,4 +1,4 @@
-const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder } = require("discord.js");
+const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder, MessageFlags } = require("discord.js");
 const { useQueue } = require('discord-player');
 module.exports =  {
     data: new SlashCommandBuilder()
@@ -7,11 +7,11 @@ module.exports =  {
 
   run: async ({ interaction, client, handler }) => {
     if (!interaction.inGuild()) {
-      interaction.reply({ content: "You can only run this command in a server.", ephemeral: true,});
+      interaction.reply({ content: "You can only run this command in a server.", flags: MessageFlags.Ephemeral,});
      return;
     }
     if (!interaction.member.voice.channel) {
-      interaction.reply({content: 'You are not connected to a voice channel.',ephemeral: true})
+      interaction.reply({content: 'You are not connected to a voice channel.', flags: MessageFlags.Ephemeral})
       return;
   }
   switch (client.playerType) {
@@ -19,7 +19,7 @@ module.exports =  {
       const Lavaplayer = client.manager.players.get(interaction.guild.id);
       const Discordplayer = useQueue(interaction.guild.id)
       if (!Lavaplayer && !Discordplayer) {
-       return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+       return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`, flags: MessageFlags.Ephemeral})
       }
       if (Discordplayer) {
        Discordplayer.node.skip()
@@ -28,13 +28,13 @@ module.exports =  {
        Lavaplayer.skip();
         interaction.reply("Track Skipped")
       } else {
-        return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+        return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`, flags: MessageFlags.Ephemeral})
       }
     break;
     case "lavalink":
       const player = client.manager.players.get(interaction.guild.id);
       if (!player) {
-        return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+        return interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`, flags: MessageFlags.Ephemeral})
        }
         player.skip();
         interaction.reply("Track Skipped")
@@ -42,7 +42,7 @@ module.exports =  {
     case "discord_player":
       const queue = useQueue(interaction.guildId)
       if (!queue || !queue.isPlaying()) {
-        interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,ephemeral: true})
+        interaction.reply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`, flags: MessageFlags.Ephemeral})
         return;
     }
         queue.node.skip()

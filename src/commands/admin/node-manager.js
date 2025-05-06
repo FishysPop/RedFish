@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags } = require('discord.js');
 async function getPrettyMs() {
   const { default: prettyMilliseconds } = await import('pretty-ms');
   return prettyMilliseconds;
@@ -11,8 +11,8 @@ module.exports = {
 
   run: async ({ interaction, client, handler }) => {
     try {
-      if (interaction.user.id !== process.env.OWNER_ID) return interaction.reply({ content: "Only Developers Can Run This Command", ephemeral: true });
-      await interaction.deferReply({ ephemeral: true });
+      if (interaction.user.id !== process.env.OWNER_ID) return interaction.reply({ content: "Only Developers Can Run This Command", flags: MessageFlags.Ephemeral });
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       const prettyMs = await getPrettyMs();
       const kazagumo = client.manager;
@@ -90,21 +90,21 @@ ${rateLimited}
       });
       row2.addComponents(nodeSelectMenu)
 
-      const message = await interaction.editReply({ embeds: [embed], components: [row, row2], ephemeral: true });
+      const message = await interaction.editReply({ embeds: [embed], components: [row, row2], flags: MessageFlags.Ephemeral });
 
       const collector = message.createMessageComponentCollector({
         idle: 400000,
       });
 
       collector.on("collect", async (i) => {
-        if (i.user.id !== interaction.user.id) return i.reply({ content: "This is not your settings", ephemeral: true });
-
+        if (i.user.id !== interaction.user.id) return i.reply({ content: "This is not your settings", flags: MessageFlags.Ephemeral });
+        
         switch (i.customId) {
           case "nodeSelectMenu":
             i.deferUpdate();
             currentNode = parseInt(i.values[0]); // Get the selected node index
             const updatedEmbed = await createEmbed(currentNode); // Create a new embed with the updated currentNode
-            await interaction.editReply({ embeds: [updatedEmbed], components: [row, row2], ephemeral: true });
+            await interaction.editReply({ embeds: [updatedEmbed], components: [row, row2], flags: MessageFlags.Ephemeral });
           break;
           case "disconnectButton":
             i.deferUpdate();
@@ -112,7 +112,7 @@ ${rateLimited}
             const nodeNameToDisconnect = nodeToDisconnect.name;
         
             const availableNodes = nodesArray.filter(  ([, node]) => node.name !== nodeNameToDisconnect && node.state === 2);
-            if (availableNodes.length === 0) {  return interaction.followUp({    content: `No other available nodes to move players from ${nodeNameToDisconnect}.`,  ephemeral: true, });  }
+            if (availableNodes.length === 0) {  return interaction.followUp({    content: `No other available nodes to move players from ${nodeNameToDisconnect}.`,  flags: MessageFlags.Ephemeral });  }
             const targetNode = availableNodes[0][1]; 
         
             if (client.cluster) {
@@ -136,10 +136,10 @@ ${rateLimited}
                           }, 5000); 
                         }
                       }, { context: { nodeName: nodeNameToDisconnect, targetNodeName: targetNode.name } });
-                      await interaction.followUp({ content: `Node ${nodeNameToDisconnect} disconnected on all shards. Players moved to ${targetNode.name}.`, ephemeral: true });
+                      await interaction.followUp({ content: `Node ${nodeNameToDisconnect} disconnected on all shards. Players moved to ${targetNode.name}.`, flags: MessageFlags.Ephemeral});
                     } catch (disconnectError) {
                     console.error("Failed to disconnect node on some shards:", disconnectError);
-                    await interaction.followUp({ content: `Failed to disconnect node ${nodeNameToDisconnect} on some shards.  Check logs for details.`, ephemeral: true });
+                    await interaction.followUp({ content: `Failed to disconnect node ${nodeNameToDisconnect} on some shards.  Check logs for details.`, flags: MessageFlags.Ephemeral});
                 }
         
             } else { 
@@ -161,10 +161,10 @@ ${rateLimited}
                 }, 5000);
     
     
-                await interaction.followUp({ content: `Node ${nodeNameToDisconnect} disconnected. Players moved to ${targetNode.name}`, ephemeral: true });
+                await interaction.followUp({ content: `Node ${nodeNameToDisconnect} disconnected. Players moved to ${targetNode.name}`, flags: MessageFlags.Ephemeral});
         
                 } else {
-                    await interaction.followUp({ content: `Node ${nodeNameToDisconnect} is not connected.`, ephemeral: true });
+                    await interaction.followUp({ content: `Node ${nodeNameToDisconnect} is not connected.`, flags: MessageFlags.Ephemeral});
                 }
             }
             break;
@@ -193,7 +193,7 @@ ${rateLimited}
                     }
                   }
                 }, { context: { nodeName: nodeToRemove.name } });
-                await interaction.followUp({ content: `Node ${nodeToRemove.name} removed from all shards.`, ephemeral: true });
+                await interaction.followUp({ content: `Node ${nodeToRemove.name} removed from all shards.`, flags: MessageFlags.Ephemeral});
               } else {
                 // Handle non-sharded case 
                 if(nodeToRemove.state === 2){
@@ -206,25 +206,25 @@ ${rateLimited}
                 } else{
                   client.manager.shoukaku.removeNode(nodeToRemove.name)
                 }
-                await interaction.followUp({ content: `Node ${nodeToRemove.name} removed.`, ephemeral: true });
+                await interaction.followUp({ content: `Node ${nodeToRemove.name} removed.`, flags: MessageFlags.Ephemeral});
           
           
               }
               const updatedEmbed = await createEmbed(0); 
-              await interaction.editReply({ embeds: [updatedEmbed], components: [row, row2], ephemeral: true });
+              await interaction.editReply({ embeds: [updatedEmbed], components: [row, row2], flags: MessageFlags.Ephemeral });
             } catch (removeError) {
               console.error("Error removing node:", removeError);
               if (removeError.message.includes('This node does not exist.')) {
-                await interaction.followUp({ content: `Node ${nodeToRemove.name} does not exist or is already removed.`, ephemeral: true });
+                await interaction.followUp({ content: `Node ${nodeToRemove.name} does not exist or is already removed.`, flags: MessageFlags.Ephemeral});
               } else if (removeError.message.includes('Could not disconnect node')) {
-                await interaction.followUp({ content: `Failed to remove node ${nodeToRemove.name}. It may be busy or in a bad state. Please try again later.`, ephemeral: true });
+                await interaction.followUp({ content: `Failed to remove node ${nodeToRemove.name}. It may be busy or in a bad state. Please try again later.`, flags: MessageFlags.Ephemeral});
               } else {
-                await interaction.followUp({ content: `Failed to remove node ${nodeToRemove.name}: ${removeError.message}`, ephemeral: true });
+                await interaction.followUp({ content: `Failed to remove node ${nodeToRemove.name}: ${removeError.message}`, flags: MessageFlags.Ephemeral });
               }
               
               const updatedNodesArray = Array.from(client.manager.shoukaku.nodes);
               const updatedEmbed = await createEmbed(0); 
-              await interaction.editReply({ embeds: [updatedEmbed], components: [row, row2], ephemeral: true });
+              await interaction.editReply({ embeds: [updatedEmbed], components: [row, row2], flags: MessageFlags.Ephemeral });
             }
             break;
             case "reconnectButton":
@@ -256,19 +256,19 @@ ${rateLimited}
                           }
           
                       }, { context: { newNode } });
-                      await interaction.followUp({ content: `Node ${nodeNameToReconnect} reconnected on all shards.`, ephemeral: true });
+                      await interaction.followUp({ content: `Node ${nodeNameToReconnect} reconnected on all shards.`, flags: MessageFlags.Ephemeral});
                   } catch (reconnectError) {
                       console.error("Failed to reconnect node on some shards:", reconnectError);
-                      await interaction.followUp({ content: `Failed to reconnect node ${nodeNameToReconnect} on some shards. Check logs for details.`, ephemeral: true });
+                      await interaction.followUp({ content: `Failed to reconnect node ${nodeNameToReconnect} on some shards. Check logs for details.`, flags: MessageFlags.Ephemeral});
                   }
               } else { // Non-sharded case
                 if (!nodeToReconnect.connected) {
                   client.manager.shoukaku.removeNode(newNode.name); 
                   client.manager.shoukaku.addNode(newNode);
-                  await interaction.followUp({ content: `Node ${nodeNameToReconnect} reconnected.`, ephemeral: true });
+                  await interaction.followUp({ content: `Node ${nodeNameToReconnect} reconnected.`, flags: MessageFlags.Ephemeral});
           
                 } else{
-                  await interaction.followUp({ content: `Node ${nodeNameToReconnect} is already connected.`, ephemeral: true });
+                  await interaction.followUp({ content: `Node ${nodeNameToReconnect} is already connected.`, flags: MessageFlags.Ephemeral});
           
                 }
           
@@ -331,19 +331,19 @@ ${rateLimited}
                         } else {
                           client.manager.shoukaku.addNode(newNode);
                         }
-                        await modalInteraction.reply({ content: `Node ${nodeName} added.`, ephemeral: true });
+                        await modalInteraction.reply({ content: `Node ${nodeName} added.`, flags: MessageFlags.Ephemeral});
 
                         const updatedEmbed = await createEmbed(currentNode);
-                        await interaction.editReply({ embeds: [updatedEmbed], components: [row, row2], ephemeral: true });
+                        await interaction.editReply({ embeds: [updatedEmbed], components: [row, row2], flags: MessageFlags.Ephemeral });
 
                     } catch (error) {
                         console.error("Failed to add node:", error);
-                        await modalInteraction.reply({ content: `Failed to add node: ${error.message}`, ephemeral: true });
+                        await modalInteraction.reply({ content: `Failed to add node: ${error.message}`, flags: MessageFlags.Ephemeral});
                     }
                 })
                 .catch(async(error) => {
                     console.error("Modal submit error:", error)
-                    await interaction.followUp({content: `Modal timed out or there was an error.  Node not added.`, ephemeral: true}) // Handle timeout or other errors
+                    await interaction.followUp({content: `Modal timed out or there was an error.  Node not added.`, flags: MessageFlags.Ephemeral}) // Handle timeout or other errors
                 });
               break;
         }

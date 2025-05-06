@@ -1,4 +1,4 @@
-const {Client,Interaction,SlashCommandBuilder,PermissionsBitField, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle} = require('discord.js');
+const {Client,Interaction,SlashCommandBuilder,PermissionsBitField, ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags} = require('discord.js');
 const Ticket = require("../../models/Ticket");
 module.exports = {
     data: new SlashCommandBuilder()
@@ -28,17 +28,17 @@ module.exports = {
 
     run: async ({ interaction, client, handler }) => {
 
-        if (!interaction.inGuild()) {interaction.reply({content: "You can only run this command in a server.",ephemeral: true,});
+        if (!interaction.inGuild()) {interaction.reply({content: "You can only run this command in a server.", flags: MessageFlags.Ephemeral,});
            return;
           }
         if (!interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageChannels)) {
             interaction.reply({
               content: 'Hey there... This feature requires me to have Manage Channels Permissions, Since tickets create channels when someone creates a ticket.',
-              ephemeral: true})
+              flags: MessageFlags.Ephemeral})
             return;
          }    
          if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-            interaction.reply({content: 'Only server admins can run this comamand', ephemeral: true})
+            interaction.reply({content: 'Only server admins can run this comamand', flags: MessageFlags.Ephemeral})
             return;
          } 
      await interaction.deferReply();   
@@ -50,7 +50,7 @@ module.exports = {
         if (!interaction.guild.members.me.permissionsIn(channel).has(PermissionsBitField.Flags.ViewChannel) || !interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.SendMessages)) {
             interaction.editReply({
                 content: 'Hey there... I dont have permission to send messages in that channel.',
-                ephemeral: true })
+                flags: MessageFlags.Ephemeral })
                 return;
         }
         const category = interaction.options.getChannel('category')
@@ -95,7 +95,7 @@ module.exports = {
         if (!interaction.guild.members.me.permissionsIn(channel).has(PermissionsBitField.Flags.ViewChannel) || !interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.SendMessages)) {
             interaction.editReply({
                 content: 'Hey there... I dont have permission to send messages in that channel.',
-                ephemeral: true })
+                flags: MessageFlags.Ephemeral })
                 return;
         }
 

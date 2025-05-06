@@ -1,4 +1,4 @@
-const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder, EmbedBuilder ,PermissionsBitField} = require("discord.js");
+const { Client, Interaction, ApplicationCommandOptionType , SlashCommandBuilder, EmbedBuilder ,PermissionsBitField, MessageFlags} = require("discord.js");
 const { Player, QueryType, useMainPlayer } = require('discord-player');
 const { convertTime } = require("../../utils/ConvertTime.js");
 const User = require("../../models/UserPlayerSettings");
@@ -20,12 +20,12 @@ module.exports =  {
 
   run: async({ interaction, client, handler }) => {
     if (!interaction.inGuild()) {
-      return interaction.reply({ content: "You can only run this command in a server.", ephemeral: true });
+      return interaction.reply({ content: "You can only run this command in a server.", flags: MessageFlags.Ephemeral });
   }
     const channel = interaction.member.voice.channel;
-    if (!channel) return interaction.reply({content: 'You are not connected to a voice channel', ephemeral: true})
-    if (!interaction.guild.members.me.permissionsIn(channel).has(PermissionsBitField.Flags.ViewChannel)) return interaction.reply({ content: "I dont have access to that channel", ephemeral: true})
-    if (channel.full) return interaction.reply({content: 'That voice channel is full', ephemeral: true})
+    if (!channel) return interaction.reply({content: 'You are not connected to a voice channel', flags: MessageFlags.Ephemeral})
+    if (!interaction.guild.members.me.permissionsIn(channel).has(PermissionsBitField.Flags.ViewChannel)) return interaction.reply({ content: "I dont have access to that channel", flags: MessageFlags.Ephemeral})
+    if (channel.full) return interaction.reply({content: 'That voice channel is full', flags: MessageFlags.Ephemeral})
     await interaction.deferReply();
 
     const name = interaction.options.getString('query'); 

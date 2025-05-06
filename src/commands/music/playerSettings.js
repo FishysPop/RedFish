@@ -1,4 +1,4 @@
-const { SlashCommandBuilder,PermissionsBitField, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle ,StringSelectMenuBuilder, StringSelectMenuOptionBuilder} = require('discord.js');
+const { SlashCommandBuilder,PermissionsBitField, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle ,StringSelectMenuBuilder, StringSelectMenuOptionBuilder, MessageFlags} = require('discord.js');
 const User = require("../../models/UserPlayerSettings");
 const GuildSettings = require("../../models/GuildSettings");
 const axios = require('axios');
@@ -15,7 +15,7 @@ module.exports = {
   run: async ({ interaction, client, handler }) => {
     try {
         if (!interaction.inGuild()) {
-            interaction.reply({content: "You can only run this command in a server.",ephemeral: true});
+            interaction.reply({content: "You can only run this command in a server.", flags: MessageFlags.Ephemeral});
            return;
           }   
        await interaction.deferReply();
@@ -206,7 +206,7 @@ module.exports = {
       });
   
       collector.on("collect", async (i) => {
-        if (i.user.id !== interaction.user.id) return i.reply({content: "This is not your settings", ephemeral: true});
+        if (i.user.id !== interaction.user.id) return i.reply({content: "This is not your settings", flags: MessageFlags.Ephemeral});
         i.deferUpdate();
 
         switch (i.customId) {
@@ -332,5 +332,3 @@ module.exports = {
   //testOnly: true,
   //deleted: true,
 };
-
-

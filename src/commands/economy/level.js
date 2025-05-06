@@ -1,4 +1,4 @@
-const {Client,Interaction,AttachmentBuilder,SlashCommandBuilder,} = require('discord.js');
+const {Client,Interaction,AttachmentBuilder,SlashCommandBuilder, MessageFlags} = require('discord.js');
 const canvacord = require('canvacord');
 const calculateLevelXp = require('../../utils/calculateLevelXp');
 const Level = require('../../models/Level');
@@ -19,11 +19,11 @@ module.exports = {
     const guildSettings = await GuildSettings.findOne({ guildId: interaction.guild.id });
     if(!guildSettings) return interaction.reply({
       content: "Leveling is not enabled in this server. Enable it with **\`/level-setting\`**",
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
     if(guildSettings.levels === false) return interaction.reply({
       content: "Leveling is not enabled in this server. Enable it with **\`/level-setting\`**",
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
 
     await interaction.deferReply();

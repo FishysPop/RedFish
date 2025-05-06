@@ -295,11 +295,11 @@ module.exports = {
       const row = new ActionRowBuilder().addComponents(prevButton, nextButton);
   
       try {
-          const message = await interaction.editReply({
+          await interaction.editReply({
               embeds: [embeds[0]],
               components: [row],
-              fetchReply: true,
           });
+          const message = await interaction.fetchReply();
   
           let currentIndex = 0;
           const collector = message.createMessageComponentCollector({ idle: 60000 });

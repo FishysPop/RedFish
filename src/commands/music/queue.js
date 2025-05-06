@@ -81,11 +81,11 @@ const row = new ActionRowBuilder().addComponents(prevButton, nextButton);
           });
         }
     
-        const message = await interaction.reply({
+        await interaction.reply({
           embeds: [embeds[0]],
           components: [row],
-          fetchReply: true,
         });
+        const message = await interaction.fetchReply();
     
         const collector = message.createMessageComponentCollector({
           idle: 60000,
@@ -153,11 +153,11 @@ const row = new ActionRowBuilder().addComponents(prevButton, nextButton);
             embeds: [embeds[0]],
           });
         }
-        const message2 = await interaction.reply({
+        await interaction.reply({
           embeds: [embeds[0]],
           components: [row],
-          fetchReply: true,
         });
+        const message2 = await interaction.fetchReply();
     
         const collector2 = message2.createMessageComponentCollector({
           idle: 60000,
@@ -233,11 +233,11 @@ const row = new ActionRowBuilder().addComponents(prevButton, nextButton);
           embeds: [embeds[0]],
         });
       }
-      const message2 = await interaction.reply({
+      await interaction.reply({
         embeds: [embeds[0]],
         components: [row],
-        fetchReply: true,
       });
+      const message2 = await interaction.fetchReply();
   
       const collector2 = message2.createMessageComponentCollector({
         idle: 60000,
@@ -315,11 +315,11 @@ const row = new ActionRowBuilder().addComponents(prevButton, nextButton);
       });
     }
 
-    const message = await interaction.reply({
+    await interaction.reply({
       embeds: [embeds[0]],
       components: [row],
-      fetchReply: true,
     });
+    const message = await interaction.fetchReply();
 
     const collector = message.createMessageComponentCollector({
       idle: 60000,

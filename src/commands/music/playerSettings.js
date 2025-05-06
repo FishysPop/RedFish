@@ -199,7 +199,7 @@ module.exports = {
       const message = await interaction.editReply({ 
         embeds: [embed], 
         components: [row, row2, row3, row4, row5].filter(Boolean), 
-        fetchReply: true 
+        withResponse: true 
       });
       const collector = message.createMessageComponentCollector({
         idle: 60000,
@@ -217,14 +217,14 @@ module.exports = {
             embed.data.fields[0].value = `Beta Player: ${ user.betaPlayer ? "Enabled" : "Disabled" }\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled (Converts Youtube Links To Another Platform)" }\n Default Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
             row.components[0].data.label = "Enable Beta Player";
             row.components[0].data.style = ButtonStyle.Success;
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), fetchReply: true })
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true })
           } else {
             user.betaPlayer = true;
             await user.save();
             embed.data.fields[0].value = `Beta Player: ${ user.betaPlayer ? "Enabled" : "Disabled" }\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled (Converts Youtube Links To Another Platform)" }\n Default Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
             row.components[0].data.label = "Disable Beta Player";
             row.components[0].data.style = ButtonStyle.Danger;
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), fetchReply: true })
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true })
           }
           break;
           case "convertLinksButton":
@@ -234,39 +234,39 @@ module.exports = {
               embed.data.fields[0].value = `Beta Player: ${ user.betaPlayer ? "Enabled" : "Disabled" }\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled (Converts Youtube Links To Another Platform)" }\n Default Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
               row.components[1].data.label = "Enable Converting links";
               row.components[1].data.style = ButtonStyle.Success;
-              interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), fetchReply: true })
+              interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true })
             } else {
               user.convertLinks = true;
               await user.save();
               embed.data.fields[0].value = `Beta Player: ${ user.betaPlayer ? "Enabled" : "Disabled" }\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled (Converts Youtube Links To Another Platform)" }\n Default Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
               row.components[1].data.label = "Disable Converting links";
               row.components[1].data.style = ButtonStyle.Danger;
-              interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), fetchReply: true })
+              interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true })
             }
             break;
           case "adminVolumeSelectMenu":
             guildSettings.defaultVolume = i.values[0]
             await guildSettings.save()
             embed.data.fields[1].value = `Default volume: ${guildSettings.defaultVolume}%\n Now Playing Message: ${formatNowPlaying(guildSettings.playerMessages)}\nPrefered Node: ${guildSettings.preferredNode ? guildSettings.preferredNode : "None"}`;
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), fetchReply: true })
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true })
           break;
           case "defaultSearchEngineSelectMenu":
             user.defaultSearchEngine = i.values[0];
             await user.save();
             embed.data.fields[0].value = `Beta Player: ${ user.betaPlayer ? "Enabled" : "Disabled" }\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled (Converts Youtube Links To Another Platform)" }\n Default Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), fetchReply: true })
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true })
           break;
           case "adminPlayerMessageSelectMenu":
             guildSettings.playerMessages = i.values[0];
             await guildSettings.save();
             embed.data.fields[1].value = `Default volume: ${guildSettings.defaultVolume}%\n Now Playing Message: ${formatNowPlaying(guildSettings.playerMessages)}\nPrefered Node: ${guildSettings.preferredNode ? guildSettings.preferredNode : "None"}`;
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), fetchReply: true })
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true })
           break;
           case "preferedNodeSelectMenu":
             guildSettings.preferredNode = i.values[0];
             await guildSettings.save();
             embed.data.fields[1].value = `Default volume: ${guildSettings.defaultVolume}%\n Now Playing Message: ${formatNowPlaying(guildSettings.playerMessages)}\nPrefered Node: ${guildSettings.preferredNode ? guildSettings.preferredNode : "None"}`;
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), fetchReply: true })
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true })
           break;
         }
       })

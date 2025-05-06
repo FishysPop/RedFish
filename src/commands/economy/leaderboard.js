@@ -76,11 +76,11 @@ module.exports = {
 
       const row = new ActionRowBuilder().addComponents(prevButton, nextButton);
 
-      const message = await interaction.reply({
+      await interaction.reply({
         embeds: [embeds[currentPage]],
         components: [row],
-        fetchReply: true,
       });
+      const message = await interaction.fetchReply();
 
       const collector = message.createMessageComponentCollector({
         idle: 60000,

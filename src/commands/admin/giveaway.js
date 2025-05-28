@@ -171,7 +171,7 @@ module.exports = {
     }
     giveaway[0].ended = true
     giveaway[0].endedDate = currentDate
-    giveaway[0].save();
+    await giveaway[0].save();
     interaction.editReply("Giveaway has been ended")
     
      }
@@ -240,7 +240,7 @@ module.exports = {
     }
     giveaway[0].ended = true
     giveaway[0].endedDate = currentDate
-    giveaway[0].save();
+    await giveaway[0].save();
     interaction.editReply("Giveaway has been rerolled")
     
 

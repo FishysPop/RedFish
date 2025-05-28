@@ -82,7 +82,7 @@ module.exports = (client) => {
           }
           firstGiveaway.ended = true
           firstGiveaway.endedDate = currentDate
-          firstGiveaway.save();
+          await firstGiveaway.save();
   
       }
       

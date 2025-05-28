@@ -254,7 +254,7 @@ module.exports = async (interaction, client, handler) => {
               flags: MessageFlags.Ephemeral,
             });
             ticket.ticketNumber = ticket.ticketNumber + 1;
-            ticket.save();
+            await ticket.save();
 
             const ticketEmbed = await new EmbedBuilder()
               .setColor("#e66229")

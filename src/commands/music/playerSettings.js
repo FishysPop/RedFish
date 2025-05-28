@@ -35,7 +35,7 @@ module.exports = {
            lastVote: lastVote,
            defaultSearchEngine: "spotify",
          });
-         user.save();
+         await user.save();
          hasVoted = lastVote ? true : false;
        } else {
         if (!hasVotedInLast12Hrs) {

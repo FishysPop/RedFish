@@ -8,6 +8,7 @@ const guildSettingsSchema = new Schema({
   guildId: {
     type: String,
     required: true,
+    unique: true,
   },
   defaultVolume: {
     type: Number,
@@ -19,9 +20,7 @@ const guildSettingsSchema = new Schema({
   preferredNode: {
     type: String,
     default: null,
-  },
-  index: true 
-
+  }
 });
 
 module.exports = model('GuildSettings', guildSettingsSchema);

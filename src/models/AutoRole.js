@@ -8,8 +8,7 @@ const autoRoleSchema = new Schema({
   },
   roleId: {
     type: String,
-  },
-  index: true 
+  }
 });
 
 module.exports = model('AutoRole', autoRoleSchema);

@@ -18,7 +18,6 @@ const levelSchema = new Schema({
     default: 0,
   },
   index: true 
-
 });
 
 module.exports = model('Level', levelSchema);

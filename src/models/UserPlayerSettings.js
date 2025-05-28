@@ -20,8 +20,7 @@ const userPlayerSettingsSchema = new Schema({
   defaultSearchEngine: {
     type: String,
     default: 'spotify',
-  },
-  index: true 
+  }
 });
 
 module.exports = model('UserPlayerSettings', userPlayerSettingsSchema);

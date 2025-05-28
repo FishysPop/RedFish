@@ -20,6 +20,7 @@
     "@top-gg/sdk": "^3.1.6",
     "@web-scrobbler/metadata-filter": "^3.2.0",
     "axios": "^1.9.0",
+    "blocked-at": "^1.2.0",
     "canvacord": "^5.4.10",
     "discord-hybrid-sharding": "^2.2.6",
     "discord-player": "^6.7.1",

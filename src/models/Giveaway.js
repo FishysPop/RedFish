@@ -12,6 +12,7 @@ const giveawaySchema = new Schema({
   messageId: {
     type: String,
     required: true,
+    index: true, // Giveaways are often looked up by messageId
   },
   messageTitle: {
     type: String,
@@ -39,7 +40,9 @@ const giveawaySchema = new Schema({
   endedDate: {
     type: Date,
   },
-  index: true 
 });
+
+giveawaySchema.index({ ended: 1, giveawayEnd: 1 });
+giveawaySchema.index({ guildId: 1 });
 
 module.exports = model('Giveaway', giveawaySchema);

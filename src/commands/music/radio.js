@@ -78,7 +78,7 @@ module.exports =  {
             try {
                 const confirmation = await selectMessage.awaitMessageComponent({ filter, time: 30000, componentType: ComponentType.StringSelect })
                if (confirmation) {
-                const selectedValue = options.find(option => option.value === confirmation.values[0])
+                const selectedValue = await options.find(option => option.value === confirmation.values[0])
                 confirmation.deferUpdate()
                 data[0].url_resolved = selectedValue.value; // Set selected station URL 
                 interaction.editReply({components: []})

@@ -93,7 +93,7 @@ var timerID2 = setInterval(async function() {
   const currentDate = new Date();
   const oneMonthAgo = new Date(currentDate);
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-  Giveaway.findOneAndDelete({ giveawayEnd: { $lt: oneMonthAgo }, ended: true })
+  await Giveaway.findOneAndDelete({ giveawayEnd: { $lt: oneMonthAgo }, ended: true })
   .then((deletedGiveaway) => {
     if (deletedGiveaway) {
     } else {

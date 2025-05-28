@@ -39,6 +39,7 @@ const giveawaySchema = new Schema({
   endedDate: {
     type: Date,
   },
+  index: true 
 });
 
 module.exports = model('Giveaway', giveawaySchema);

@@ -17,6 +17,7 @@ const levelSchema = new Schema({
     type: Number,
     default: 0,
   },
+  index: true 
 
 });
 

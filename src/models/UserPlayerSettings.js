@@ -21,6 +21,7 @@ const userPlayerSettingsSchema = new Schema({
     type: String,
     default: 'spotify',
   },
+  index: true 
 });
 
 module.exports = model('UserPlayerSettings', userPlayerSettingsSchema);

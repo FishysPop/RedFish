@@ -36,6 +36,7 @@ const AnalyticsSchema = new Schema({
     required: true,
     default: 0
   },
+  index: true 
 });
 
 module.exports = model('Analytics', AnalyticsSchema);

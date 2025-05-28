@@ -19,7 +19,8 @@ const guildSettingsSchema = new Schema({
   preferredNode: {
     type: String,
     default: null,
-  } 
+  },
+  index: true 
 
 });
 

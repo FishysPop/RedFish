@@ -16,8 +16,9 @@ const levelSchema = new Schema({
   level: {
     type: Number,
     default: 0,
-  },
-  index: true 
+  }
 });
+
+levelSchema.index({ guildId: 1, userId: 1 });
 
 module.exports = model('Level', levelSchema);

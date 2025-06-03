@@ -12,7 +12,7 @@ const fs = require('fs');
 const Topgg = require("@top-gg/sdk");
 const { ClusterClient, getInfo } = require('discord-hybrid-sharding');
 const blockedAt = require('blocked-at');
-
+const AnalyticsModel = require("./models/Analytics"); 
 
 
 
@@ -197,8 +197,12 @@ blockedAt((time, stack, { type, resource }) => {
     mongoose.set("strictQuery", false);
     await mongoose.connect(process.env.MONGODB_URI);
     console.log("Connected to DB.");
+    client.cluster = new ClusterClient(client); // Initialize cluster info early
+    if (client.cluster.id === 0) { // Only run saver on cluster 0
+      const { startAnalyticsSaver } = require('./utils/cacheManager');
+      startAnalyticsSaver(AnalyticsModel);
+    }
     if (client.playerType === 'discord_player' | client.playerType === 'both') await player.extractors.loadDefault();
-    client.cluster = new ClusterClient(client);
     require('./events/giveawayEvents/checkGiveaway.js')(client);
     client.login(process.env.TOKEN); 
   } catch (error) {

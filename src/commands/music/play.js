@@ -3,7 +3,7 @@ const { Player, QueryType, useMainPlayer } = require('discord-player');
 const { convertTime } = require("../../utils/ConvertTime.js");
 const User = require("../../models/UserPlayerSettings");
 const GuildSettings = require("../../models/GuildSettings");
-// const Analytics = require("../../models/Analytics");  
+const { updatePlayAnalytics } = require("../../utils/cacheManager");
 const handleExcessiveLavaErrors = require("../../utils/handleExcessiveLavaErrors");
 const youtubeSr = require("youtube-sr").default;
 
@@ -252,39 +252,11 @@ case "discord_player": {
         break;
     }
 
-
-    // //Analytics
-    // try {
-    //   let analytics = await Analytics.findOne();
-    //   if (!analytics) {
-    //       analytics = new Analytics({ usedSearchEngines: new Map() }); 
-    //   } else if (!(analytics.usedSearchEngines instanceof Map)) { 
-    //       analytics.usedSearchEngines = new Map();
-    //   }
-    //   analytics.totalPlayCount++;
-    //   if (hasPlayerSettings) {
-    //       analytics.playHasPlayerSettingsCount++;
-    //   }
-  
-    //   if (usedSearchEngine) {
-    //     analytics.usedSearchEngines.set(usedSearchEngine, (analytics.usedSearchEngines.get(usedSearchEngine) || 0) + 1);
-    // }
-    // const guildIndex = analytics.guildPlayCount.findIndex(guild => guild.guildId === interaction.guild.id);
-    // if (guildIndex === -1) {
-    //   analytics.guildPlayCount.push({guildId: interaction.guild.id, playCount: 1})
-    // } else {
-    //   analytics.guildPlayCount[guildIndex].playCount++;
-    // }
-    // await analytics.save();
-      
-    // } catch (error) {
-    //   console.log("error doing Analytics",error)
-    // }
-
+    // Analytics for successful play
+    updatePlayAnalytics({ guildId: interaction.guild.id, hasPlayerSettings, usedSearchEngine });
   } catch (e) { 
     return handlePlayError(interaction, name, e, player);
   }
-
 
   async function sendTrackEmbed(interaction, embed) {
     const hasViewChannelPermission = interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.ViewChannel);
@@ -300,35 +272,16 @@ case "discord_player": {
 }
 
 async function handlePlayError(interaction, name, error, player) {
-  console.error(`Error Running Play:[${interaction.guild.name}] (ID: ${interaction.guild.id}) Request: (${name || null}) Node: (${player?.node?.name || null}) Error:`, error);
-  // try {
-  //     let analytics = await Analytics.findOne();
-  //     if (!analytics) {
-  //         analytics = new Analytics();
-  //     }
-  //     analytics.failedPlayCount++;
-  //     await analytics.save();
-      if (player) {
-        handleExcessiveLavaErrors(player, client.manager);
-      }
-  // } catch (analyticsError) {
-  //     console.error("Error updating analytics (handlePlayError):", analyticsError);
-  // }
-  return interaction.editReply(`Oops seems something went wrong: ${error}, Please join the [support server](https://discord.com/invite/rDHPK2er3j) if this keeps happening`).catch(() => { });
+  console.error(`Error Running Play:[${interaction.guild.name}] (ID: ${interaction.guild.id}) Request: (${name || 'N/A'}) Node: (${player?.node?.name || player?.shoukaku?.node?.name || 'N/A'}) Error:`, error);
+  updatePlayAnalytics({ errorType: 'playError' });
+  if (player && client.manager && typeof handleExcessiveLavaErrors === 'function') {
+    handleExcessiveLavaErrors(player, client.manager);
+  }
+  return interaction.editReply(`Oops seems something went wrong: ${error}, Please join the support server if this keeps happening`).catch(() => {});
 }
 
 async function handleNoResults(interaction, query) {
-  // try {
-  //     let analytics = await Analytics.findOne();
-  //     if (!analytics) {
-  //         analytics = new Analytics();
-  //     }
-  //     analytics.failedSearchCount++; 
-  //     await analytics.save();
-  // } catch (analyticsError) {
-  //     console.error("Error updating analytics (handleNoResults):", analyticsError);
-  // }
-
+  updatePlayAnalytics({ errorType: 'noResults' });
   return interaction.followUp(`No results found for: ${query}`);
 }
 

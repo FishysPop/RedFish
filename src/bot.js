@@ -13,7 +13,7 @@ const Topgg = require("@top-gg/sdk");
 const { ClusterClient, getInfo } = require('discord-hybrid-sharding');
 const blockedAt = require('blocked-at');
 const AnalyticsModel = require("./models/Analytics"); 
-
+const cacheManager = require('./utils/cacheManager');
 
 
 const path = require('path');
@@ -42,6 +42,7 @@ const clientOptions = {
 };
 
 const client = new Client(clientOptions);
+cacheManager.initializeCacheManager(client); 
 
 
 if (process.env.DISCORD_PLAYER === 'true') {
@@ -197,8 +198,8 @@ blockedAt((time, stack, { type, resource }) => {
     mongoose.set("strictQuery", false);
     await mongoose.connect(process.env.MONGODB_URI);
     console.log("Connected to DB.");
-    client.cluster = new ClusterClient(client); // Initialize cluster info early
-    if (client.cluster.id === 0) { // Only run saver on cluster 0
+    client.cluster = new ClusterClient(client);
+    if (client.cluster.id === 0) { 
       const { startAnalyticsSaver } = require('./utils/cacheManager');
       startAnalyticsSaver(AnalyticsModel);
     }
@@ -209,4 +210,11 @@ blockedAt((time, stack, { type, resource }) => {
     console.log(`Error: ${error}`);
   }
 })();
+
+process.on('message', (message) => {
+  if (message && message.type === 'ANALYTICS_UPDATE_IPC' && client.cluster && client.cluster.id === 0) {
+    cacheManager.handleIncomingAnalyticsUpdate(message.data);
+  }
+});
+
 module.exports = client;

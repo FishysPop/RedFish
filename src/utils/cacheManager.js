@@ -60,7 +60,6 @@ let _client = null;
  */
 function initializeCacheManager(clientInstance) {
   _client = clientInstance;
-  console.log('[CacheManager] Initialized with client instance for sharding support.');
 }
 
 function startAnalyticsSaver(AnalyticsModel) {
@@ -172,7 +171,6 @@ function handleIncomingAnalyticsUpdate(data) {
   _performAnalyticsUpdate(data);
 }
 
-console.log('[CacheManager] Initialized in-memory caches.');
 
 module.exports = {
   guildSettingsCache,

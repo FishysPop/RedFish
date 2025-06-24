@@ -1,4 +1,4 @@
-const { Schema, model } = require('mongoose');
+const { Schema, model } = require("mongoose");
 
 const userPlayerSettingsSchema = new Schema({
   userId: {
@@ -19,8 +19,12 @@ const userPlayerSettingsSchema = new Schema({
   },
   defaultSearchEngine: {
     type: String,
-    default: 'spotify',
-  }
+    default: "spotify",
+  },
+  SpotifyNativePlay: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-module.exports = model('UserPlayerSettings', userPlayerSettingsSchema);
+module.exports = model("UserPlayerSettings", userPlayerSettingsSchema);

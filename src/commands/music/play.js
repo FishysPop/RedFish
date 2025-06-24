@@ -5,6 +5,7 @@ const User = require("../../models/UserPlayerSettings");
 const GuildSettings = require("../../models/GuildSettings");
 const { updatePlayAnalytics } = require("../../utils/cacheManager");
 const handleExcessiveLavaErrors = require("../../utils/handleExcessiveLavaErrors");
+const { handleSpotifyNativePlay } = require("../../utils/spotifyNativePlay.js");
 const youtubeSr = require("youtube-sr").default;
 
 
@@ -35,7 +36,7 @@ module.exports =  {
     let playerSettings = {
       volume: serverSettings?.defaultVolume || '30',
       searchEngine: user?.defaultSearchEngine || null,
-      betaPlayer: user?.betaPlayer || false,
+      SpotifyNativePlay: user?.SpotifyNativePlay || false,
       playerMessages: serverSettings?.playerMessages || "default",
       convertLinks: user?.convertLinks || false,
       PreferedNode: serverSettings?.preferredNode || null
@@ -189,46 +190,53 @@ case "discord_player": {
             }
         });
 
-        const isLink = /^(https?:\/\/.+)/i.test(name); 
         let res;
-        if (isLink && playerSettings.convertLinks) { // Only convert if it's a link AND convertLinks is enabled
-          try {
-              const searchResults = await youtubeSr.getVideo(name, { limit: 1 });
-              if (searchResults && searchResults.length > 0) {
-                  res = await player.search(`${searchResults[0].title}`,{ requester: interaction.user, source: 'dzsearch:'});
-                  if (!res.tracks.length) {
-                    res = await player.search(name, { requester: interaction.user});
-                  }
-              } else {
-                  // Fallback: Search directly if youtube-sr fails
-                  res = await player.search(name, { requester: interaction.user });
+
+        if (playerSettings.SpotifyNativePlay) {
+          res = await handleSpotifyNativePlay(name, player, interaction.user);
+        }
+
+        if (!res) {
+          const isLink = /^(https?:\/\/.+)/i.test(name); 
+          if (isLink && playerSettings.convertLinks) { // Only convert if it's a link AND convertLinks is enabled
+            try {
+                const searchResults = await youtubeSr.getVideo(name, { limit: 1 });
+                if (searchResults && searchResults.length > 0) {
+                    res = await player.search(`${searchResults[0].title}`,{ requester: interaction.user, source: 'dzsearch:'});
+                    if (!res.tracks.length) {
+                      res = await player.search(name, { requester: interaction.user});
+                    }
+                } else {
+                    // Fallback: Search directly if youtube-sr fails
+                    res = await player.search(name, { requester: interaction.user });
+                }
+            } catch (youtubeSrError) {
+                console.error("youtube-sr error:", youtubeSrError);
+                // Fallback: Search directly if youtube-sr throws an error
+                res = await player.search(name, { requester: interaction.user });
+            }
+        } else if (isLink) { // if its a link, but not converting, treat it as a normal link
+            res = await player.search(name, { requester: interaction.user });
+        }
+        else {   
+            let engine = playerSettings.searchEngine || 'deezer'; // Deezer is now the default
+          
+            if (engine === 'deezer') {
+              res = await player.search(name, { requester: interaction.user, source: 'dzsearch:' });
+          
+              // Fallback to youtube_music if Deezer search fails
+              if (!res.tracks.length) {
+                engine = 'youtube_music';
+                res = await player.search(name, { requester: interaction.user, engine: engine });
               }
-          } catch (youtubeSrError) {
-              console.error("youtube-sr error:", youtubeSrError);
-              // Fallback: Search directly if youtube-sr throws an error
-              res = await player.search(name, { requester: interaction.user });
-          }
-      } else if (isLink) { // if its a link, but not converting, treat it as a normal link
-          res = await player.search(name, { requester: interaction.user });
-      }
-      else {   
-          let engine = playerSettings.searchEngine || 'deezer'; // Deezer is now the default
-        
-          if (engine === 'deezer') {
-            res = await player.search(name, { requester: interaction.user, source: 'dzsearch:' });
-        
-            // Fallback to youtube_music if Deezer search fails
-            if (!res.tracks.length) {
-              engine = 'youtube_music';
+            } else { // Use the specified engine (not Deezer)
               res = await player.search(name, { requester: interaction.user, engine: engine });
             }
-          } else { // Use the specified engine (not Deezer)
-            res = await player.search(name, { requester: interaction.user, engine: engine });
           }
         }
 
         usedSearchEngine = res?.tracks[0]?.sourceName;
-        if (!res.tracks.length) return handleNoResults(interaction, name); 
+        if (!res || !res.tracks.length) return handleNoResults(interaction, name); 
 
         if (res.type === "PLAYLIST") {
             for (let track of res.tracks) player.queue.add(track);

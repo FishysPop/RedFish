@@ -31,7 +31,6 @@ module.exports = {
        if (!user) {
          user = new User({
            userId: interaction.user.id,
-           betaPlayer: false,
            lastVote: lastVote,
            defaultSearchEngine: "spotify",
          });
@@ -81,10 +80,10 @@ module.exports = {
         .setFooter({ text : "More Settings Coming Soon!"}); // Green for success
 
       if (hasVoted) {
-        embed.addFields({ name: "User Settings", value: `Beta Player: ${ user.convertLinks ? "Enabled" : "Disabled" }\nConverting Links: ${ user.betaPlayer ? "Enabled" : "Disabled (Converts Youtube Links To Another Platform)" }\n Default Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`});
-        const betaPlayerButton = new ButtonBuilder().setCustomId('betaPlayerButton').setLabel(user.betaPlayer ? "Disable Beta Player" : "Enable Beta Player").setStyle(user.betaPlayer ? ButtonStyle.Danger : ButtonStyle.Success);
+        embed.addFields({ name: "User Settings", value: `Spotify Native Play: ${ user.SpotifyNativePlay ? "Enabled" : "Disabled" } (Streams from Spotify)\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled" } (Converts Youtube Links To Another Platform)\nDefault Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`});
+        const spotifyNativePlayButton = new ButtonBuilder().setCustomId('spotifyNativePlayButton').setLabel(user.SpotifyNativePlay ? "Disable Spotify Native" : "Enable Spotify Native").setStyle(user.SpotifyNativePlay ? ButtonStyle.Danger : ButtonStyle.Success);
         const convertLinksButton = new ButtonBuilder().setCustomId('convertLinksButton').setLabel(user.convertLinks ? "Disable Converting links" : "Enable Converting links").setStyle(user.convertLinks ? ButtonStyle.Danger : ButtonStyle.Success);
-        row.addComponents(betaPlayerButton, convertLinksButton);
+        row.addComponents(spotifyNativePlayButton, convertLinksButton);
         const defaultSearchEngineSelectMenu = new StringSelectMenuBuilder()
         .setCustomId('defaultSearchEngineSelectMenu')
         .setPlaceholder('Default Search engine.')
@@ -210,39 +209,19 @@ module.exports = {
         i.deferUpdate();
 
         switch (i.customId) {
-          case "betaPlayerButton":
-          if (user.betaPlayer) {
-            user.betaPlayer = false;
+          case "spotifyNativePlayButton":
+            user.SpotifyNativePlay = !user.SpotifyNativePlay;
             await user.save();
-            embed.data.fields[0].value = `Beta Player: ${ user.betaPlayer ? "Enabled" : "Disabled" }\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled (Converts Youtube Links To Another Platform)" }\n Default Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
-            row.components[0].data.label = "Enable Beta Player";
-            row.components[0].data.style = ButtonStyle.Success;
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true })
-          } else {
-            user.betaPlayer = true;
-            await user.save();
-            embed.data.fields[0].value = `Beta Player: ${ user.betaPlayer ? "Enabled" : "Disabled" }\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled (Converts Youtube Links To Another Platform)" }\n Default Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
-            row.components[0].data.label = "Disable Beta Player";
-            row.components[0].data.style = ButtonStyle.Danger;
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true })
-          }
+            embed.data.fields[0].value = `Spotify Native Play: ${ user.SpotifyNativePlay ? "Enabled" : "Disabled" } (Streams from Spotify)\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled" } (Converts Youtube Links To Another Platform)\nDefault Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
+            row.components[0].setLabel(user.SpotifyNativePlay ? "Disable Spotify Native" : "Enable Spotify Native").setStyle(user.SpotifyNativePlay ? ButtonStyle.Danger : ButtonStyle.Success);
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true });
           break;
           case "convertLinksButton":
-            if (user.convertLinks) {
-              user.convertLinks = false;
-              await user.save();
-              embed.data.fields[0].value = `Beta Player: ${ user.betaPlayer ? "Enabled" : "Disabled" }\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled (Converts Youtube Links To Another Platform)" }\n Default Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
-              row.components[1].data.label = "Enable Converting links";
-              row.components[1].data.style = ButtonStyle.Success;
-              interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true })
-            } else {
-              user.convertLinks = true;
-              await user.save();
-              embed.data.fields[0].value = `Beta Player: ${ user.betaPlayer ? "Enabled" : "Disabled" }\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled (Converts Youtube Links To Another Platform)" }\n Default Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
-              row.components[1].data.label = "Disable Converting links";
-              row.components[1].data.style = ButtonStyle.Danger;
-              interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true })
-            }
+            user.convertLinks = !user.convertLinks;
+            await user.save();
+            embed.data.fields[0].value = `Spotify Native Play: ${ user.SpotifyNativePlay ? "Enabled" : "Disabled" } (Streams from Spotify)\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled" } (Converts Youtube Links To Another Platform)\nDefault Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
+            row.components[1].setLabel(user.convertLinks ? "Disable Converting links" : "Enable Converting links").setStyle(user.convertLinks ? ButtonStyle.Danger : ButtonStyle.Success);
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true });
             break;
           case "adminVolumeSelectMenu":
             guildSettings.defaultVolume = i.values[0]
@@ -253,7 +232,7 @@ module.exports = {
           case "defaultSearchEngineSelectMenu":
             user.defaultSearchEngine = i.values[0];
             await user.save();
-            embed.data.fields[0].value = `Beta Player: ${ user.betaPlayer ? "Enabled" : "Disabled" }\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled (Converts Youtube Links To Another Platform)" }\n Default Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
+            embed.data.fields[0].value = `Spotify Native Play: ${ user.SpotifyNativePlay ? "Enabled" : "Disabled" } (Streams from Spotify)\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled" } (Converts Youtube Links To Another Platform)\nDefault Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
             interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true })
           break;
           case "adminPlayerMessageSelectMenu":

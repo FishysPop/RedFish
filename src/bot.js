@@ -11,7 +11,6 @@ const { Connectors } = require("shoukaku");
 const fs = require('fs');
 const Topgg = require("@top-gg/sdk");
 const { ClusterClient, getInfo } = require('discord-hybrid-sharding');
-const blockedAt = require('blocked-at');
 const AnalyticsModel = require("./models/Analytics"); 
 const cacheManager = require('./utils/cacheManager');
 
@@ -188,10 +187,7 @@ new CommandHandler({
   eventsPath: path.join(__dirname, 'events'),
   //testServer: process.env.GUILD_ID,
 });
-blockedAt((time, stack, { type, resource }) => {
-  console.error(`Event loop blocked for ${time}ms, type: ${type}, resource: ${JSON.stringify(resource)}`);
-  console.error(stack.join('\n'));
-}, { threshold: 100, interval: 500 }); 
+
 
 (async () => {
   try {

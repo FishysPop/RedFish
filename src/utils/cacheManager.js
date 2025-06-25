@@ -44,7 +44,7 @@ async function saveAnalyticsToDB(AnalyticsModel) {
   if (cachedAnalytics) {
     try {
       await AnalyticsModel.findOneAndUpdate({}, cachedAnalytics, { upsert: true });
-      console.log('[CacheManager] Analytics data saved to DB.');
+      if (process.env.DEBUG === 'true') console.log('[CacheManager] Analytics data saved to DB.');
     } catch (error) {
       console.error('[CacheManager] Error saving analytics data to DB:', error);
     }
@@ -70,7 +70,7 @@ function startAnalyticsSaver(AnalyticsModel) {
         plainDbData.usedSearchEngines = Object.fromEntries(plainDbData.usedSearchEngines);
       }
       analyticsCache.set('globalAnalytics', plainDbData);
-      console.log('[CacheManager] Initial analytics data loaded into cache.');
+      if (process.env.DEBUG === 'true') console.log('[CacheManager] Initial analytics data loaded into cache.');
     }
   }).catch(err => console.error('[CacheManager] Error loading initial analytics:', err));
 
@@ -81,7 +81,7 @@ function startAnalyticsSaver(AnalyticsModel) {
   analyticsSaveIntervalId = setInterval(() => {
     saveAnalyticsToDB(AnalyticsModel);
   }, ANALYTICS_SAVE_INTERVAL_MS);
-  console.log(`[CacheManager] Analytics saver started. Will save to DB every ${ANALYTICS_SAVE_INTERVAL_MS / 60000} minutes.`);
+  if (process.env.DEBUG === 'true') console.log(`[CacheManager] Analytics saver started. Will save to DB every ${ANALYTICS_SAVE_INTERVAL_MS / 60000} minutes.`);
 }
 
 /**

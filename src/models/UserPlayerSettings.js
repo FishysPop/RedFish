@@ -23,7 +23,7 @@ const userPlayerSettingsSchema = new Schema({
   },
   SpotifyNativePlay: {
     type: Boolean,
-    default: false,
+    default: true,
   },
 });
 

@@ -193,7 +193,7 @@ case "discord_player": {
         let res;
 
         if (playerSettings.SpotifyNativePlay) {
-          res = await handleSpotifyNativePlay(name, player, interaction.user);
+          res = await handleSpotifyNativePlay(name, player, interaction.user, client);
         }
 
         if (!res) {

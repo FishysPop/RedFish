@@ -192,13 +192,16 @@ case "discord_player": {
 
         let res;
 
-        if (playerSettings.SpotifyNativePlay) {
+        const isSpotifyLink = /^(https?:\/\/)?(open\.spotify\.com)\/(track)\/[a-zA-Z0-9]{22}/.test(name);
+
+        if (playerSettings.SpotifyNativePlay && isSpotifyLink) {
           res = await handleSpotifyNativePlay(name, player, interaction.user, client);
+          if (res) usedSearchEngine = 'spotify_native';
         }
 
         if (!res) {
           const isLink = /^(https?:\/\/.+)/i.test(name); 
-          if (isLink && playerSettings.convertLinks) { // Only convert if it's a link AND convertLinks is enabled
+          if (isLink && playerSettings.convertLinks) { 
             try {
                 const searchResults = await youtubeSr.getVideo(name, { limit: 1 });
                 if (searchResults && searchResults.length > 0) {
@@ -207,12 +210,10 @@ case "discord_player": {
                       res = await player.search(name, { requester: interaction.user});
                     }
                 } else {
-                    // Fallback: Search directly if youtube-sr fails
                     res = await player.search(name, { requester: interaction.user });
                 }
             } catch (youtubeSrError) {
                 console.error("youtube-sr error:", youtubeSrError);
-                // Fallback: Search directly if youtube-sr throws an error
                 res = await player.search(name, { requester: interaction.user });
             }
         } else if (isLink) {
@@ -231,10 +232,11 @@ case "discord_player": {
                 
                 if (res?.tracks.length) {
                     const track = res.tracks[0];
-                    const isSpotifyResult = res.type === 'TRACK' && (track.sourceName === 'spotify' || track.uri.includes('spotify.com'));
+                    console.log(`Search result found using ${engine}:`, track);
+                    const isSpotifyResult = track.sourceName === 'spotify';
 
                     if (isSpotifyResult && playerSettings.SpotifyNativePlay) {
-                        const nativeResult = await handleSpotifyNativePlay(track.uri, player, interaction.user, client);
+                        const nativeResult = await handleSpotifyNativePlay(track.realUri, player, interaction.user, client);
                         if (nativeResult) {
                             res = nativeResult; 
                             usedSearchEngine = 'spotify_native';

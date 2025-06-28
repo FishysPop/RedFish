@@ -232,7 +232,6 @@ case "discord_player": {
                 
                 if (res?.tracks.length) {
                     const track = res.tracks[0];
-                    console.log(`Search result found using ${engine}:`, track);
                     const isSpotifyResult = track.sourceName === 'spotify';
 
                     if (isSpotifyResult && playerSettings.SpotifyNativePlay) {

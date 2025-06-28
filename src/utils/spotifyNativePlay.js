@@ -217,6 +217,13 @@ async function handleSpotifyNativePlay(url, player, requester, client) {
     } catch (apiError) {
         console.error("[SpotifyNativePlay] Error during native playback process:", apiError.message, ". Falling back to default search.");
         if (debugEnabled) console.debug("[SpotifyNativePlay-DEBUG] Caught an error during API/WebSocket process. Details:", apiError);
+
+        // If a timeout occurs, the connection might be stale. Close it to force a reconnection on the next attempt.
+        if (apiError.message.includes('timed out') && client.spotifyNativeWs) {
+            if (debugEnabled) console.debug("[SpotifyNativePlay-DEBUG] Timeout detected. Closing WebSocket to force reconnection on next attempt.");
+            client.spotifyNativeWs.close(1000, "Job timeout");
+        }
+
         return null;
     }
 }

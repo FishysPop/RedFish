@@ -215,27 +215,38 @@ case "discord_player": {
                 // Fallback: Search directly if youtube-sr throws an error
                 res = await player.search(name, { requester: interaction.user });
             }
-        } else if (isLink) { // if its a link, but not converting, treat it as a normal link
+        } else if (isLink) {
             res = await player.search(name, { requester: interaction.user });
         }
-        else {   
-            let engine = playerSettings.searchEngine || 'deezer'; // Deezer is now the default
-          
-            if (engine === 'deezer') {
-              res = await player.search(name, { requester: interaction.user, source: 'dzsearch:' });
-          
-              // Fallback to youtube_music if Deezer search fails
-              if (!res.tracks.length) {
-                engine = 'youtube_music';
-                res = await player.search(name, { requester: interaction.user, engine: engine });
-              }
-            } else { // Use the specified engine (not Deezer)
-              res = await player.search(name, { requester: interaction.user, engine: engine });
+        else {
+            const searchStrategy = [playerSettings.searchEngine || 'spotify', 'youtube_music'];
+
+            for (const engine of searchStrategy) {
+                usedSearchEngine = engine;
+                const searchOptions = { requester: interaction.user };
+
+                searchOptions[engine === 'deezer' ? 'source' : 'engine'] = engine === 'deezer' ? 'dzsearch:' : engine;
+                
+                res = await player.search(name, searchOptions);
+                
+                if (res?.tracks.length) {
+                    const track = res.tracks[0];
+                    const isSpotifyResult = res.type === 'TRACK' && (track.sourceName === 'spotify' || track.uri.includes('spotify.com'));
+
+                    if (isSpotifyResult && playerSettings.SpotifyNativePlay) {
+                        const nativeResult = await handleSpotifyNativePlay(track.uri, player, interaction.user, client);
+                        if (nativeResult) {
+                            res = nativeResult; 
+                            usedSearchEngine = 'spotify_native';
+                        }
+                    }
+                    break;
+                }
             }
           }
         }
 
-        usedSearchEngine = res?.tracks[0]?.sourceName;
+        if (!usedSearchEngine) usedSearchEngine = res?.tracks[0]?.sourceName; 
         if (!res || !res.tracks.length) return handleNoResults(interaction, name); 
 
         if (res.type === "PLAYLIST") {

@@ -75,9 +75,9 @@ module.exports = {
     if (hasVoted) {
       const embed = new EmbedBuilder()
         .setTitle("Player Settings")
-        .setDescription("Welcome to the player Settings, Here you can customise the music player to your liking! \n\n Please note whoever first creates the queue(when the bot joins the vc) the bot will use their settings \n\n Currently the beta player is enabled by default and changing it does nothing")
+        .setDescription("Welcome to Player Settings! Here, you can customize your music experience.\n\n**Important:** The bot uses the settings of the person who starts the music queue (the first person to use `/play`).")
         .setColor("#e66229")
-        .setFooter({ text : "More Settings Coming Soon!"}); // Green for success
+        .setFooter({ text : "More Settings Coming Soon!"}); 
 
       if (hasVoted) {
         embed.addFields({ name: "User Settings", value: `Spotify Native Play: ${ user.SpotifyNativePlay ? "Enabled" : "Disabled" } (Streams from Spotify)\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled" } (Converts Youtube Links To Another Platform)\nDefault Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`});

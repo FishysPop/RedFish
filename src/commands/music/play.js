@@ -285,7 +285,13 @@ case "discord_player": {
     if (!hasViewChannelPermission || !hasSendMessagesPermission) {
         embed.setFooter({ text: `Media Controls Disabled: Missing Permissions` });
     } else if (Math.random() < 0.08) { //  8% chance of showing a tip
-        embed.setFooter({ text: Math.random() < 0.04 ? `Change the default volume with /player-settings!` : `Want to use another search engine? Change it with /player-settings!` });
+        const tips = [
+            `Change the default volume with /player-settings!`,
+            `Want to use another search engine? Change it with /player-settings!`,
+            `Enable direct Spotify streaming with /player-settings! (beta)`
+        ];
+        const randomTip = tips[Math.floor(Math.random() * tips.length)];
+        embed.setFooter({ text: randomTip });
     }
 
     return interaction.editReply({ content: " ", embeds: [embed] });

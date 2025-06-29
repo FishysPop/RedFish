@@ -37,10 +37,15 @@ client.manager.on("playerException", async (player, data) => {
   if (!channel) return;  // Check if channel exists
 
   if (player.customData.playerMessages !== "noMessage") { 
+    let description = `Track: ${data.track.info.title}\nError: ${data.exception.cause},Node: ${player.shoukaku.node.name}\n-# Please join the support server if this keeps happening`;
+    
+    if (data.exception?.message?.includes('This video requires login.')) {
+      description += `\n\n**Tip:** This is caused by youtube ratelimiting our servers. Try enabling direct Spotify streaming in \`/player-settings\` (beta).`;
+    }
     const embed = new EmbedBuilder()
       .setColor('#e66229')  // Use a consistent color
       .setTitle('Oops... seems something went wrong skipping to next!')
-      .setDescription(`Track: ${data.track.info.title}\nError: ${data.exception.cause},Node: ${player.shoukaku.node.name}\n-# Please join the [support server](https://discord.com/invite/rDHPK2er3j) if this keeps happening`);
+      .setDescription(description);
       try {
         if (player.customData.playerMessages === "default") { // 
           const message = player.data.get("message");

@@ -2,9 +2,42 @@ const { StringSelectMenuBuilder, ActionRowBuilder, ApplicationCommandOptionType 
 const { Player, QueryType, useMainPlayer } = require('discord-player');
 const User = require("../../models/UserPlayerSettings");
 const GuildSettings = require("../../models/GuildSettings");
+const dns = require('node:dns');
+const util = require('node:util');
+const resolveSrv = util.promisify(dns.resolveSrv);
 
 require("dotenv").config();
 const axios = require('axios')
+
+let radioBrowserServers = [];
+let lastFetch = 0;
+const CACHE_DURATION = 1000 * 60 * 60; // 1 hour
+
+/**
+ * Get a random available radio-browser server, with caching.
+ * @returns {Promise<string>} A promise that resolves with a base url for the radio-browser api.
+ */
+async function getRadioBrowserServer() {
+    const now = Date.now();
+    if (radioBrowserServers.length === 0 || now - lastFetch > CACHE_DURATION) {
+        try {
+            const hosts = await resolveSrv("_api._tcp.radio-browser.info");
+            if (hosts && hosts.length > 0) {
+                radioBrowserServers = hosts.map(host => "https://" + host.name);
+                lastFetch = now;
+            } else {
+                throw new Error("DNS SRV lookup for radio-browser returned no hosts.");
+            }
+        } catch (error) {
+            console.error(`[RadioCommand] Failed to resolve radio-browser servers via DNS: ${error.message}. Using fallback or stale cache.`);
+            if (radioBrowserServers.length === 0) {
+                radioBrowserServers = ["https://de1.api.radio-browser.info"];
+            }
+        }
+    }
+    return radioBrowserServers[Math.floor(Math.random() * radioBrowserServers.length)];
+}
+
 module.exports =  {
     data: new SlashCommandBuilder()
     .setName("radio")
@@ -40,7 +73,8 @@ module.exports =  {
     const name = interaction.options.getString('name');
 
     try {
-        let { data } = await axios.get(`https://nl1.api.radio-browser.info/json/stations/byname/${encodeURIComponent(name)}`);
+        const radioServerBaseUrl = await getRadioBrowserServer();
+        let { data } = await axios.get(`${radioServerBaseUrl}/json/stations/byname/${encodeURIComponent(name)}`);
 
         if (data.length < 1) {
             return interaction.editReply(`❌ | No radio station found for "${name}".  A full list can be found [here](https://www.radio-browser.info/search?page=1&hidebroken=true&order=votes&reverse=true)`);

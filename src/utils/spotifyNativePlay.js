@@ -233,7 +233,7 @@ async function handleSpotifyNativePlay(url, player, requester, client, originalT
 
             streamResult.tracks[0] = playableTrack;
             streamResult.type = 'TRACK';
-            console.log(`[SpotifyNativePlay] Successfully resolved track: ${playableTrack.uri}.`);
+            console.log(`[SpotifyNativePlay] Successfully resolved track: ${fileUrl}`);
 
             if (debugEnabled) console.debug(`[SpotifyNativePlay-DEBUG] Successfully created a resolved track with Spotify metadata. Returning result.`);
             return streamResult;

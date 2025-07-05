@@ -71,7 +71,6 @@ client.manager.on("playerException", async (player, data) => {
   
 client.manager.on("playerStart", async (player, track) => {
   checkQueueForNativePlay(player, client);
-  console.log(track)
   if (player.customData.playerMessages === "noMessage") return;
   const channel = client.channels.cache.get(player.textId);
   const guild = client.guilds.cache.get(player.guildId);

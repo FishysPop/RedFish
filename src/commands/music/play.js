@@ -192,11 +192,20 @@ case "discord_player": {
 
         let res;
 
-        const isSpotifyLink = /^(https?:\/\/)?(open\.spotify\.com)\/(track)\/[a-zA-Z0-9]{22}/.test(name);
+        const isSpotifyLink = /^(https?:\/\/)?(open\.spotify\.com)\/(track|playlist)\/[a-zA-Z0-9]{22}/.test(name);
 
         if (playerSettings.SpotifyNativePlay && isSpotifyLink) {
-          res = await handleSpotifyNativePlay(name, player, interaction.user, client);
-          if (res) usedSearchEngine = 'spotify_native';
+          const result = await handleSpotifyNativePlay(name, player, interaction.user, client);
+          if (result) {
+            usedSearchEngine = 'spotify_native';
+            if (result.type === 'PLAYLIST') {
+              embed.setColor('#e66229').setDescription(`**Enqueued: [${result.playlistName}](${name}) (${result.tracks.length} tracks)**`);
+              await sendTrackEmbed(interaction, embed);
+              return;
+            } else {
+              res = result;
+            }
+          }
         }
 
         if (!res) {

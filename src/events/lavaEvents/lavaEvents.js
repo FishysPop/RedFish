@@ -2,6 +2,7 @@ const { EmbedBuilder, Client, ActionRowBuilder, ButtonBuilder, ButtonStyle, Perm
 const { convertTime } = require("../../utils/ConvertTime.js");
 const MetadataFilter = require('@web-scrobbler/metadata-filter');
 const handleExcessiveLavalinkErrors = require("../../utils/handleExcessiveLavaErrors.js")
+const { checkQueueForNativePlay } = require("../../utils/spotifyNativePlay.js");
 require("dotenv").config();
 
 
@@ -69,6 +70,8 @@ client.manager.on("playerException", async (player, data) => {
 
   
 client.manager.on("playerStart", async (player, track) => {
+  checkQueueForNativePlay(player, client);
+  console.log(track)
   if (player.customData.playerMessages === "noMessage") return;
   const channel = client.channels.cache.get(player.textId);
   const guild = client.guilds.cache.get(player.guildId);
@@ -81,17 +84,22 @@ client.manager.on("playerStart", async (player, track) => {
     return;
   }
 
-    const playerStartEmbed = await new EmbedBuilder() //embed
+    const playerStartEmbed = new EmbedBuilder() //embed
 	.setColor('#e66229')
 	.setTitle(track?.title || "Missing Title")
-	.setURL(track?.realUri || "https://youtube.com")
-	.setAuthor({ name: 'Now Playing'})
+	.setURL(track.sourceName === 'spotify_native' ? track.uri : (track?.realUri || "https://youtube.com"))
 	.setThumbnail(track?.thumbnail || "https://i.imgur.com/K9LWwgw.png")
     .setDescription(`Duration: **${convertTime(track?.length || 0, true)}**`)
     .setTimestamp()
     .setFooter({ text: `Requested by: ${track?.requester?.username}${Math.random() < 0.06 ? ' | Dont want these messages? Disable them with /player-settings' : ''}`});
-    const playPauseButton = new ButtonBuilder().setCustomId('LavaPause').setEmoji('<:w_playpause:1106270708243386428').setStyle(ButtonStyle.Primary);
-    const skipButton = new ButtonBuilder().setCustomId('LavaSkip').setEmoji('<:w_next:1106270714664849448').setStyle(ButtonStyle.Success);
+
+    if (track.sourceName === 'spotify_native') {
+        playerStartEmbed.setAuthor({ name: 'Now Playing', iconURL: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Spotify_icon.svg/1982px-Spotify_icon.svg.png' });
+    } else {
+        playerStartEmbed.setAuthor({ name: 'Now Playing' });
+    }
+    const playPauseButton = new ButtonBuilder().setCustomId('LavaPause').setEmoji('<:w_playpause:1106270708243386428>').setStyle(ButtonStyle.Primary);
+    const skipButton = new ButtonBuilder().setCustomId('LavaSkip').setEmoji('<:w_next:1106270714664849448>').setStyle(ButtonStyle.Success);
     const stopButton = new ButtonBuilder().setCustomId('LavaStop').setEmoji('<:w_stop:1106272001909346386>').setStyle(ButtonStyle.Danger);
     const loopButton = new ButtonBuilder().setCustomId('LavaLoop').setEmoji('<:w_loop:1106270705575792681>').setStyle(ButtonStyle.Secondary);
     const shuffleButton = new ButtonBuilder().setCustomId('LavaShuffle').setEmoji('<:w_shuffle:1106270712542531624>').setStyle(ButtonStyle.Secondary);

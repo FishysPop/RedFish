@@ -123,7 +123,7 @@ if (process.env.LAVALINK === 'true') {
       new Spotify({
       clientId: process.env.SPOTIFY_ID,
       clientSecret: process.env.SPOTIFY_SECRET,
-      playlistPageLimit: 2, // ( 100 tracks per page )
+      playlistPageLimit: 3, // ( 100 tracks per page )
       albumPageLimit: 4, //( 50 tracks per page )
       searchLimit: 10, // ( track search limit. Max 50 )
       searchMarket: 'US', //( eg: US, IN, EN ] )//

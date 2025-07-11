@@ -1,5 +1,6 @@
 const NodeCache = require('node-cache');
 
+// --- Cache Instances ---
 const defaultTTL = 3600;
 const defaultCheckperiod = 600;
 
@@ -9,40 +10,98 @@ const guildSettingsCache = new NodeCache({
 });
 
 const userSettingsCache = new NodeCache({
-  stdTTL: defaultTTL / 2, 
+  stdTTL: defaultTTL / 2,
   checkperiod: defaultCheckperiod / 2,
 });
 
 const playlistCache = new NodeCache({
-  stdTTL: defaultTTL, 
+  stdTTL: defaultTTL,
   checkperiod: defaultCheckperiod,
 });
 
 const giveawayCache = new NodeCache({
-  stdTTL: defaultTTL, 
+  stdTTL: defaultTTL,
   checkperiod: defaultCheckperiod,
 });
 
+// --- Analytics Caching (Per-Cluster) ---
+
 const analyticsCache = new NodeCache({
-  stdTTL: 0, 
-  checkperiod: 0, 
-  useClones: true, 
+  stdTTL: 0, // No TTL, lives until manually cleared or sent
+  checkperiod: 0, // No periodic check
+  useClones: true, // Return clones to prevent mutation issues
 });
 
-let analyticsSaveIntervalId = null;
-const ANALYTICS_SAVE_INTERVAL_MS = 5 * 60 * 1000; 
+let _client = null;
+let analyticsIntervalId = null;
+const ANALYTICS_SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+const ANALYTICS_CACHE_KEY = 'localAnalytics';
 
-async function saveAnalyticsToDB(AnalyticsModel) {
-  if (_client && _client.cluster && _client.cluster.id !== 0) {
-    if (process.env.DEBUG === 'true') {
-      console.debug(`[CacheManager-saveAnalyticsToDB] Attempted to save from non-primary cluster ${_client.cluster.id}. Skipping.`);
+/**
+ * Initializes the cache manager with the Discord client instance.
+ * Required for sharded analytics processing.
+ * @param {import('discord.js').Client} clientInstance - The Discord client instance.
+ */
+function initializeCacheManager(clientInstance) {
+  _client = clientInstance;
+}
+
+/**
+ * Merges analytics data from a secondary cluster into the main cluster's cache.
+ * This function only runs on the main cluster (0).
+ * @param {object} incomingData - The analytics data from the secondary cluster.
+ */
+function _mergeIncomingAnalytics(incomingData) {
+  try {
+    let mainData = analyticsCache.get(ANALYTICS_CACHE_KEY);
+    if (!mainData) {
+      // If the main cache is empty, the incoming data becomes the new baseline.
+      analyticsCache.set(ANALYTICS_CACHE_KEY, incomingData);
+      return;
     }
-    return;
-  }
 
-  const cachedAnalytics = analyticsCache.get('globalAnalytics');
+    // Merge numeric counts
+    mainData.totalPlayCount = (mainData.totalPlayCount || 0) + (incomingData.totalPlayCount || 0);
+    mainData.playHasPlayerSettingsCount = (mainData.playHasPlayerSettingsCount || 0) + (incomingData.playHasPlayerSettingsCount || 0);
+    mainData.failedPlayCount = (mainData.failedPlayCount || 0) + (incomingData.failedPlayCount || 0);
+    mainData.failedSearchCount = (mainData.failedSearchCount || 0) + (incomingData.failedSearchCount || 0);
+
+    // Merge usedSearchEngines (Map-like object)
+    if (incomingData.usedSearchEngines) {
+      for (const [engine, count] of Object.entries(incomingData.usedSearchEngines)) {
+        mainData.usedSearchEngines[engine] = (mainData.usedSearchEngines[engine] || 0) + count;
+      }
+    }
+
+    // Merge guildPlayCount (Array of objects)
+    if (incomingData.guildPlayCount) {
+      incomingData.guildPlayCount.forEach(incomingGuild => {
+        const mainGuild = mainData.guildPlayCount.find(g => g.guildId === incomingGuild.guildId);
+        if (mainGuild) {
+          mainGuild.playCount += incomingGuild.playCount;
+        } else {
+          mainData.guildPlayCount.push(incomingGuild);
+        }
+      });
+    }
+
+    analyticsCache.set(ANALYTICS_CACHE_KEY, mainData);
+  } catch (error) {
+    console.error('[CacheManager] Error merging incoming analytics:', error);
+  }
+}
+
+/**
+ * Saves the aggregated analytics from the main cluster's cache to the database.
+ * This function should only ever be executed on the main cluster.
+ * @param {import('mongoose').Model} AnalyticsModel - The Mongoose model for Analytics.
+ */
+async function _saveAnalyticsToDB(AnalyticsModel) {
+  const cachedAnalytics = analyticsCache.get(ANALYTICS_CACHE_KEY);
   if (cachedAnalytics) {
     try {
+      // Using findOneAndUpdate with upsert is robust for the single analytics document.
+      // This overwrites the document with the latest aggregated data.
       await AnalyticsModel.findOneAndUpdate({}, cachedAnalytics, { upsert: true });
       if (process.env.DEBUG === 'true') console.log('[CacheManager] Analytics data saved to DB.');
     } catch (error) {
@@ -51,54 +110,79 @@ async function saveAnalyticsToDB(AnalyticsModel) {
   }
 }
 
-let _client = null; 
-
 /**
- * Initializes the cache manager with the Discord client instance.
- * Required for sharded analytics updates.
- * @param {import('discord.js').Client} clientInstance - The Discord client instance.
+ * Sends the local analytics cache from a secondary cluster to the main cluster.
+ * This function only runs on secondary clusters.
  */
-function initializeCacheManager(clientInstance) {
-  _client = clientInstance;
+function _sendAnalyticsToMainShard() {
+  const localData = analyticsCache.get(ANALYTICS_CACHE_KEY);
+  if (localData && _client && _client.cluster) {
+    // Only send if there's actually data to report
+    if ((localData.totalPlayCount || 0) > 0 || (localData.failedPlayCount || 0) > 0 || (localData.failedSearchCount || 0) > 0) {
+      _client.cluster.send({ type: 'ANALYTICS_SYNC_IPC', data: localData });
+      // Clear the local cache for the next interval
+      analyticsCache.del(ANALYTICS_CACHE_KEY);
+      if (process.env.DEBUG === 'true') {
+        console.debug(`[CacheManager] Sent local analytics from Cluster ${_client.cluster.id} to main shard.`);
+      }
+    }
+  }
 }
 
-function startAnalyticsSaver(AnalyticsModel) {
-  AnalyticsModel.findOne().lean().then(dbData => {
-    if (dbData && !analyticsCache.has('globalAnalytics')) {
-      const plainDbData = { ...dbData };
-      if (plainDbData.usedSearchEngines instanceof Map) {
-        plainDbData.usedSearchEngines = Object.fromEntries(plainDbData.usedSearchEngines);
-      }
-      analyticsCache.set('globalAnalytics', plainDbData);
-      if (process.env.DEBUG === 'true') console.log('[CacheManager] Initial analytics data loaded into cache.');
-    }
-  }).catch(err => console.error('[CacheManager] Error loading initial analytics:', err));
-
-  if (analyticsSaveIntervalId) {
-    clearInterval(analyticsSaveIntervalId);
+/**
+ * Starts the analytics processing loop based on the cluster's role.
+ * - Main Cluster: Loads initial data from DB and periodically saves aggregated data back to DB.
+ * - Secondary Clusters: Periodically sends its local analytics data to the main cluster.
+ * @param {import('mongoose').Model} AnalyticsModel - The Mongoose model for Analytics.
+ */
+function startAnalyticsProcessor(AnalyticsModel) {
+  if (analyticsIntervalId) {
+    clearInterval(analyticsIntervalId);
   }
 
-  analyticsSaveIntervalId = setInterval(() => {
-    saveAnalyticsToDB(AnalyticsModel);
-  }, ANALYTICS_SAVE_INTERVAL_MS);
-  if (process.env.DEBUG === 'true') console.log(`[CacheManager] Analytics saver started. Will save to DB every ${ANALYTICS_SAVE_INTERVAL_MS / 60000} minutes.`);
+  const isMainCluster = !_client || !_client.cluster || _client.cluster.id === 0;
+
+  if (isMainCluster) {
+    // --- Main Cluster Logic ---
+    AnalyticsModel.findOne({}).lean().then(dbData => {
+      if (dbData) {
+        // Ensure nested objects exist and convert Mongoose Map if necessary
+        dbData.usedSearchEngines = dbData.usedSearchEngines instanceof Map ? Object.fromEntries(dbData.usedSearchEngines) : (dbData.usedSearchEngines || {});
+        dbData.guildPlayCount = dbData.guildPlayCount || [];
+        analyticsCache.set(ANALYTICS_CACHE_KEY, dbData);
+        if (process.env.DEBUG === 'true') console.log('[CacheManager] Initial analytics data loaded into cache on main cluster.');
+      }
+    }).catch(err => console.error('[CacheManager] Error loading initial analytics:', err));
+
+    analyticsIntervalId = setInterval(() => {
+      _saveAnalyticsToDB(AnalyticsModel);
+    }, ANALYTICS_SYNC_INTERVAL_MS);
+
+    if (process.env.DEBUG === 'true') console.log(`[CacheManager] Analytics DB saver started on main cluster. Will save every ${ANALYTICS_SYNC_INTERVAL_MS / 60000} minutes.`);
+  } else {
+    // --- Secondary Cluster Logic ---
+    analyticsIntervalId = setInterval(() => {
+      _sendAnalyticsToMainShard();
+    }, ANALYTICS_SYNC_INTERVAL_MS);
+
+    if (process.env.DEBUG === 'true') console.log(`[CacheManager] Analytics sync started on Cluster ${_client.cluster.id}. Will send to main shard every ${ANALYTICS_SYNC_INTERVAL_MS / 60000} minutes.`);
+  }
 }
 
 /**
- * The core logic for updating analytics data in the cache.
- * This function is intended for internal use or direct call on Cluster 0.
+ * Updates the local analytics cache on the current cluster.
  * @param {object} options - The options for updating analytics.
  * @param {string} [options.guildId] - The ID of the guild where the event occurred.
  * @param {boolean} [options.hasPlayerSettings] - Whether the user had player settings.
  * @param {string} [options.usedSearchEngine] - The search engine used.
  * @param {'playError' | 'noResults'} [options.errorType] - The type of error, if any.
  */
-function _performAnalyticsUpdate({ guildId, hasPlayerSettings, usedSearchEngine, errorType } = {}) {
+function updatePlayAnalytics({ guildId, hasPlayerSettings, usedSearchEngine, errorType } = {}) {
   try {
-    let analyticsData = analyticsCache.get('globalAnalytics');
+    let analyticsData = analyticsCache.get(ANALYTICS_CACHE_KEY);
 
     if (!analyticsData) {
-      console.warn('[CacheManager-updatePlayAnalytics] Analytics data not found in cache. Initializing a new one. Ensure startAnalyticsSaver has run.');
+      // Initialize a fresh analytics object if one doesn't exist in the cache
       analyticsData = {
         totalPlayCount: 0,
         playHasPlayerSettingsCount: 0,
@@ -109,68 +193,40 @@ function _performAnalyticsUpdate({ guildId, hasPlayerSettings, usedSearchEngine,
       };
     }
 
-    // Ensure nested structures and default counts exist
-    analyticsData.usedSearchEngines = analyticsData.usedSearchEngines || {};
-    analyticsData.guildPlayCount = analyticsData.guildPlayCount || [];
-    ['totalPlayCount', 'playHasPlayerSettingsCount', 'failedPlayCount', 'failedSearchCount'].forEach(key => {
-      // Initialize if undefined or null, but preserve 0 if it exists
-      analyticsData[key] = analyticsData[key] || 0;
-    });
-
     if (errorType) {
       if (errorType === 'playError') analyticsData.failedPlayCount++;
       else if (errorType === 'noResults') analyticsData.failedSearchCount++;
     } else {
       analyticsData.totalPlayCount++;
       if (hasPlayerSettings) analyticsData.playHasPlayerSettingsCount++;
-      if (usedSearchEngine) analyticsData.usedSearchEngines[usedSearchEngine] = (analyticsData.usedSearchEngines[usedSearchEngine] || 0) + 1;
+      if (usedSearchEngine) {
+        analyticsData.usedSearchEngines[usedSearchEngine] = (analyticsData.usedSearchEngines[usedSearchEngine] || 0) + 1;
+      }
       if (guildId) {
         const guildAnalytics = analyticsData.guildPlayCount.find(g => g.guildId === guildId);
-        if (guildAnalytics) guildAnalytics.playCount = (guildAnalytics.playCount || 0) + 1;
-        else analyticsData.guildPlayCount.push({ guildId: guildId, playCount: 1 });
+        if (guildAnalytics) {
+          guildAnalytics.playCount = (guildAnalytics.playCount || 0) + 1;
+        } else {
+          analyticsData.guildPlayCount.push({ guildId: guildId, playCount: 1 });
+        }
       }
     }
-    analyticsCache.set('globalAnalytics', analyticsData);
+    analyticsCache.set(ANALYTICS_CACHE_KEY, analyticsData);
   } catch (error) {
-    console.error("[CacheManager-_performAnalyticsUpdate] Error updating analytics cache:", error);
+    console.error("[CacheManager] Error updating local analytics cache:", error);
   }
 }
 
 /**
- * Updates the global analytics data.
- * If running in a sharded environment, it sends the data to Cluster 0 for processing.
- * Otherwise, or if on Cluster 0, it updates the cache directly.
- * @param {object} options - The options for updating analytics.
- */
-function updatePlayAnalytics(options = {}) {
-  if (!_client || !_client.cluster) {
-    if (!_client) console.warn('[CacheManager-updatePlayAnalytics] Client not initialized. Analytics update will be local.');
-    else if (!_client.cluster) console.warn('[CacheManager-updatePlayAnalytics] client.cluster not available. Analytics update will be local.');
-    _performAnalyticsUpdate(options);
-    return;
-  }
-
-  if (_client.cluster.id === 0) {
-    _performAnalyticsUpdate(options);
-  } else {
-    _client.cluster.send({ type: 'ANALYTICS_UPDATE_IPC', data: options });
-    if (process.env.DEBUG === 'true') {
-        console.debug(`[CacheManager-updatePlayAnalytics] Sent analytics update from Cluster ${_client.cluster.id} via IPC.`);
-    }
-  }
-}
-
-/**
- * Handles an incoming analytics update message, typically received via IPC on Cluster 0.
+ * Handles an incoming analytics data sync from a secondary cluster, received via IPC on the main cluster.
  * @param {object} data - The analytics data from the IPC message.
  */
 function handleIncomingAnalyticsUpdate(data) {
   if (process.env.DEBUG === 'true') {
-    console.debug(`[CacheManager-handleIncomingAnalyticsUpdate] Received analytics update on Cluster 0 for processing.`);
+    console.debug(`[CacheManager] Received analytics sync from a cluster. Merging now.`);
   }
-  _performAnalyticsUpdate(data);
+  _mergeIncomingAnalytics(data);
 }
-
 
 module.exports = {
   guildSettingsCache,
@@ -179,7 +235,7 @@ module.exports = {
   giveawayCache,
   analyticsCache,
   initializeCacheManager,
-  startAnalyticsSaver,
+  startAnalyticsProcessor, 
   updatePlayAnalytics,
   handleIncomingAnalyticsUpdate,
 };

@@ -195,10 +195,11 @@ new CommandHandler({
     await mongoose.connect(process.env.MONGODB_URI);
     console.log("Connected to DB.");
     client.cluster = new ClusterClient(client);
-    if (client.cluster.id === 0) { 
-      const { startAnalyticsSaver } = require('./utils/cacheManager');
-      startAnalyticsSaver(AnalyticsModel);
-    }
+
+    // Start the analytics processor on all clusters.
+    // The processor will handle its role (main/secondary) internally.
+    const { startAnalyticsProcessor } = require('./utils/cacheManager');
+    startAnalyticsProcessor(AnalyticsModel);
     if (client.playerType === 'discord_player' | client.playerType === 'both') await player.extractors.loadDefault();
     require('./events/giveawayEvents/checkGiveaway.js')(client);
     client.login(process.env.TOKEN); 
@@ -208,9 +209,13 @@ new CommandHandler({
 })();
 
 process.on('message', (message) => {
-  if (message && message.type === 'ANALYTICS_UPDATE_IPC' && client.cluster && client.cluster.id === 0) {
+  if (!message || typeof message !== 'object') return;
+
+  // Handle analytics data sync from secondary clusters to the main cluster
+  if (message.type === 'ANALYTICS_SYNC_IPC' && client.cluster && client.cluster.id === 0) {
     cacheManager.handleIncomingAnalyticsUpdate(message.data);
   }
+
 });
 
 module.exports = client;

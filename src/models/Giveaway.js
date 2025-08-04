@@ -12,7 +12,7 @@ const giveawaySchema = new Schema({
   messageId: {
     type: String,
     required: true,
-    index: true, // Giveaways are often looked up by messageId
+    index: true, 
   },
   messageTitle: {
     type: String,

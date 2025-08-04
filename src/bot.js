@@ -41,6 +41,9 @@ const clientOptions = {
 };
 
 const client = new Client(clientOptions);
+if (process.env.DEBUG === 'true') {
+  console.debug('[Bot] Initializing cache manager with client');
+}
 cacheManager.initializeCacheManager(client); 
 
 
@@ -194,11 +197,29 @@ new CommandHandler({
     mongoose.set("strictQuery", false);
     await mongoose.connect(process.env.MONGODB_URI);
     console.log("Connected to DB.");
+    if (process.env.DEBUG === 'true') {
+      console.debug('[Bot] Initializing cluster client:', {
+        clusterId: process.env.CLUSTER_ID,
+        shardList: getInfo().SHARD_LIST,
+        totalShards: getInfo().TOTAL_SHARDS
+      });
+    }
+    
     client.cluster = new ClusterClient(client);
+    
+    if (process.env.DEBUG === 'true') {
+      console.debug('[Bot] Cluster client initialized:', {
+        clusterId: client.cluster?.id,
+        hasCluster: !!client.cluster
+      });
+    }
 
     // Start the analytics processor on all clusters.
     // The processor will handle its role (main/secondary) internally.
     const { startAnalyticsProcessor } = require('./utils/cacheManager');
+    if (process.env.DEBUG === 'true') {
+      console.debug('[Bot] Starting analytics processor');
+    }
     startAnalyticsProcessor(AnalyticsModel);
     if (client.playerType === 'discord_player' | client.playerType === 'both') await player.extractors.loadDefault();
     require('./events/giveawayEvents/checkGiveaway.js')(client);
@@ -211,8 +232,20 @@ new CommandHandler({
 process.on('message', (message) => {
   if (!message || typeof message !== 'object') return;
 
+  if (process.env.DEBUG === 'true') {
+    console.debug('[Bot] Received IPC message:', {
+      messageType: message.type,
+      clusterId: client.cluster?.id,
+      isMainCluster: client.cluster?.id === 0,
+      messageKeys: Object.keys(message)
+    });
+  }
+
   // Handle analytics data sync from secondary clusters to the main cluster
   if (message.type === 'ANALYTICS_SYNC_IPC' && client.cluster && client.cluster.id === 0) {
+    if (process.env.DEBUG === 'true') {
+      console.debug('[Bot] Processing analytics sync IPC message');
+    }
     cacheManager.handleIncomingAnalyticsUpdate(message.data);
   }
 

@@ -41,9 +41,6 @@ const clientOptions = {
 };
 
 const client = new Client(clientOptions);
-if (process.env.DEBUG === 'true') {
-  console.debug('[Bot] Initializing cache manager with client');
-}
 cacheManager.initializeCacheManager(client); 
 
 

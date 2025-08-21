@@ -60,9 +60,9 @@ module.exports = {
     let guildSettings;
     function capitalizeSearchEngine(searchEngine) {
       return {
-        "youtube": "YouTube (Beta Player Only)",
+        "youtube": "YouTube",
         "soundcloud": "SoundCloud",
-        "deezer": "Deezer (Beta Player Only)",
+        "deezer": "Deezer",
       }[searchEngine] || searchEngine.charAt(0).toUpperCase() + searchEngine.slice(1);
     }
     function formatNowPlaying(searchEngine) {
@@ -89,7 +89,7 @@ module.exports = {
         .setPlaceholder('Default Search engine.')
         .addOptions(
           new StringSelectMenuOptionBuilder()
-            .setLabel('YouTube (beta player only)')
+            .setLabel('YouTube')
             .setValue('youtube'),
             new StringSelectMenuOptionBuilder()
             .setLabel('Spotify')
@@ -98,7 +98,7 @@ module.exports = {
             .setLabel('SoundCloud')
             .setValue('soundcloud'),
             new StringSelectMenuOptionBuilder()
-            .setLabel('Deezer (beta player only)')
+            .setLabel('Deezer')
             .setValue('deezer'),
         )
         .setMaxValues(1);

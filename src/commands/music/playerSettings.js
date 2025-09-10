@@ -276,8 +276,8 @@ module.exports = {
     if (!id) throw new Error("Missing ID");
   
     const httpsAgent = new (require('https').Agent)({
-      family: 4,  
-      rejectUnauthorized: false  
+      family: 4,
+      rejectUnauthorized: false
     });
   
     const maxRetries = 5;
@@ -297,6 +297,12 @@ module.exports = {
   
         return !!response.data.voted;
       } catch (error) {
+        // If it's a 404 error with "User not found" message, treat as not voted
+        if (error.response && error.response.status === 404 &&
+            error.response.data && error.response.data.message === 'User not found.') {
+          return false;
+        }
+        
         attempt++;
         console.error(`Error checking vote status (Attempt ${attempt} of ${maxRetries}):`, error);
   

@@ -7,6 +7,7 @@ const { updatePlayAnalytics } = require("../../utils/cacheManager");
 const handleExcessiveLavaErrors = require("../../utils/handleExcessiveLavaErrors");
 const { handleSpotifyNativePlay } = require("../../utils/spotifyNativePlay.js");
 const youtubeSr = require("youtube-sr").default;
+const { sanitizeSearchQuery } = require("../../utils/searchSanitization.js");
 
 
 module.exports =  {
@@ -29,7 +30,7 @@ module.exports =  {
     if (channel.full) return interaction.reply({content: 'That voice channel is full', flags: MessageFlags.Ephemeral})
     await interaction.deferReply();
 
-    const name = interaction.options.getString('query'); 
+    const name = sanitizeSearchQuery(interaction.options.getString('query'));
     const user = await User.findOne({ userId: interaction.user.id });
     const serverSettings = await GuildSettings.findOne({ guildId: interaction.guild.id });
 

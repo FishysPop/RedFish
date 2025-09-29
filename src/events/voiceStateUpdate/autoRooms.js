@@ -10,6 +10,7 @@ module.exports = async (oldChannel, newChannel, client ,handler) => {
     if (!autoroom) return;
     if (newChannel.channelId === autoroom.source) {
         const message = autoroom.channelName.replace('(user)',`${newChannel.member.user.globalName}`); //changes (user) to the person who joins the channels name
+        let newCreatedChannel;
         try {
             newCreatedChannel = await guild.channels.create({
                 name: message,
@@ -18,6 +19,7 @@ module.exports = async (oldChannel, newChannel, client ,handler) => {
               });
         } catch (error) {
             console.log("error while creating channel", error);
+            return;
         }
         autoroom.autoroomArray.push(newCreatedChannel.id);
         await newChannel.setChannel(newCreatedChannel).catch((error) =>{

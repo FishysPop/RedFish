@@ -127,6 +127,11 @@ async function handleSpotifyNativePlay(url, player, requester, client, originalT
     const debugEnabled = process.env.DEBUG === 'true';
     if (debugEnabled) console.debug(`[SpotifyNativePlay-DEBUG] Function called with URL: ${url}, forceResolve: ${forceResolve}`);
 
+    if (process.env.SPOTIFY_NATIVE !== 'true') {
+        if (debugEnabled) console.debug("[SpotifyNativePlay-DEBUG] SPOTIFY_NATIVE is not enabled. Exiting.");
+        return null;
+    }
+
     if (!process.env.SPOTIFY_NATIVE_STREAM_URL) {
         if (debugEnabled) console.debug("[SpotifyNativePlay-DEBUG] Missing SPOTIFY_NATIVE_STREAM_URL environment variable. Exiting.");
         return null;

@@ -25,13 +25,12 @@ module.exports = (client) => {
 
 process.on('uncaughtException', (err) => {
     if (err.code === 10062) {
-        console.log("Unknown interaction error:", err); // Log every unknown interaction error
+        console.log("Unknown interaction error:", err); 
 
         const now = Date.now();
         client.unknownInteractionErrors = client.unknownInteractionErrors || [];
         client.unknownInteractionErrors.push(now);
 
-        // Filter out errors older than a minute
         client.unknownInteractionErrors = client.unknownInteractionErrors.filter(timestamp => now - timestamp <= 60000);
 
         if (client.unknownInteractionErrors.length >= 5) {

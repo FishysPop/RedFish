@@ -27,12 +27,12 @@ module.exports = {
        user = await User.findOne({ userId });
        const lastVote = hasVotedInLast12Hrs ? new Date() : null;
  
-       // Check if the user exists in the database
        if (!user) {
          user = new User({
            userId: interaction.user.id,
            lastVote: lastVote,
-           defaultSearchEngine: "spotify",
+           defaultSearchEngine: "tidal",
+           TidalNativePlay: true, 
          });
          await user.save();
          hasVoted = lastVote ? true : false;
@@ -63,6 +63,7 @@ module.exports = {
         "youtube": "YouTube",
         "soundcloud": "SoundCloud",
         "deezer": "Deezer",
+        "tidal": "Tidal",
       }[searchEngine] || searchEngine.charAt(0).toUpperCase() + searchEngine.slice(1);
     }
     function formatNowPlaying(searchEngine) {
@@ -80,10 +81,11 @@ module.exports = {
         .setFooter({ text : "More Settings Coming Soon!"}); 
 
       if (hasVoted) {
-        embed.addFields({ name: "User Settings", value: `Spotify Native Play: ${ user.SpotifyNativePlay ? "Enabled" : "Disabled" } (Streams from Spotify)\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled" } (Converts Youtube Links To Another Platform)\nDefault Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`});
+        embed.addFields({ name: "User Settings", value: `Spotify Native Play: ${ user.SpotifyNativePlay ? "Enabled" : "Disabled" } (Streams from Spotify)\nTidal Native Play: ${ user.TidalNativePlay ? "Enabled" : "Disabled" } (Streams from Tidal)\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled" } (Converts Youtube Links To Another Platform)\nDefault Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`});
         const spotifyNativePlayButton = new ButtonBuilder().setCustomId('spotifyNativePlayButton').setLabel(user.SpotifyNativePlay ? "Disable Spotify Native" : "Enable Spotify Native").setStyle(user.SpotifyNativePlay ? ButtonStyle.Danger : ButtonStyle.Success);
+        const tidalNativePlayButton = new ButtonBuilder().setCustomId('tidalNativePlayButton').setLabel(user.TidalNativePlay ? "Disable Tidal Native" : "Enable Tidal Native").setStyle(user.TidalNativePlay ? ButtonStyle.Danger : ButtonStyle.Success);
         const convertLinksButton = new ButtonBuilder().setCustomId('convertLinksButton').setLabel(user.convertLinks ? "Disable Converting links" : "Enable Converting links").setStyle(user.convertLinks ? ButtonStyle.Danger : ButtonStyle.Success);
-        row.addComponents(spotifyNativePlayButton, convertLinksButton);
+        row.addComponents(spotifyNativePlayButton, tidalNativePlayButton, convertLinksButton);
         const defaultSearchEngineSelectMenu = new StringSelectMenuBuilder()
         .setCustomId('defaultSearchEngineSelectMenu')
         .setPlaceholder('Default Search engine.')
@@ -100,6 +102,9 @@ module.exports = {
             new StringSelectMenuOptionBuilder()
             .setLabel('Deezer')
             .setValue('deezer'),
+            new StringSelectMenuOptionBuilder()
+            .setLabel('Tidal')
+            .setValue('tidal'),
         )
         .setMaxValues(1);
         row2 = new ActionRowBuilder().addComponents(defaultSearchEngineSelectMenu);
@@ -212,15 +217,22 @@ module.exports = {
           case "spotifyNativePlayButton":
             user.SpotifyNativePlay = !user.SpotifyNativePlay;
             await user.save();
-            embed.data.fields[0].value = `Spotify Native Play: ${ user.SpotifyNativePlay ? "Enabled" : "Disabled" } (Streams from Spotify)\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled" } (Converts Youtube Links To Another Platform)\nDefault Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
+            embed.data.fields[0].value = `Spotify Native Play: ${ user.SpotifyNativePlay ? "Enabled" : "Disabled" } (Streams from Spotify)\nTidal Native Play: ${ user.TidalNativePlay ? "Enabled" : "Disabled" } (Streams from Tidal)\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled" } (Converts Youtube Links To Another Platform)\nDefault Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
             row.components[0].setLabel(user.SpotifyNativePlay ? "Disable Spotify Native" : "Enable Spotify Native").setStyle(user.SpotifyNativePlay ? ButtonStyle.Danger : ButtonStyle.Success);
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true });
+          break;
+          case "tidalNativePlayButton":
+            user.TidalNativePlay = !user.TidalNativePlay;
+            await user.save();
+            embed.data.fields[0].value = `Spotify Native Play: ${ user.SpotifyNativePlay ? "Enabled" : "Disabled" } (Streams from Spotify)\nTidal Native Play: ${ user.TidalNativePlay ? "Enabled" : "Disabled" } (Streams from Tidal)\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled" } (Converts Youtube Links To Another Platform)\nDefault Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
+            row.components[1].setLabel(user.TidalNativePlay ? "Disable Tidal Native" : "Enable Tidal Native").setStyle(user.TidalNativePlay ? ButtonStyle.Danger : ButtonStyle.Success);
             interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true });
           break;
           case "convertLinksButton":
             user.convertLinks = !user.convertLinks;
             await user.save();
-            embed.data.fields[0].value = `Spotify Native Play: ${ user.SpotifyNativePlay ? "Enabled" : "Disabled" } (Streams from Spotify)\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled" } (Converts Youtube Links To Another Platform)\nDefault Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
-            row.components[1].setLabel(user.convertLinks ? "Disable Converting links" : "Enable Converting links").setStyle(user.convertLinks ? ButtonStyle.Danger : ButtonStyle.Success);
+            embed.data.fields[0].value = `Spotify Native Play: ${ user.SpotifyNativePlay ? "Enabled" : "Disabled" } (Streams from Spotify)\nTidal Native Play: ${ user.TidalNativePlay ? "Enabled" : "Disabled" } (Streams from Tidal)\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled" } (Converts Youtube Links To Another Platform)\nDefault Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
+            row.components[2].setLabel(user.convertLinks ? "Disable Converting links" : "Enable Converting links").setStyle(user.convertLinks ? ButtonStyle.Danger : ButtonStyle.Success);
             interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true });
             break;
           case "adminVolumeSelectMenu":
@@ -232,7 +244,7 @@ module.exports = {
           case "defaultSearchEngineSelectMenu":
             user.defaultSearchEngine = i.values[0];
             await user.save();
-            embed.data.fields[0].value = `Spotify Native Play: ${ user.SpotifyNativePlay ? "Enabled" : "Disabled" } (Streams from Spotify)\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled" } (Converts Youtube Links To Another Platform)\nDefault Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
+            embed.data.fields[0].value = `Spotify Native Play: ${ user.SpotifyNativePlay ? "Enabled" : "Disabled" } (Streams from Spotify)\nTidal Native Play: ${ user.TidalNativePlay ? "Enabled" : "Disabled" } (Streams from Tidal)\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled" } (Converts Youtube Links To Another Platform)\nDefault Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
             interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true })
           break;
           case "adminPlayerMessageSelectMenu":

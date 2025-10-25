@@ -25,6 +25,10 @@ const userPlayerSettingsSchema = new Schema({
     type: Boolean,
     default: true,
   },
+  TidalNativePlay: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 module.exports = model("UserPlayerSettings", userPlayerSettingsSchema);

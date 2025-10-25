@@ -3,6 +3,7 @@ const { convertTime } = require("../../utils/ConvertTime.js");
 const MetadataFilter = require('@web-scrobbler/metadata-filter');
 const handleExcessiveLavalinkErrors = require("../../utils/handleExcessiveLavaErrors.js")
 const { checkQueueForNativePlay } = require("../../utils/spotifyNativePlay.js");
+const { checkQueueForTidalNativePlay } = require("../../utils/tidalNativePlay.js");
 require("dotenv").config();
 
 
@@ -41,10 +42,10 @@ client.manager.on("playerException", async (player, data) => {
     let description = `Track: ${data.track.info.title}\nError: ${data.exception.cause},Node: ${player.shoukaku.node.name}\n-# Please join the [support server](https://discord.com/invite/rDHPK2er3j) if this keeps happening`;
     
     if (data.exception?.message?.includes('This video requires login.')) {
-      description += `\n\n**Tip:** This is caused by youtube ratelimiting our servers. Try enabling direct Spotify streaming in \`/player-settings\` (beta).`;
+      description += `\n\n**Tip:** This is caused by youtube ratelimiting our servers. Try enabling direct Tidal or Spotify streaming in \`/player-settings\` (beta).`;
     }
     const embed = new EmbedBuilder()
-      .setColor('#e66229')  // Use a consistent color
+      .setColor('#e66229')  
       .setTitle('Oops... seems something went wrong skipping to next!')
       .setDescription(description);
       try {
@@ -66,15 +67,15 @@ client.manager.on("playerException", async (player, data) => {
   }
 });
 
-//if (process.env.DEBUG === "true") client.manager.shoukaku.on('raw', (name,json) => console.log(`RAW: Lavalink ${name}, json:`,json));
 
   
 client.manager.on("playerStart", async (player, track) => {
   checkQueueForNativePlay(player, client);
+  checkQueueForTidalNativePlay(player, client); 
   if (player.customData.playerMessages === "noMessage") return;
   const channel = client.channels.cache.get(player.textId);
   const guild = client.guilds.cache.get(player.guildId);
-  if (!guild) return; 
+  if (!guild) return;
 
   if (!guild.members.me.permissionsIn(channel).has(PermissionsBitField.Flags.ViewChannel)) {
     return;
@@ -83,7 +84,7 @@ client.manager.on("playerStart", async (player, track) => {
     return;
   }
 
-    const playerStartEmbed = new EmbedBuilder() //embed
+    const playerStartEmbed = new EmbedBuilder()
 	.setColor('#e66229')
 	.setTitle(track?.title || "Missing Title")
 	.setURL(track.sourceName === 'spotify_native' ? track.uri : (track?.realUri || "https://youtube.com"))
@@ -94,7 +95,10 @@ client.manager.on("playerStart", async (player, track) => {
 
     if (track.sourceName === 'spotify_native') {
         playerStartEmbed.setAuthor({ name: 'Now Playing', iconURL: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Spotify_icon.svg/1982px-Spotify_icon.svg.png' });
-    } else {
+    } else if (track.sourceName === 'tidal_native') {
+        playerStartEmbed.setAuthor({ name: 'Now Playing', iconURL: 'https://images.icon-icons.com/2429/PNG/512/tidal_logo_icon_147227.png' });
+    }
+    else {
         playerStartEmbed.setAuthor({ name: 'Now Playing' });
     }
     const playPauseButton = new ButtonBuilder().setCustomId('LavaPause').setEmoji('<:w_playpause:1106270708243386428>').setStyle(ButtonStyle.Primary);

@@ -1,12 +1,7 @@
 const WebSocket = require('ws');
 
-// Global state for managing WebSocket jobs
-// pendingSpotifyJobs: Maps a Spotify Track ID to its promise handlers and state.
-// Key: spotifyTrackID, Value: { resolve, reject, jobId, timeoutId }
 const pendingSpotifyJobs = new Map();
 
-// jobToSpotifyIdMap: A reverse map to find a Spotify Track ID from a server-generated job ID.
-// Key: jobID, Value: spotifyTrackID
 const jobToSpotifyIdMap = new Map();
 /**
  * Ensures a single, persistent WebSocket connection to the interactive endpoint.
@@ -36,7 +31,7 @@ async function ensureInteractiveWebSocket(client, debugEnabled) {
         if (debugEnabled) console.debug(`[SpotifyNativePlay-DEBUG] Attempting to connect to interactive WebSocket: ${wsUrl.toString()}`);
         const ws = new WebSocket(wsUrl.toString());
 
-        ws.onopen = () => { // Use onopen directly, not ws.on('open')
+        ws.onopen = () => {
             if (debugEnabled) console.debug("[SpotifyNativePlay-DEBUG] Interactive WebSocket opened.");
             client.spotifyNativeWs = ws;
             client.spotifyNativeWsConnecting = false;
@@ -50,7 +45,6 @@ async function ensureInteractiveWebSocket(client, debugEnabled) {
 
                 const { id: jobID, trackId: spotifyTrackID, status, fileUrl, error: errorMessage } = message;
 
-                // Determine which job this message is for
                 let jobPromise;
                 let associatedSpotifyID = spotifyTrackID;
 
@@ -63,7 +57,6 @@ async function ensureInteractiveWebSocket(client, debugEnabled) {
                 }
 
                 if (jobPromise) {
-                    // If this is the first time we see the jobID, map it for future lookups
                     if (jobID && !jobPromise.jobId) {
                         jobPromise.jobId = jobID;
                         jobToSpotifyIdMap.set(jobID, associatedSpotifyID);
@@ -81,7 +74,6 @@ async function ensureInteractiveWebSocket(client, debugEnabled) {
                         pendingSpotifyJobs.delete(associatedSpotifyID);
                         if (jobPromise.jobId) jobToSpotifyIdMap.delete(jobPromise.jobId);
                     }
-                    // Other statuses like 'processing' or 'queued' are ignored as we just wait for a final state.
                 } else {
                     if (debugEnabled) console.debug(`[SpotifyNativePlay-DEBUG] Received status for an unknown or already handled job. SpotifyID: ${spotifyTrackID}, JobID: ${jobID}`);
                 }
@@ -92,7 +84,7 @@ async function ensureInteractiveWebSocket(client, debugEnabled) {
 
         ws.onerror = (error) => {
             console.error("[SpotifyNativePlay] Interactive WebSocket error:", error.message || error);
-            if (client.spotifyNativeWsConnecting) { // If still connecting, reject the promise
+            if (client.spotifyNativeWsConnecting) {
                 client.spotifyNativeWsConnecting = false;
                 reject(new Error(`Interactive WebSocket connection failed: ${error.message || 'Unknown error'}`));
             }
@@ -102,7 +94,6 @@ async function ensureInteractiveWebSocket(client, debugEnabled) {
             if (debugEnabled) console.debug(`[SpotifyNativePlay-DEBUG] Interactive WebSocket closed. Code: ${event.code}, Reason: ${event.reason}`);
             client.spotifyNativeWs = null; 
             client.spotifyNativeWsConnecting = false;
-            // Reject all pending promises because the connection is lost
             pendingSpotifyJobs.forEach((job, trackId) => {
                 clearTimeout(job.timeoutId);
                 job.reject(new Error("Interactive WebSocket closed unexpectedly."));
@@ -180,7 +171,6 @@ async function handleSpotifyNativePlay(url, player, requester, client, originalT
         }
         if (debugEnabled) console.debug("[SpotifyNativePlay-DEBUG] Successfully retrieved metadata for:", spotifyTrack.title);
 
-        // If the queue is long and we are not force-resolving, defer the expensive process.
         if (player.queue.size > 2 && !forceResolve) {
             if (debugEnabled) console.debug(`[SpotifyNativePlay-DEBUG] Queue size is ${player.queue.size}. Deferring resolution for: ${spotifyTrack.title}`);
             spotifyTrack.spotifynative = "awaiting_resolve";
@@ -324,26 +314,19 @@ async function handleSpotifyNativePlaylist(url, player, requester, client) {
  */
 async function checkQueueForNativePlay(player, client) {
     const debugEnabled = process.env.DEBUG === 'true';
-    if (debugEnabled) console.debug("[SpotifyNativePlay-Resolver] Checking queue for unresolved native tracks.");
-
-    // Limit processing to the next 2 unresolved tracks to avoid spamming requests.
     const tracksToResolve = player.queue.filter(track => track.spotifynative === "awaiting_resolve").slice(0, 2);
 
-    if (!tracksToResolve.length) {
-        if (debugEnabled) console.debug("[SpotifyNativePlay-Resolver] No unresolved tracks found to process at this time.");
-        return;
-    }
+    if (!tracksToResolve.length) return;
 
     if (debugEnabled) console.debug(`[SpotifyNativePlay-Resolver] Found ${tracksToResolve.length} unresolved tracks to process.`);
 
     for (const track of tracksToResolve) {
         if (debugEnabled) console.debug(`[SpotifyNativePlay-Resolver] Attempting to resolve: ${track.title}`);
-        track.spotifynative = "resolving"; // Mark as resolving to prevent re-processing
+        track.spotifynative = "resolving"; 
         let resolvedTrack = null;
         let success = false;
 
         try {
-            // Attempt to resolve with Spotify Native Play
             const searchResult = await handleSpotifyNativePlay(track.uri, player, track.requester, client, track, true);
 
             if (searchResult && searchResult.tracks.length > 0) {
@@ -353,19 +336,16 @@ async function checkQueueForNativePlay(player, client) {
             }
         } catch (e) {
             console.error(`[SpotifyNativePlay-Resolver] Error during native resolution for ${track.title}:`, e);
-            // Fallback will be attempted next.
         }
 
-        // If native play fails or throws, fallback to another engine like YouTube.
         if (!success) {
             if (debugEnabled) console.warn(`[SpotifyNativePlay-Resolver] Native resolve failed for ${track.title}. Falling back to YouTube search.`);
             try {
-                // Use a descriptive search query for better results.
                 const fallbackResult = await player.search(`${track.title} ${track.author}`, { requester: track.requester, engine: 'youtube' });
                 
                 if (fallbackResult && fallbackResult.tracks.length > 0) {
                     resolvedTrack = fallbackResult.tracks[0];
-                    resolvedTrack.requester = track.requester; // Preserve the original requester.
+                    resolvedTrack.requester = track.requester; 
                     if (debugEnabled) console.debug(`[SpotifyNativePlay-Resolver] Successfully resolved track via fallback: ${resolvedTrack.title}`);
                 } else {
                      if (debugEnabled) console.error(`[SpotifyNativePlay-Resolver] Fallback search also failed for ${track.title}.`);
@@ -375,16 +355,12 @@ async function checkQueueForNativePlay(player, client) {
             }
         }
 
-        // Find the original unresolved track in the queue and replace it with the resolved version.
         const trackIndex = player.queue.findIndex(t => t === track);
 
         if (trackIndex !== -1) {
             if (resolvedTrack) {
-                // Kazagumo queue extends Array, so splice is safe.
                 player.queue.splice(trackIndex, 1, resolvedTrack);
             } else {
-                // If all resolution attempts failed, mark it to prevent re-processing.
-                // The player will likely error on this track and skip to the next one.
                 track.spotifynative = "failed_resolve";
                 if (debugEnabled) console.error(`[SpotifyNativePlay-Resolver] All resolution attempts failed for ${track.title}. Marking as failed.`);
             }

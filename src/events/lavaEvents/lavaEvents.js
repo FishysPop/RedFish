@@ -162,56 +162,54 @@ client.manager.on("playerEnd", (player) => {
 
 });
 
-client.manager.on("playerEmpty", async player => {
-  try {
-  if (player.customData.autoPlay === false) return;
-    const history = player.queue.previous.reverse()
-    const lastOption = history[0]
-  let res;
-  const randomNumber = Math.floor(Math.random() * 4) + 1;
-  if (randomNumber === 2) {
-    res = await player.search(`${lastOption.title}`, {engine: 'youtube_music' ,requester: { username: "Autoplay" } })
-  } else {
-    res = await player.search(`${lastOption.author}`, {engine: 'youtube_music' ,requester: { username: "Autoplay" } })
+  // Autoplay Event
+  client.manager.on("playerEmpty", async (player) => {
+    try {
+      if (player.customData.autoPlay === false) return;
+      const history = player.queue.previous.reverse();
+      const lastTrack = history[0];
+      let id = player.queue.previous.reverse()[0].identifier;
+      if (!id) {
+        res = await player.search(`${lastTrack.title} + ${lastTrack.author}`, {
+          engine: "youtube_music",
+          requester: { username: "Autoplay" },
+        });
+        id = res.tracks[0].identifier;
+      }
+      // find recommended tracks
+      const res = await player.search(
+        `https://music.youtube.com/watch?v=${id}&list=RD${id}`
+      );
 
-  }
- const filter = MetadataFilter.createSpotifyFilter();
- filter.extend(MetadataFilter.createAmazonFilter());
- const lastFiveTracks = history.slice(0, 5);
+      // Remove Metadata from titles
+      const filter = MetadataFilter.createSpotifyFilter();
+      filter.extend(MetadataFilter.createAmazonFilter());
+      const lastFiveTracks = history.slice(0, 5);
 
+      const filteredHistoryTitles = [];
+      lastFiveTracks.forEach(async (track) => {
+        let title = MetadataFilter.youtube(track.title);
+        filteredHistoryTitles.push(title);
+      });
 
-  const filteredHistoryTitles = []; // Initialize an empty array
-  lastFiveTracks.forEach(async track => {
-    let title = MetadataFilter.youtube(track.title)
-    filteredHistoryTitles.push(title) // Push the filtered title to the array
-});
-  const filteredlastOptionTitle = MetadataFilter.youtube(lastOption.title)
+      const filteredTracks = res.tracks.filter((track) => {
+        return !filteredHistoryTitles.some((historyTrack) =>
+          track.title.toLowerCase().includes(historyTrack.toLowerCase())
+        );
+      });
 
+      let randomTrack;
+      if (filteredTracks.length < 1) {
+        randomTrack = res.tracks[Math.floor(Math.random() * res.tracks.length)];
+      } else {
+        randomTrack = filteredTracks[Math.floor(Math.random() * filteredTracks.length)];
+      }
 
-  // Filter the search results to only include tracks with titles that match the last played track's title (ignoring case)
-  const filteredTracks = res.tracks.filter(track => {
-    return !track.title.toLowerCase().includes(filteredlastOptionTitle.toLowerCase());
+      if (!randomTrack) randomTrack = res[0];
+      player.queue.add(randomTrack);
+      if (!player.playing && !player.paused) player.play();
+    } catch (error) {
+      console.log("error while running lavalink autoplay", error);
+    }
   });
-  // Filter the search results to only include tracks that are not in the last 5 tracks of the history
-  const filteredTracks2 = filteredTracks.filter(track => {
-    return !filteredHistoryTitles.some(historyTrack => track.title.toLowerCase().includes(historyTrack.toLowerCase()));
-  });
-
-  let randomTrack;
-  if (filteredTracks2.length < 1 ) {    
-    const randomIndex = Math.floor(Math.random() * res.tracks.length);
-    randomTrack = res.tracks[randomIndex];
-} else {
-  const randomIndex = Math.floor(Math.random() * filteredTracks2.length);
-  randomTrack = filteredTracks2[randomIndex];
-}
-if(!randomTrack) randomTrack = res[0]
-  player.queue.add(randomTrack);
-  if (!player.playing && !player.paused) player.play();
-} catch (error) {
-    console.log("error while running lavalink autoplay", error)
-}
-});
-
-
 }

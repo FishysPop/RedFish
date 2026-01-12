@@ -4,7 +4,7 @@
   "description": "��r\u0000e\u0000a\u0000d\u0000 \u0000t\u0000h\u0000i\u0000s\u0000 \u0000i\u0000f\u0000 \u0000y\u0000o\u0000u\u0000r\u0000 \u0000g\u0000a\u0000y\u0000",
   "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon .",
     "start": "node src/index.js",
     "guildList": "node src/utils/guildList.js",
     "debug": "node src/utils/debugEvents.js",
@@ -29,7 +29,7 @@
     "djs-commander": "^0.0.45",
     "dotenv": "^16.5.0",
     "https-proxy-agent": "^7.0.4",
-    "kazagumo": "^3.3.0",
+    "kazagumo": "^3.4.0",
     "kazagumo-deezer": "^2.0.2",
     "kazagumo-spotify": "^2.1.1",
     "mediaplex": "^1.0.0",

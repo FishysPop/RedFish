@@ -165,7 +165,7 @@ module.exports =  {
              { name: "Settings", value: `Loop: ${repeatModeEmoji} AutoPlay: ${autoPlayEmoji}` },
      
            ])
-           .setFooter({ text: `Requested by ${currentTrack.requester.username} | Node: ${player.queue.kazagumoPlayer.shoukaku.node.name}` });
+           .setFooter({ text: `Requested by ${currentTrack.requester?.username} | Node: ${player.queue.kazagumoPlayer.shoukaku.node.name}` });
      
          return interaction.reply({ embeds: [embed2] });
    

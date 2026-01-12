@@ -178,8 +178,7 @@ client.manager.on("playerEnd", (player) => {
       }
       // find recommended tracks
       const res = await player.search(
-        `https://music.youtube.com/watch?v=${id}&list=RD${id}`
-      );
+        `https://music.youtube.com/watch?v=${id}&list=RD${id}`, { requester: { username: "Autoplay" }});
 
       // Remove Metadata from titles
       const filter = MetadataFilter.createSpotifyFilter();

@@ -45,9 +45,7 @@ async function getSpotifyTrack(details) {
 }
 
 async function handleTidalNativePlay(url, player, requester, client, originalTrack = null, forceResolve = false) {
-    const debugEnabled = process.env.DEBUG === 'true';
     if (!process.env.TIDAL_NATIVE || process.env.TIDAL_NATIVE !== 'true') {
-        if (debugEnabled) console.debug("[TidalNativePlay-DEBUG] TIDAL_NATIVE is not enabled.");
         return null;
     }
 
@@ -175,16 +173,6 @@ async function handleTidalNativePlaylist(url, player, requester, client) {
 
     for (let track of playlistResult.tracks) {
         track.tidalnative = "awaiting_resolve";
-        if (!track.thumbnail && track.title && track.author) {
-            try {
-                const coverUrl = await getCover({ query: `${track.title} ${track.author}`, size: '640' });
-                if (coverUrl) {
-                    track.thumbnail = coverUrl;
-                }
-            } catch (coverError) {
-                console.warn("[TidalNativePlay] Error getting cover for playlist track:", coverError.message);
-            }
-        }
     }
     
     player.queue.add(playlistResult.tracks);
@@ -255,24 +243,17 @@ async function searchTidalTracks(query, requester) {
             }
         }
 
-        const formattedTracks = await Promise.all(processedTracks.map(async (track) => {
-            let coverUrl = null;
-            if (track.id || track.trackId) {
-                coverUrl = await getCover({ id: track.id || track.trackId, size: '640' });
-            } else if (track.title && track.artist) {
-                coverUrl = await getCover({ query: `${track.title} ${track.artist}`, size: '640' });
-            }
-
+        const formattedTracks = processedTracks.map((track) => {
             return {
                 title: track.title || track.name,
                 author: (track.artists && track.artists[0]) ? track.artists[0].name : track.artist,
                 uri: track.url || track.uri || `https://tidal.com/browse/track/${track.id || track.trackId}`,
                 length: (track.duration || track.duration_ms || track.length) * 1000,
-                thumbnail: coverUrl || track.album?.image || track.thumbnail || track.cover,
+                thumbnail: track.album?.image || track.thumbnail || track.cover,
                 sourceName: 'tidal',
                 requester: requester,
             };
-        }));
+        });
 
         return {
             tracks: formattedTracks,

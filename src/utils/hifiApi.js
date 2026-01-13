@@ -20,6 +20,7 @@ async function getTracks({
 
     let searchParams = `s=${encodeURIComponent(query)}&li=10`;
     const searchUrl = `${target.baseUrl}/search/?${searchParams}`;
+    
     const response = await fetchWithCORS(searchUrl, {
       method: "GET",
       headers: {
@@ -41,10 +42,13 @@ async function getTracks({
     }
 
     const data = await response.json();
+
     if (data && data.tracks && data.tracks.items) {
       return data.tracks.items;
     } else if (data && data.items) {
       return data.items;
+    } else if (data && data.data && data.data.items) {
+      return data.data.items;
     } else if (Array.isArray(data)) {
       if (data.length > 0 && data[0].id && data[0].title) {
         return data;
@@ -70,6 +74,9 @@ async function getTracks({
           return data[key];
         }
       }
+      if (data.data && Array.isArray(data.data.items)) {
+        return data.data.items;
+      }
     }
     return [];
   } catch (error) {
@@ -85,7 +92,9 @@ async function getOriginalTrackUrl({
 }) {
   try {
     let target = selectApiTarget();
+    
     const trackUrl = `${target.baseUrl}/track/?id=${id}&quality=${quality}`;
+    
     const response = await fetchWithCORS(trackUrl, {
       method: "GET",
       headers: {
@@ -107,6 +116,7 @@ async function getOriginalTrackUrl({
     }
 
     const data = await response.json();
+
     if (Array.isArray(data)) {
       for (const item of data) {
         if (item.OriginalTrackUrl) {
@@ -173,6 +183,26 @@ async function getOriginalTrackUrl({
         }
       }
       return null;
+    } else if (data.data && data.data.manifest) {
+      try {
+        const manifest = JSON.parse(
+          Buffer.from(data.data.manifest, "base64").toString()
+        );
+        return { url: manifest.urls[0] };
+      } catch (e) {
+        console.warn("[HifiApi] Error parsing nested manifest:", e.message);
+        return null;
+      }
+    } else if (data.data && data.data.trackId) {
+      for (const key in data.data) {
+        if (
+          key.toLowerCase().includes("url") &&
+          typeof data.data[key] === "string"
+        ) {
+          return { url: data.data[key] };
+        }
+      }
+      return null;
     } else {
       console.warn("[HifiApi] Unexpected response format for track URL:", data);
       for (const key in data) {
@@ -200,7 +230,7 @@ async function raceAlternativeEndpoints(query, countryCode) {
   const currentTarget = selectApiTarget();
 
   const endpointPromises = [];
-  const maxEndpoints = Math.min(5, API_CONFIG.targets.length); 
+  const maxEndpoints = Math.min(5, API_CONFIG.targets.length);
   let endpointCount = 0;
 
   for (const target of API_CONFIG.targets) {
@@ -229,6 +259,7 @@ async function raceAlternativeEndpoints(query, countryCode) {
           }
 
           const searchUrl = `${target.baseUrl}/search/?${searchParams}`;
+          
           const response = await fetchWithCORS(searchUrl, {
             method: "GET",
             headers: {
@@ -238,6 +269,7 @@ async function raceAlternativeEndpoints(query, countryCode) {
 
           if (response.ok) {
             const data = await response.json();
+            
             if (data && data.tracks && data.tracks.items) {
               resolve(data.tracks.items);
             } else if (data && data.items) {
@@ -274,6 +306,7 @@ async function raceAlternativeEndpoints(query, countryCode) {
 
   try {
     const results = await Promise.all(endpointPromises);
+    
     for (const result of results) {
       if (result !== null && result.length > 0) {
         return result;
@@ -296,7 +329,7 @@ async function raceAlternativeTrackUrlEndpoint(id, quality) {
   const currentTarget = selectApiTarget();
 
   const endpointPromises = [];
-  const maxEndpoints = Math.min(5, API_CONFIG.targets.length); 
+  const maxEndpoints = Math.min(5, API_CONFIG.targets.length);
   let endpointCount = 0;
 
   for (const target of API_CONFIG.targets) {
@@ -313,6 +346,7 @@ async function raceAlternativeTrackUrlEndpoint(id, quality) {
       new Promise(async (resolve) => {
         try {
           const trackUrl = `${target.baseUrl}/track/?id=${id}&quality=${quality}`;
+          
           const response = await fetchWithCORS(trackUrl, {
             method: "GET",
             headers: {
@@ -322,6 +356,7 @@ async function raceAlternativeTrackUrlEndpoint(id, quality) {
 
           if (response.ok) {
             const data = await response.json();
+            
             if (data.url) {
               resolve({ url: data.url });
             } else if (data.manifest) {
@@ -383,6 +418,7 @@ async function raceAlternativeTrackUrlEndpoint(id, quality) {
 
   try {
     const results = await Promise.all(endpointPromises);
+    
     for (const result of results) {
       if (result !== null) {
         return result;
@@ -408,6 +444,7 @@ async function getCover({ id = null, query = null, size = "640" }) {
 
   try {
     let target = selectApiTarget();
+    
     let coverUrl;
     if (id) {
       coverUrl = `${target.baseUrl}/cover/?id=${id}`;
@@ -430,8 +467,9 @@ async function getCover({ id = null, query = null, size = "640" }) {
     }
 
     const data = await response.json();
-    if (Array.isArray(data) && data.length > 0) {
-      const coverData = data[0];
+    let covers = data.covers || data.cover || data;
+    if (Array.isArray(covers) && covers.length > 0) {
+      const coverData = covers[0];
       return (
         coverData[size] ||
         coverData["640"] ||
@@ -456,3 +494,4 @@ module.exports = {
   raceAlternativeEndpoints,
   raceAlternativeTrackUrlEndpoint,
 };
+

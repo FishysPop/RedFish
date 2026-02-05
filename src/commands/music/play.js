@@ -230,7 +230,7 @@ case "discord_player": {
               try {
                 ytivideo = await client.ytiClient.getVideo(videoId);
               } catch (e) {
-                // Ignore youtubei error and fallback to youtube-sr
+                console.error("Error fetching video from ytiClient:", e);
               }
               let query = ytivideo?.music?.title && ytivideo?.music?.artist 
                   ? `${ytivideo.music.artist} - ${ytivideo.music.title}` 

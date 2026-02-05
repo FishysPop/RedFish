@@ -422,11 +422,8 @@ async function handleNoResults(interaction, query) {
   const isYoutubeLink = /(?:https?:\/\/)?(?:www\.|music\.)?(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/.test(query);
   const embed = new EmbedBuilder()
     .setColor('#e66229')
-    .setDescription(`No results found for: ${query}`);
-
-  if (isYoutubeLink) {
-    embed.setDescription(`No results found for: ${query}\n\n**Tip:** Our servers might be blocked by YouTube. Try enabling **Converting Links** and **Tidal Native Play** in \`/player-settings\` to play it.`);
-  }
+    .setTitle(`No results found for: ${query}`)
+    .setDescription(isYoutubeLink ? `Our servers might be blocked by YouTube. Try enabling **Converting Links** and **Tidal Native Play** in \`/player-settings\` to play it.` : `Try rephrasing your search or use a different query.`);
   return interaction.followUp({ embeds: [embed] });
 }
   },

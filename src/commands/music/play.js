@@ -226,7 +226,12 @@ case "discord_player": {
               const videoIdMatch = name.match(/(?:https?:\/\/)?(?:www\.|music\.)?(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
               const videoId = videoIdMatch ? videoIdMatch[1] : name;
 
-              const ytivideo = await client.ytiClient.getVideo(videoId);
+              let ytivideo;
+              try {
+                ytivideo = await client.ytiClient.getVideo(videoId);
+              } catch (e) {
+                // Ignore youtubei error and fallback to youtube-sr
+              }
               let query = ytivideo?.music?.title && ytivideo?.music?.artist 
                   ? `${ytivideo.music.artist} - ${ytivideo.music.title}` 
                   : ytivideo?.title;
@@ -415,12 +420,15 @@ async function handlePlayError(interaction, name, error, player) {
 async function handleNoResults(interaction, query) {
   updatePlayAnalytics({ errorType: 'noResults' });
   const isYoutubeLink = /(?:https?:\/\/)?(?:www\.|music\.)?(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/.test(query);
-  if (isYoutubeLink) {
-    return interaction.followUp(`No results found for: ${query}\n\n**Tip:**Our servers might be blocked by YouTube. Try enabling **Converting Links** and **Tidal Native Play** in \`/player-settings\` to play it.`);
-  }
-  return interaction.followUp(`No results found for: ${query}`);
-}
+  const embed = new EmbedBuilder()
+    .setColor('#e66229')
+    .setDescription(`No results found for: ${query}`);
 
+  if (isYoutubeLink) {
+    embed.setDescription(`No results found for: ${query}\n\n**Tip:** Our servers might be blocked by YouTube. Try enabling **Converting Links** and **Tidal Native Play** in \`/player-settings\` to play it.`);
+  }
+  return interaction.followUp({ embeds: [embed] });
+}
   },
 
 

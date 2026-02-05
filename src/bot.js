@@ -13,6 +13,7 @@ const Topgg = require("@top-gg/sdk");
 const { ClusterClient, getInfo } = require('discord-hybrid-sharding');
 const AnalyticsModel = require("./models/Analytics"); 
 const cacheManager = require('./utils/cacheManager');
+const { Client: YTIClient } = require("youtubei");
 
 
 const path = require('path');
@@ -178,8 +179,8 @@ if (process.env.TOP_GG) {
 } else {
   console.log("Top.gg Disabled")
 }
-
-
+const ytiClient = new YTIClient();
+client.ytiClient = ytiClient;
 
 new CommandHandler({
   client,

@@ -221,20 +221,54 @@ case "discord_player": {
 
         if (!res) {
           const isLink = /^(https?:\/\/.+)/i.test(name); 
-          if (isLink && playerSettings.convertLinks) { 
+          if (isLink && playerSettings.convertLinks) {
             try {
-                const searchResults = await youtubeSr.getVideo(name, { limit: 1 });
-                if (searchResults && searchResults.length > 0) {
-                    res = await player.search(`${searchResults[0].title}`,{ requester: interaction.user, source: 'dzsearch:'});
-                    if (!res.tracks.length) {
-                      res = await player.search(name, { requester: interaction.user});
+              const videoIdMatch = name.match(/(?:https?:\/\/)?(?:www\.|music\.)?(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+              const videoId = videoIdMatch ? videoIdMatch[1] : name;
+
+              const ytivideo = await client.ytiClient.getVideo(videoId);
+              let query = ytivideo?.music?.title && ytivideo?.music?.artist 
+                  ? `${ytivideo.music.artist} - ${ytivideo.music.title}` 
+                  : ytivideo?.title;
+
+              if (!query) {
+                  const searchResults = await youtubeSr.searchOne(videoId);
+                  query = searchResults?.title;
+              }
+
+              if (query) {
+                if (playerSettings.TidalNativePlay) {
+                    const tidalSearchResult = await searchTidalTracks(query, interaction.user);                    
+                    if (tidalSearchResult?.tracks?.length > 0) {
+                        const track = tidalSearchResult.tracks[0];
+                        try {
+                            const nativeResult = await thirdPartySourceHandler.handleSource(track.uri, player, interaction.user, client, track, false, playerSettings);
+                            if (nativeResult?.tracks?.length > 0) {
+                                res = nativeResult;
+                                usedSearchEngine = 'tidal_native';
+                            } else {
+                                res = tidalSearchResult;
+                                usedSearchEngine = 'tidal';
+                            }
+                        } catch (tidalError) {
+                            console.error("[Play Command] Error in Tidal native playback:", tidalError);
+                            res = tidalSearchResult;
+                            usedSearchEngine = 'tidal';
+                        }
                     }
-                } else {
-                    res = await player.search(name, { requester: interaction.user });
                 }
-            } catch (youtubeSrError) {
-                console.error("youtube-sr error:", youtubeSrError);
+
+                if (!res || !res.tracks.length) {
+                    res = await player.search(query, { requester: interaction.user });
+                }
+              }
+
+              if (!res || !res.tracks.length) {
                 res = await player.search(name, { requester: interaction.user });
+              }
+            } catch (YoutubeConvertError) {
+              console.error("youtube converting links error:", YoutubeConvertError);
+              res = await player.search(name, { requester: interaction.user });
             }
         } else if (isLink) {
             res = await player.search(name, { requester: interaction.user });
@@ -380,6 +414,10 @@ async function handlePlayError(interaction, name, error, player) {
 
 async function handleNoResults(interaction, query) {
   updatePlayAnalytics({ errorType: 'noResults' });
+  const isYoutubeLink = /(?:https?:\/\/)?(?:www\.|music\.)?(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/.test(query);
+  if (isYoutubeLink) {
+    return interaction.followUp(`No results found for: ${query}\n\n**Tip:**Our servers might be blocked by YouTube. Try enabling **Converting Links** and **Tidal Native Play** in \`/player-settings\` to play it.`);
+  }
   return interaction.followUp(`No results found for: ${query}`);
 }
 

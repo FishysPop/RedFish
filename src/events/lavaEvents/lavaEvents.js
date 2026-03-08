@@ -39,7 +39,11 @@ client.manager.on("playerException", async (player, data) => {
   if (!channel) return;  // Check if channel exists
 
   if (player.customData.playerMessages !== "noMessage") { 
-    let description = `Track: ${data.track.info.title}\nError: ${data.exception.cause},Node: ${player.shoukaku.node.name}\n-# Please join the [support server](https://discord.com/invite/rDHPK2er3j) if this keeps happening`;
+    // Handle null/undefined exception cause and truncate to avoid Discord embed limit (4096 chars)
+    const errorMessage = data.exception?.cause || data.exception?.message || 'Unknown error';
+    const truncatedError = errorMessage.length > 1000 ? errorMessage.substring(0, 997) + '...' : errorMessage;
+    
+    let description = `Track: ${data.track.info.title}\nError: ${truncatedError}\nNode: ${player.shoukaku.node.name}\n-# Please join the [support server](https://discord.com/invite/rDHPK2er3j) if this keeps happening`;
     
     // Check for YouTube rate limiting errors
     const isYoutubeError = data.exception?.message?.includes('This video requires login.') || 

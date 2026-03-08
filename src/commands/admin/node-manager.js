@@ -29,11 +29,9 @@ module.exports = {
 
       const StatusCodes = {
         0: "Connecting",
-        1: "Nearly Connected",
-        2: "Connected",
-        3: "Reconnecting",
-        4: "Disconnecting",
-        5: "Disconnected",
+        1: "Connected",
+        2: "Disconnecting",
+        3: "Disconnected",
       };
 
       // Function to create the embed dynamically
@@ -111,7 +109,7 @@ ${rateLimited}
             const nodeToDisconnect = nodesArray[currentNode][1];
             const nodeNameToDisconnect = nodeToDisconnect.name;
         
-            const availableNodes = nodesArray.filter(  ([, node]) => node.name !== nodeNameToDisconnect && node.state === 2);
+            const availableNodes = nodesArray.filter(  ([, node]) => node.name !== nodeNameToDisconnect && node.state === 1);
             if (availableNodes.length === 0) {  return interaction.followUp({    content: `No other available nodes to move players from ${nodeNameToDisconnect}.`,  flags: MessageFlags.Ephemeral });  }
             const targetNode = availableNodes[0][1]; 
         

@@ -41,7 +41,15 @@ client.manager.on("playerException", async (player, data) => {
   if (player.customData.playerMessages !== "noMessage") { 
     let description = `Track: ${data.track.info.title}\nError: ${data.exception.cause},Node: ${player.shoukaku.node.name}\n-# Please join the [support server](https://discord.com/invite/rDHPK2er3j) if this keeps happening`;
     
-    if (data.exception?.message?.includes('This video requires login.')) {
+    // Check for YouTube rate limiting errors
+    const isYoutubeError = data.exception?.message?.includes('This video requires login.') || 
+                          data.exception?.message?.includes('Sign in to confirm') ||
+                          data.exception?.message?.includes('Not success status code: 403') ||
+                          data.exception?.message?.includes('Video player configuration error') ||
+                          data.exception?.message?.includes('Invalid status code for player api response: 400') ||
+                          data.exception?.message?.includes('All clients failed to load the item');
+    
+    if (isYoutubeError) {
       description += `\n\n**Tip:** This is caused by youtube ratelimiting our servers. Try enabling direct Tidal or Spotify streaming in \`/player-settings\` (beta).`;
     }
     const embed = new EmbedBuilder()

@@ -18,7 +18,7 @@ module.exports = {
             interaction.reply({content: "You can only run this command in a server.", flags: MessageFlags.Ephemeral});
            return;
           }   
-       await interaction.deferReply();
+       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
        const hasVotedInLast12Hrs = client.topgg ? await hasVotedfunction(interaction.user.id) : new Date() 
        const hasAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator); 
        let hasVoted;
@@ -52,159 +52,82 @@ module.exports = {
          await user.save();
         }
     }
-    let row = new ActionRowBuilder()
-    let row2 = null;
-    let row3 = null;
-    let row4 = null;
-    let row5 = null;
-    let guildSettings;
-    function capitalizeSearchEngine(searchEngine) {
-      return {
-        "youtube": "YouTube",
-        "soundcloud": "SoundCloud",
-        "deezer": "Deezer",
-        "tidal": "Tidal",
-      }[searchEngine] || searchEngine.charAt(0).toUpperCase() + searchEngine.slice(1);
-    }
-    function formatNowPlaying(searchEngine) {
-      return {
-        "noMessage": "Disabled",
-        "deleteAfter": "Deletes After Song Finishes",
-        "default": "Default",
-      }[searchEngine] || searchEngine.charAt(0).toUpperCase() + searchEngine.slice(1);
-    }
-    if (hasVoted) {
-      const embed = new EmbedBuilder()
-        .setTitle("Player Settings")
-        .setDescription("Welcome to Player Settings! Here, you can customize your music experience.\n\n**Important:** The bot uses the settings of the person who starts the music queue (the first person to use `/play`).")
-        .setColor("#e66229")
-        .setFooter({ text : "More Settings Coming Soon!"}); 
+    const capitalizeSearchEngine = (searchEngine) => {
+      return { "youtube": "YouTube", "soundcloud": "SoundCloud", "deezer": "Deezer", "tidal": "Tidal" }[searchEngine] || searchEngine.charAt(0).toUpperCase() + searchEngine.slice(1);
+    };
+    const formatNowPlaying = (searchEngine) => {
+      return { "noMessage": "Disabled", "deleteAfter": "Deletes After Song Finishes", "default": "Default" }[searchEngine] || searchEngine.charAt(0).toUpperCase() + searchEngine.slice(1);
+    };
+
+    let embed, row, row2, row3, row4, row5, guildSettings;
+
+    const generateUI = async () => {
+      row = new ActionRowBuilder();
+      row2 = row3 = row4 = row5 = null;
+      embed = new EmbedBuilder().setColor("#e66229");
 
       if (hasVoted) {
-        embed.addFields({ name: "User Settings", value: `Spotify Native Play: ${ user.SpotifyNativePlay ? "Enabled" : "Disabled" } (Streams from Spotify)\nTidal Native Play: ${ user.TidalNativePlay ? "Enabled" : "Disabled" } (Streams from Tidal)\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled" } (Converts Youtube Links To Another Platform)\nDefault Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`});
-        const spotifyNativePlayButton = new ButtonBuilder().setCustomId('spotifyNativePlayButton').setLabel(user.SpotifyNativePlay ? "Disable Spotify Native" : "Enable Spotify Native").setStyle(user.SpotifyNativePlay ? ButtonStyle.Danger : ButtonStyle.Success);
-        const tidalNativePlayButton = new ButtonBuilder().setCustomId('tidalNativePlayButton').setLabel(user.TidalNativePlay ? "Disable Tidal Native" : "Enable Tidal Native").setStyle(user.TidalNativePlay ? ButtonStyle.Danger : ButtonStyle.Success);
-        const convertLinksButton = new ButtonBuilder().setCustomId('convertLinksButton').setLabel(user.convertLinks ? "Disable Converting links" : "Enable Converting links").setStyle(user.convertLinks ? ButtonStyle.Danger : ButtonStyle.Success);
-        row.addComponents(spotifyNativePlayButton, tidalNativePlayButton, convertLinksButton);
-        const defaultSearchEngineSelectMenu = new StringSelectMenuBuilder()
-        .setCustomId('defaultSearchEngineSelectMenu')
-        .setPlaceholder('Default Search engine.')
-        .addOptions(
-          new StringSelectMenuOptionBuilder()
-            .setLabel('YouTube')
-            .setValue('youtube'),
-            new StringSelectMenuOptionBuilder()
-            .setLabel('Spotify')
-            .setValue('spotify'),
-            new StringSelectMenuOptionBuilder()
-            .setLabel('SoundCloud')
-            .setValue('soundcloud'),
-            new StringSelectMenuOptionBuilder()
-            .setLabel('Deezer')
-            .setValue('deezer'),
-            new StringSelectMenuOptionBuilder()
-            .setLabel('Tidal')
-            .setValue('tidal'),
-        )
-        .setMaxValues(1);
-        row2 = new ActionRowBuilder().addComponents(defaultSearchEngineSelectMenu);
-      }
-      if (hasAdmin) {
-        guildSettings = await GuildSettings.findOne({ guildId: interaction.guildId });
-        if (!guildSettings) {
-          guildSettings = await GuildSettings.create({ guildId: interaction.guildId, levels: false, defaultVolume: 30 , playerMessages: "default", preferredNode: null });
-        } else {
-          if (!guildSettings.defaultVolume) {
-            guildSettings.defaultVolume = 30;
-            await guildSettings.save();
-          }
-          if (!guildSettings.playerMessages) {
-            guildSettings.playerMessages = "default";
-            await guildSettings.save();
-          }
-        }
-        embed.addFields({ name: "Server Settings", value: `Default volume: ${guildSettings.defaultVolume}%\n Now Playing Message: ${formatNowPlaying(guildSettings.playerMessages)}\nPrefered Node: ${guildSettings.preferredNode ? guildSettings.preferredNode : "None"}`});
-        const adminVolumeSelectMenu = new StringSelectMenuBuilder()
-        .setCustomId('adminVolumeSelectMenu')
-        .setPlaceholder('Server volume.')
-        .addOptions(
-          new StringSelectMenuOptionBuilder()
-            .setLabel('10%')
-            .setValue('10'),
-            new StringSelectMenuOptionBuilder()
-            .setLabel('20%')
-            .setValue('20'),
-            new StringSelectMenuOptionBuilder()
-            .setLabel('30%')
-            .setValue('30'),
-            new StringSelectMenuOptionBuilder()
-            .setLabel('40%')
-            .setValue('40'),
-            new StringSelectMenuOptionBuilder()
-            .setLabel('50%')
-            .setValue('50'),
-            new StringSelectMenuOptionBuilder()
-            .setLabel('60%')
-            .setValue('60'),
-            new StringSelectMenuOptionBuilder()
-            .setLabel('70%')
-            .setValue('70'),
-            new StringSelectMenuOptionBuilder()
-            .setLabel('80%')
-            .setValue('80'),
-            new StringSelectMenuOptionBuilder()
-            .setLabel('90%')
-            .setValue('90'),
-            new StringSelectMenuOptionBuilder()
-            .setLabel('100%')
-            .setValue('100'),
-            new StringSelectMenuOptionBuilder()
-            .setLabel('125% (May Distort Audio)')
-            .setValue('125'),
-            new StringSelectMenuOptionBuilder()
-            .setLabel('150% (May Distort Audio)')
-            .setValue('150'),
-        )
-        .setMaxValues(1);
-         row3 = new ActionRowBuilder().addComponents(adminVolumeSelectMenu);
-         const adminPlayerMessageSelectMenu = new StringSelectMenuBuilder()
-         .setCustomId('adminPlayerMessageSelectMenu')
-         .setPlaceholder('Now Playing Message.')
-         .addOptions(
-           new StringSelectMenuOptionBuilder()
-             .setLabel('Disabled')
-             .setValue('noMessage'),
-             new StringSelectMenuOptionBuilder()
-             .setLabel('Delete After Finish')
-             .setValue('deleteAfter'),
-             new StringSelectMenuOptionBuilder()
-             .setLabel('Default')
-             .setValue('default'),
-         )
-         .setMaxValues(1);
-         const nodes = client.manager.shoukaku.nodes;
-         const nodesArray = Array.from(nodes);
+        embed.setTitle("Player Settings")
+          .setDescription("Welcome to Player Settings! Here, you can customize your music experience.\n\n**Important:** The bot uses the settings of the person who starts the music queue (the first person to use `/play`).")
+          .setFooter({ text: "More Settings Coming Soon!" });
 
-         const preferedNodeSelectMenu = new StringSelectMenuBuilder()
-           .setCustomId('preferedNodeSelectMenu')
-           .setPlaceholder('Prefered Node');
-   
-         for (const node of nodesArray) {
-           preferedNodeSelectMenu.addOptions(
-             new StringSelectMenuOptionBuilder()
-               .setLabel(node[1].name) 
-               .setValue(node[1].name)   
-           );
-         }
-         row5 = new ActionRowBuilder().addComponents(preferedNodeSelectMenu);
-   
-          row4 = new ActionRowBuilder().addComponents(adminPlayerMessageSelectMenu);
+        embed.addFields({ name: "User Settings", value: `Spotify Native Play: ${user.SpotifyNativePlay ? "Enabled" : "Disabled"} (Streams from Spotify)\nTidal Native Play: ${user.TidalNativePlay ? "Enabled" : "Disabled"} (Streams from Tidal)\nConverting Links: ${user.convertLinks ? "Enabled" : "Disabled"} (Converts Youtube Links To Another Platform)\nDefault Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}` });
+        row.addComponents(
+          new ButtonBuilder().setCustomId('spotifyNativePlayButton').setLabel(user.SpotifyNativePlay ? "Disable Spotify Native" : "Enable Spotify Native").setStyle(user.SpotifyNativePlay ? ButtonStyle.Danger : ButtonStyle.Success),
+          new ButtonBuilder().setCustomId('tidalNativePlayButton').setLabel(user.TidalNativePlay ? "Disable Tidal Native" : "Enable Tidal Native").setStyle(user.TidalNativePlay ? ButtonStyle.Danger : ButtonStyle.Success),
+          new ButtonBuilder().setCustomId('convertLinksButton').setLabel(user.convertLinks ? "Disable Converting links" : "Enable Converting links").setStyle(user.convertLinks ? ButtonStyle.Danger : ButtonStyle.Success)
+        );
+
+        row2 = new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder().setCustomId('defaultSearchEngineSelectMenu').setPlaceholder('Default Search engine.').addOptions(
+            new StringSelectMenuOptionBuilder().setLabel('YouTube').setValue('youtube'),
+            new StringSelectMenuOptionBuilder().setLabel('Spotify').setValue('spotify'),
+            new StringSelectMenuOptionBuilder().setLabel('SoundCloud').setValue('soundcloud'),
+            new StringSelectMenuOptionBuilder().setLabel('Deezer').setValue('deezer'),
+            new StringSelectMenuOptionBuilder().setLabel('Tidal').setValue('tidal'),
+          ).setMaxValues(1)
+        );
+
+        if (hasAdmin) {
+          guildSettings = await GuildSettings.findOne({ guildId: interaction.guildId }) || await GuildSettings.create({ guildId: interaction.guildId, levels: false, defaultVolume: 30, playerMessages: "default", preferredNode: null });
+          if (!guildSettings.defaultVolume) { guildSettings.defaultVolume = 30; await guildSettings.save(); }
+          if (!guildSettings.playerMessages) { guildSettings.playerMessages = "default"; await guildSettings.save(); }
+
+          embed.addFields({ name: "Server Settings", value: `Default volume: ${guildSettings.defaultVolume}%\n Now Playing Message: ${formatNowPlaying(guildSettings.playerMessages)}\nPrefered Node: ${guildSettings.preferredNode ? guildSettings.preferredNode : "None"}` });
+          row3 = new ActionRowBuilder().addComponents(
+            new StringSelectMenuBuilder().setCustomId('adminVolumeSelectMenu').setPlaceholder('Server volume.').addOptions(
+              { label: '10%', value: '10' }, { label: '20%', value: '20' }, { label: '30%', value: '30' }, { label: '40%', value: '40' }, { label: '50%', value: '50' },
+              { label: '60%', value: '60' }, { label: '70%', value: '70' }, { label: '80%', value: '80' }, { label: '90%', value: '90' }, { label: '100%', value: '100' },
+              { label: '125% (May Distort Audio)', value: '125' }, { label: '150% (May Distort Audio)', value: '150' }
+            ).setMaxValues(1)
+          );
+          row4 = new ActionRowBuilder().addComponents(
+            new StringSelectMenuBuilder().setCustomId('adminPlayerMessageSelectMenu').setPlaceholder('Now Playing Message.').addOptions(
+              { label: 'Disabled', value: 'noMessage' }, { label: 'Delete After Finish', value: 'deleteAfter' }, { label: 'Default', value: 'default' }
+            ).setMaxValues(1)
+          );
+          const nodesArray = Array.from(client.manager.shoukaku.nodes);
+          const preferedNodeSelectMenu = new StringSelectMenuBuilder().setCustomId('preferedNodeSelectMenu').setPlaceholder('Prefered Node');
+          for (const node of nodesArray) preferedNodeSelectMenu.addOptions(new StringSelectMenuOptionBuilder().setLabel(node[1].name).setValue(node[1].name));
+          row5 = new ActionRowBuilder().addComponents(preferedNodeSelectMenu);
+        }
+      } else {
+        embed.setTitle("Player Settings").setDescription("You need to vote to access player settings.");
+        row.addComponents(
+          new ButtonBuilder().setLabel("Vote").setStyle(ButtonStyle.Link).setURL("https://top.gg/bot/1105149646612987934/"),
+          new ButtonBuilder().setCustomId("reloadButton").setLabel("🔄").setStyle(ButtonStyle.Primary)
+        );
       }
-      const message = await interaction.editReply({ 
-        embeds: [embed], 
-        components: [row, row2, row3, row4, row5].filter(Boolean), 
-        withResponse: true 
-      });
+    };
+
+    await generateUI();
+    const message = await interaction.editReply({
+      embeds: [embed],
+      components: [row, row2, row3, row4, row5].filter(Boolean),
+      withResponse: true,
+      flags: MessageFlags.Ephemeral
+    });
+
       const collector = message.createMessageComponentCollector({
         idle: 60000,
       });
@@ -213,71 +136,68 @@ module.exports = {
         if (i.user.id !== interaction.user.id) return i.reply({content: "This is not your settings", flags: MessageFlags.Ephemeral});
         i.deferUpdate();
 
+        if (i.customId === "reloadButton") {
+          const voted = client.topgg ? await hasVotedfunction(interaction.user.id) : true;
+          if (voted) {
+            hasVoted = true;
+            user.lastVote = new Date();
+            await user.save();
+            await generateUI();
+            return interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true, flags: MessageFlags.Ephemeral});
+          } else {
+            return i.followUp({ content: "You haven't voted yet! If you just voted, wait a few seconds and try again.", flags: MessageFlags.Ephemeral });
+          }
+        }
+
         switch (i.customId) {
           case "spotifyNativePlayButton":
             user.SpotifyNativePlay = !user.SpotifyNativePlay;
             await user.save();
-            embed.data.fields[0].value = `Spotify Native Play: ${ user.SpotifyNativePlay ? "Enabled" : "Disabled" } (Streams from Spotify)\nTidal Native Play: ${ user.TidalNativePlay ? "Enabled" : "Disabled" } (Streams from Tidal)\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled" } (Converts Youtube Links To Another Platform)\nDefault Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
-            row.components[0].setLabel(user.SpotifyNativePlay ? "Disable Spotify Native" : "Enable Spotify Native").setStyle(user.SpotifyNativePlay ? ButtonStyle.Danger : ButtonStyle.Success);
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true });
+            await generateUI();
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true, flags: MessageFlags.Ephemeral });
           break;
           case "tidalNativePlayButton":
             user.TidalNativePlay = !user.TidalNativePlay;
             await user.save();
-            embed.data.fields[0].value = `Spotify Native Play: ${ user.SpotifyNativePlay ? "Enabled" : "Disabled" } (Streams from Spotify)\nTidal Native Play: ${ user.TidalNativePlay ? "Enabled" : "Disabled" } (Streams from Tidal)\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled" } (Converts Youtube Links To Another Platform)\nDefault Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
-            row.components[1].setLabel(user.TidalNativePlay ? "Disable Tidal Native" : "Enable Tidal Native").setStyle(user.TidalNativePlay ? ButtonStyle.Danger : ButtonStyle.Success);
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true });
+            await generateUI();
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true, flags: MessageFlags.Ephemeral });
           break;
           case "convertLinksButton":
             user.convertLinks = !user.convertLinks;
             await user.save();
-            embed.data.fields[0].value = `Spotify Native Play: ${ user.SpotifyNativePlay ? "Enabled" : "Disabled" } (Streams from Spotify)\nTidal Native Play: ${ user.TidalNativePlay ? "Enabled" : "Disabled" } (Streams from Tidal)\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled" } (Converts Youtube Links To Another Platform)\nDefault Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
-            row.components[2].setLabel(user.convertLinks ? "Disable Converting links" : "Enable Converting links").setStyle(user.convertLinks ? ButtonStyle.Danger : ButtonStyle.Success);
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true });
+            await generateUI();
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true, flags: MessageFlags.Ephemeral });
             break;
           case "adminVolumeSelectMenu":
             guildSettings.defaultVolume = i.values[0]
             await guildSettings.save()
-            embed.data.fields[1].value = `Default volume: ${guildSettings.defaultVolume}%\n Now Playing Message: ${formatNowPlaying(guildSettings.playerMessages)}\nPrefered Node: ${guildSettings.preferredNode ? guildSettings.preferredNode : "None"}`;
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true })
+            await generateUI();
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true, flags: MessageFlags.Ephemeral })
           break;
           case "defaultSearchEngineSelectMenu":
             user.defaultSearchEngine = i.values[0];
             await user.save();
-            embed.data.fields[0].value = `Spotify Native Play: ${ user.SpotifyNativePlay ? "Enabled" : "Disabled" } (Streams from Spotify)\nTidal Native Play: ${ user.TidalNativePlay ? "Enabled" : "Disabled" } (Streams from Tidal)\nConverting Links: ${ user.convertLinks ? "Enabled" : "Disabled" } (Converts Youtube Links To Another Platform)\nDefault Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}`;
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true })
+            await generateUI();
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true, flags: MessageFlags.Ephemeral })
           break;
           case "adminPlayerMessageSelectMenu":
             guildSettings.playerMessages = i.values[0];
             await guildSettings.save();
-            embed.data.fields[1].value = `Default volume: ${guildSettings.defaultVolume}%\n Now Playing Message: ${formatNowPlaying(guildSettings.playerMessages)}\nPrefered Node: ${guildSettings.preferredNode ? guildSettings.preferredNode : "None"}`;
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true })
+            await generateUI();
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true, flags: MessageFlags.Ephemeral })
           break;
           case "preferedNodeSelectMenu":
             guildSettings.preferredNode = i.values[0];
             await guildSettings.save();
-            embed.data.fields[1].value = `Default volume: ${guildSettings.defaultVolume}%\n Now Playing Message: ${formatNowPlaying(guildSettings.playerMessages)}\nPrefered Node: ${guildSettings.preferredNode ? guildSettings.preferredNode : "None"}`;
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true })
+            await generateUI();
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true, flags: MessageFlags.Ephemeral })
           break;
         }
-      })
-      collector.on("end", () => {
-        interaction.editReply({
-          components: [],
-        });
       });
 
-    } else {
-      const embed = new EmbedBuilder()
-        .setTitle("Player Settings")
-        .setDescription("You need to vote to access player settings.")
-        .setColor("#e66229"); 
-
-      const voteButton = new ButtonBuilder().setLabel("Vote").setStyle(ButtonStyle.Link).setURL("https://top.gg/bot/1105149646612987934/");
-      row.addComponents(voteButton)
-      interaction.editReply({ embeds: [embed], components: [row] });
-      return;
-    }
+      collector.on("end", () => {
+        interaction.editReply({ components: [], flags: MessageFlags.Ephemeral});
+      });
           
   } catch (error) {
    console.log("error while running playerSettings",error)   

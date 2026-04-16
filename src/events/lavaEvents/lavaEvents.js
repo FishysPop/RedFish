@@ -116,7 +116,6 @@ client.manager.on("playerStart", async (player, track) => {
             playerStartEmbed.setAuthor({ name: 'Now Playing' });
             break;
     }
-    console.log(track)
     const playPauseButton = new ButtonBuilder().setCustomId('LavaPause').setEmoji('<:w_playpause:1106270708243386428>').setStyle(ButtonStyle.Primary);
     const skipButton = new ButtonBuilder().setCustomId('LavaSkip').setEmoji('<:w_next:1106270714664849448>').setStyle(ButtonStyle.Success);
     const stopButton = new ButtonBuilder().setCustomId('LavaStop').setEmoji('<:w_stop:1106272001909346386>').setStyle(ButtonStyle.Danger);

@@ -105,14 +105,18 @@ client.manager.on("playerStart", async (player, track) => {
     .setTimestamp()
     .setFooter({ text: `Requested by: ${track?.requester?.username}${Math.random() < 0.06 ? ' | Dont want these messages? Disable them with /player-settings' : ''}`});
 
-    if (track.sourceName === 'spotify_native') {
-        playerStartEmbed.setAuthor({ name: 'Now Playing', iconURL: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Spotify_icon.svg/1982px-Spotify_icon.svg.png' });
-    } else if (track.sourceName === 'tidal_native') {
-        playerStartEmbed.setAuthor({ name: 'Now Playing', iconURL: 'https://images.icon-icons.com/2429/PNG/512/tidal_logo_icon_147227.png' });
+    switch (track.sourceName) {
+        case 'spotify_native':
+            playerStartEmbed.setAuthor({ name: 'Now Playing', iconURL: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Spotify_icon.svg/1982px-Spotify_icon.svg.png' });
+            break;
+        case 'tidal_native':
+            playerStartEmbed.setAuthor({ name: 'Now Playing', iconURL: 'https://images.icon-icons.com/2429/PNG/512/tidal_logo_icon_147227.png' });
+            break;
+        default:
+            playerStartEmbed.setAuthor({ name: 'Now Playing' });
+            break;
     }
-    else {
-        playerStartEmbed.setAuthor({ name: 'Now Playing' });
-    }
+    console.log(track)
     const playPauseButton = new ButtonBuilder().setCustomId('LavaPause').setEmoji('<:w_playpause:1106270708243386428>').setStyle(ButtonStyle.Primary);
     const skipButton = new ButtonBuilder().setCustomId('LavaSkip').setEmoji('<:w_next:1106270714664849448>').setStyle(ButtonStyle.Success);
     const stopButton = new ButtonBuilder().setCustomId('LavaStop').setEmoji('<:w_stop:1106272001909346386>').setStyle(ButtonStyle.Danger);

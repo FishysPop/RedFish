@@ -91,9 +91,9 @@ if (fileExists) {
   client.commands = new Collection();
   client.commands.set('play', playCommand);
 }
-if (process.env.LAVALINK === 'true') {
-  const lavaNodes = []
-  const lavaURI = process.env.LAVALINK_URI; 
+// Validate crucial credentials at startup
+if (process.env.SPOTIFY_ID || process.env.SPOTIFY_SECRET) {
+  if (!process.env.SPOTIFY_ID) console.warn('[Startup] SPOTIFY_ID is missing from .env! Spotify search will fail
   if (lavaURI) {
     const nodes = lavaURI.split(';');
     nodes.forEach((node, index) => {
@@ -120,7 +120,7 @@ if (process.env.LAVALINK === 'true') {
       new Plugins.PlayerMoved(client),
       new Deezer({
         playlistLimit: 20
-      }),/*
+      }),
       new Spotify({
       clientId: process.env.SPOTIFY_ID,
       clientSecret: process.env.SPOTIFY_SECRET,
@@ -128,8 +128,7 @@ if (process.env.LAVALINK === 'true') {
       albumPageLimit: 4, //( 50 tracks per page )
       searchLimit: 10, // ( track search limit. Max 50 )
       searchMarket: 'US', //( eg: US, IN, EN ] )//
-      
-    }),*/],
+    }),],
     send: (guildId, payload) => {
         const guild = client.guilds.cache.get(guildId);
         if (guild) guild.shard.send(payload);

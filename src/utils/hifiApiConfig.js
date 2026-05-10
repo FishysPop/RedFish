@@ -218,8 +218,86 @@ const API_CONFIG = {
 
 let weightedTargets = null;
 
+const TARGET_HEALTH = new Map();
+const FAILURE_THRESHOLD = 3;
+const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+const FAILURE_WINDOW_MS = 2 * 60 * 1000; // 2 minutes sliding window
+
+function getTargetHealth(targetName) {
+    if (!TARGET_HEALTH.has(targetName)) {
+        TARGET_HEALTH.set(targetName, { failures: [], cooldownUntil: 0 });
+    }
+    return TARGET_HEALTH.get(targetName);
+}
+
+function markTargetSuccess(targetName) {
+    const health = getTargetHealth(targetName);
+    health.failures = [];
+    health.cooldownUntil = 0;
+}
+
+function markTargetFailure(targetName) {
+    const health = getTargetHealth(targetName);
+    const now = Date.now();
+
+    health.failures = health.failures.filter((ts) => now - ts < FAILURE_WINDOW_MS);
+
+    health.failures.push(now);
+
+    if (health.failures.length >= FAILURE_THRESHOLD) {
+        health.cooldownUntil = now + COOLDOWN_MS;
+        console.warn(
+            `[HifiApi] Target "${targetName}" has failed ${health.failures.length} times in ${FAILURE_WINDOW_MS / 1000}s, ` +
+            `putting on cooldown until ${new Date(health.cooldownUntil).toISOString()}`
+        );
+    }
+}
+
+function isHealthyTarget(target) {
+    const health = TARGET_HEALTH.get(target?.name);
+    if (!health) return true;
+    if (health.cooldownUntil === 0) return true;
+    if (Date.now() >= health.cooldownUntil) {
+        health.cooldownUntil = 0;
+        health.failures = [];
+        return true;
+    }
+    return false;
+}
+
+function getHealthyTargets(targets) {
+    return targets.filter((t) => isHealthyTarget(t));
+}
+
 function buildWeightedTargets(targets) {
-    const validTargets = targets.filter((target) => {
+    // Only build from healthy targets
+    const healthyTargets = targets.filter((target) => {
+        if (!target?.baseUrl || typeof target.baseUrl !== 'string') {
+            return false;
+        }
+        if (target.weight <= 0) {
+            return false;
+        }
+        try {
+            new URL(target.baseUrl);
+            return true;
+        } catch (error) {
+            console.error(`Invalid API target URL for ${target.name}:`, error);
+            return false;
+        }
+    }).filter((target) => isHealthyTarget(target));
+
+    if (healthyTargets.length === 0) {
+        // If all targets are on cooldown, fall back to all targets (ignore health)
+        console.warn('[HifiApi] All targets are on cooldown, falling back to full target list');
+        return buildWeightedTargetsFromRaw(targets);
+    }
+
+    return buildWeightedTargetsFromRaw(healthyTargets);
+}
+
+function buildWeightedTargetsFromRaw(rawTargets) {
+    const validTargets = rawTargets.filter((target) => {
         if (!target?.baseUrl || typeof target.baseUrl !== 'string') {
             return false;
         }
@@ -629,5 +707,9 @@ module.exports = {
     selectApiTargetForRegion,
     hasRegionTargets,
     getTargetsForRegion,
-    fetchWithCORS
+    fetchWithCORS,
+    markTargetSuccess,
+    markTargetFailure,
+    isHealthyTarget,
+    getHealthyTargets
 };

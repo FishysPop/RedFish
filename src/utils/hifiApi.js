@@ -1,5 +1,5 @@
 const hifiApiConfig = require("./hifiApiConfig");
-const { fetchWithCORS, selectApiTarget, API_CONFIG } = hifiApiConfig;
+const { fetchWithCORS, selectApiTarget, API_CONFIG, markTargetSuccess, markTargetFailure, isHealthyTarget, getHealthyTargets } = hifiApiConfig;
 
 async function getTracks({
   countryCode = "US",
@@ -29,16 +29,23 @@ async function getTracks({
     });
 
     if (!response.ok) {
-      if (response.status === 402 || response.status === 404) {
+      if (response.status === 402 || response.status === 404 || response.status >= 500) {
         console.warn(
           `[HifiApi] Search request failed with status ${response.status}, trying alternative endpoints...`
         );
+        if (target && response.status >= 500) {
+          markTargetFailure(target.name);
+        }
         return await raceAlternativeEndpoints(query, countryCode);
       } else {
         throw new Error(
           `HIFI API search request failed with status ${response.status}`
         );
       }
+    }
+
+    if (target) {
+      markTargetSuccess(target.name);
     }
 
     const data = await response.json();
@@ -103,16 +110,23 @@ async function getOriginalTrackUrl({
     });
 
     if (!response.ok) {
-      if (response.status === 402 || response.status === 404) {
+      if (response.status === 402 || response.status === 404 || response.status >= 500) {
         console.warn(
           `[HifiApi] Track URL request failed with status ${response.status} for id ${id}, trying alternative endpoints...`
         );
+        if (target && response.status >= 500) {
+          markTargetFailure(target.name);
+        }
         return await raceAlternativeTrackUrlEndpoint(id, quality);
       } else {
         throw new Error(
           `HIFI API track URL request failed with status ${response.status}`
         );
       }
+    }
+
+    if (target) {
+      markTargetSuccess(target.name);
     }
 
     const data = await response.json();
@@ -233,11 +247,16 @@ async function raceAlternativeEndpoints(query, countryCode) {
   const maxEndpoints = Math.min(5, API_CONFIG.targets.length);
   let endpointCount = 0;
 
-  for (const target of API_CONFIG.targets) {
-    if (target.name === currentTarget.name) {
-      continue;
-    }
+  const healthyTargets = API_CONFIG.targets.filter((t) => {
+    if (t.name === currentTarget.name) return false;
+    return isHealthyTarget(t);
+  });
 
+  const candidates = healthyTargets.length > 0
+    ? healthyTargets
+    : API_CONFIG.targets.filter((t) => t.name !== currentTarget.name);
+
+  for (const target of candidates) {
     if (endpointCount >= maxEndpoints) {
       break;
     }
@@ -268,6 +287,7 @@ async function raceAlternativeEndpoints(query, countryCode) {
           });
 
           if (response.ok) {
+            markTargetSuccess(target.name);
             const data = await response.json();
             
             if (data && data.tracks && data.tracks.items) {
@@ -286,6 +306,9 @@ async function raceAlternativeEndpoints(query, countryCode) {
             }
             resolve([]);
           } else {
+            if (response.status >= 500) {
+              markTargetFailure(target.name);
+            }
             resolve(null);
           }
         } catch (error) {
@@ -293,6 +316,7 @@ async function raceAlternativeEndpoints(query, countryCode) {
             `[HifiApi] Error in race for endpoint ${target.name}:`,
             error.message
           );
+          markTargetFailure(target.name);
           resolve(null);
         }
       })
@@ -332,11 +356,16 @@ async function raceAlternativeTrackUrlEndpoint(id, quality) {
   const maxEndpoints = Math.min(5, API_CONFIG.targets.length);
   let endpointCount = 0;
 
-  for (const target of API_CONFIG.targets) {
-    if (target.name === currentTarget.name) {
-      continue;
-    }
+  const healthyTargets = API_CONFIG.targets.filter((t) => {
+    if (t.name === currentTarget.name) return false;
+    return isHealthyTarget(t);
+  });
 
+  const candidates = healthyTargets.length > 0
+    ? healthyTargets
+    : API_CONFIG.targets.filter((t) => t.name !== currentTarget.name);
+
+  for (const target of candidates) {
     if (endpointCount >= maxEndpoints) {
       break;
     }
@@ -355,6 +384,7 @@ async function raceAlternativeTrackUrlEndpoint(id, quality) {
           });
 
           if (response.ok) {
+            markTargetSuccess(target.name);
             const data = await response.json();
             
             if (data.url) {
@@ -396,6 +426,9 @@ async function raceAlternativeTrackUrlEndpoint(id, quality) {
               resolve(null);
             }
           } else {
+            if (response.status >= 500) {
+              markTargetFailure(target.name);
+            }
             resolve(null);
           }
         } catch (error) {
@@ -403,6 +436,7 @@ async function raceAlternativeTrackUrlEndpoint(id, quality) {
             `[HifiApi] Error in race for track URL endpoint ${target.name}:`,
             error.message
           );
+          markTargetFailure(target.name);
           resolve(null);
         }
       })

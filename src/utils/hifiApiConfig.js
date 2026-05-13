@@ -160,6 +160,27 @@ const ALL_API_TARGETS = [
         requiresProxy: false,
         category: 'auto-only'
     },
+    {
+        name: 'monochrome-samidy',
+        baseUrl: 'https://monochrome-api.samidy.com',
+        weight: 15,
+        requiresProxy: false,
+        category: 'auto-only'
+    },
+    {
+        name: 'monochrome-api',
+        baseUrl: 'https://api.monochrome.tf',
+        weight: 15,
+        requiresProxy: false,
+        category: 'auto-only'
+    },
+    {
+        name: 'geeked-wtf',
+        baseUrl: 'https://hifi.geeked.wtf',
+        weight: 15,
+        requiresProxy: false,
+        category: 'auto-only'
+    },
 ];
 
 const US_API_TARGETS = [

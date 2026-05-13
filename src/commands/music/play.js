@@ -252,13 +252,13 @@ case "discord_player": {
                                 res = nativeResult;
                                 usedSearchEngine = 'tidal_native';
                             } else {
-                                res = tidalSearchResult;
-                                usedSearchEngine = 'tidal';
+                                res = await player.search(query, { requester: interaction.user });
+                                usedSearchEngine = 'youtube_music';
                             }
                         } catch (tidalError) {
                             console.error("[Play Command] Error in Tidal native playback:", tidalError);
-                            res = tidalSearchResult;
-                            usedSearchEngine = 'tidal';
+                            res = await player.search(query, { requester: interaction.user });
+                            usedSearchEngine = 'youtube_music';
                         }
                     }
                 }
@@ -290,14 +290,14 @@ case "discord_player": {
                             res = nativeResult;
                             usedSearchEngine = 'tidal_native';
                         } else {
-                            res = tidalSearchResult;
-                            usedSearchEngine = 'tidal';
+                            res = await player.search(name, { requester: interaction.user });
+                            usedSearchEngine = 'youtube_music';
                         }
                     } catch (tidalError) {
                         console.error("[Play Command] Error in Tidal native playback:", tidalError);
-                        res = tidalSearchResult;
-                        usedSearchEngine = 'tidal';
-                        console.log("[Play Command] Tidal native playback failed with error, falling back to Tidal search result.");
+                        res = await player.search(name, { requester: interaction.user });
+                        usedSearchEngine = 'youtube_music';
+                        console.log("[Play Command] Tidal native playback failed with error, falling back to lavalink search.");
                     }
                 } else {
                     const fallbackSearchStrategy = ['spotify', 'youtube_music'];

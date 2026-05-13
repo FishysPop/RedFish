@@ -110,7 +110,7 @@ async function getOriginalTrackUrl({
     });
 
     if (!response.ok) {
-      if (response.status === 402 || response.status === 404 || response.status >= 500) {
+      if (response.status === 402 || response.status === 403 || response.status === 404 || response.status >= 500) {
         console.warn(
           `[HifiApi] Track URL request failed with status ${response.status} for id ${id}, trying alternative endpoints...`
         );

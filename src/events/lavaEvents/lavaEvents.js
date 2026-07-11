@@ -116,11 +116,11 @@ client.manager.on("playerStart", async (player, track) => {
             playerStartEmbed.setAuthor({ name: 'Now Playing' });
             break;
     }
-    const playPauseButton = new ButtonBuilder().setCustomId('LavaPause').setEmoji('<:w_playpause:1106270708243386428>').setStyle(ButtonStyle.Primary);
-    const skipButton = new ButtonBuilder().setCustomId('LavaSkip').setEmoji('<:w_next:1106270714664849448>').setStyle(ButtonStyle.Success);
-    const stopButton = new ButtonBuilder().setCustomId('LavaStop').setEmoji('<:w_stop:1106272001909346386>').setStyle(ButtonStyle.Danger);
-    const loopButton = new ButtonBuilder().setCustomId('LavaLoop').setEmoji('<:w_loop:1106270705575792681>').setStyle(ButtonStyle.Secondary);
-    const shuffleButton = new ButtonBuilder().setCustomId('LavaShuffle').setEmoji('<:w_shuffle:1106270712542531624>').setStyle(ButtonStyle.Secondary);
+    const playPauseButton = new ButtonBuilder().setCustomId('Pause').setEmoji('<:w_playpause:1106270708243386428>').setStyle(ButtonStyle.Primary);
+    const skipButton = new ButtonBuilder().setCustomId('Skip').setEmoji('<:w_next:1106270714664849448>').setStyle(ButtonStyle.Success);
+    const stopButton = new ButtonBuilder().setCustomId('Stop').setEmoji('<:w_stop:1106272001909346386>').setStyle(ButtonStyle.Danger);
+    const loopButton = new ButtonBuilder().setCustomId('Loop').setEmoji('<:w_loop:1106270705575792681>').setStyle(ButtonStyle.Secondary);
+    const shuffleButton = new ButtonBuilder().setCustomId('Shuffle').setEmoji('<:w_shuffle:1106270712542531624>').setStyle(ButtonStyle.Secondary);
     const row = new ActionRowBuilder()
    .addComponents(playPauseButton, skipButton, stopButton, loopButton, shuffleButton);
    let message = null;

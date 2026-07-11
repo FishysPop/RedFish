@@ -1,5 +1,4 @@
 const {Client,Interaction,PermissionsBitField,ChannelType,EmbedBuilder,ActionRowBuilder,ButtonBuilder,ButtonStyle, MessageFlags} = require("discord.js");
-const { useQueue } = require("discord-player");
 const Ticket = require("../../models/Ticket");
 const Giveaway = require("../../models/Giveaway");
 
@@ -9,27 +8,23 @@ module.exports = async (interaction, client, handler) => {
     const user = interaction.user.username;
     const usera = interaction.user;
     const discriminator = interaction.user.discriminator;
-    const queue = useQueue(interaction.guildId);
-    let player;
-    if (client.playerType === 'lavalink' || client.playerType === 'both') { 
-      player = client.manager.players.get(interaction.guildId);
-     }
+    const player = client.manager.players.get(interaction.guildId);
     try {
       switch (buttonname) {
-        case "LavaPause":
+        case "Pause":
           try {
             let playing = player.paused
             if (!playing) {
-              const LavaPlayerPauseEmbed = await new EmbedBuilder()
+              const PlayerPauseEmbed = await new EmbedBuilder()
                 .setColor("#e66229")
                 .setDescription(`${usera} has paused the queue.`);
-              interaction.reply({ embeds: [LavaPlayerPauseEmbed] });
+              interaction.reply({ embeds: [PlayerPauseEmbed] });
               player.pause(true);
             } else {
-              const LavaPlayerResumedEmbed = await new EmbedBuilder()
+              const PlayerResumedEmbed = await new EmbedBuilder()
                 .setColor("#e66229")
                 .setDescription(`${usera} has resumed the queue.`);
-              interaction.reply({ embeds: [LavaPlayerResumedEmbed] });
+              interaction.reply({ embeds: [PlayerResumedEmbed] });
               player.pause(false);
             }
           } catch {
@@ -40,7 +35,7 @@ module.exports = async (interaction, client, handler) => {
           }
 
           break;
-        case "LavaSkip":
+        case "Skip":
           if (!player) {
             interaction.reply({
               content: `There is no music playing`,
@@ -48,100 +43,6 @@ module.exports = async (interaction, client, handler) => {
             });
           } else {
             player.skip();
-            const LavaPlayerSkipEmbed = await new EmbedBuilder()
-              .setColor("#e66229")
-              .setDescription(`${usera} has skipped a song.`);
-            interaction.reply({ embeds: [LavaPlayerSkipEmbed] });
-          }
-
-          break;
-        case "LavaStop":
-          try {
-            if (!player ) return interaction.reply({content: `The bot is not in a voice channel`, flags: MessageFlags.Ephemeral });
-            player.destroy().catch(e => null);
-            const LavaPlayerStopEmbed = await new EmbedBuilder()
-              .setColor("#e66229")
-              .setDescription(`${usera} has disconnected the bot.`);
-            interaction.reply({ embeds: [LavaPlayerStopEmbed] });
-          } catch {
-            interaction.reply({
-              content: `The bot is not in a voice channel`,
-              flags: MessageFlags.Ephemeral,
-            });
-          }
-
-          break;
-        case "LavaLoop":
-          try {
-            if (player.loop === "queue") {
-              const LavaPlayerLoopEmbed2 = await new EmbedBuilder()
-              .setColor("#e66229")
-              .setDescription(`${usera} has unlooped the queue.`);
-            interaction.reply({ embeds: [LavaPlayerLoopEmbed2] });
-            player.setLoop("none")
-            } else {
-              const LavaPlayerLoopEmbed = await new EmbedBuilder()
-                .setColor("#e66229")
-                .setDescription(`${usera} has looped the queue.`);
-              interaction.reply({ embeds: [LavaPlayerLoopEmbed] });
-              player.setLoop("queue")
-
-            }
-          } catch {
-            interaction.reply({
-              content: `There is no music playing`,
-              flags: MessageFlags.Ephemeral,
-            });
-          }
-
-          break;
-        case "LavaShuffle":
-          try {
-            player.queue.shuffle();
-            const PlayerShuffleEmbed = await new EmbedBuilder()
-              .setColor("#e66229")
-              .setDescription(`${usera} has shuffled the queue.`);
-            interaction.reply({ embeds: [PlayerShuffleEmbed] });
-          } catch {
-            interaction.reply({
-              content: `There is no music playing`,
-              flags: MessageFlags.Ephemeral,
-            });
-          }
-
-          break;
-        case "Pause":
-          try {
-            let playing = !queue.node.isPaused();
-            if (playing) {
-              const PlayerPauseEmbed = await new EmbedBuilder()
-                .setColor("#e66229")
-                .setDescription(`${usera} has paused the queue.`);
-              interaction.reply({ embeds: [PlayerPauseEmbed] });
-              queue.node.pause();
-            } else {
-              const PlayerResumedEmbed = await new EmbedBuilder()
-                .setColor("#e66229")
-                .setDescription(`${usera} has resumed the queue.`);
-              interaction.reply({ embeds: [PlayerResumedEmbed] });
-              queue.node.resume();
-            }
-          } catch {
-            interaction.reply({
-              content: `There is no music playing`,
-              flags: MessageFlags.Ephemeral,
-            });
-          }
-
-          break;
-        case "Skip":
-          if (!queue || !queue.isPlaying()) {
-            interaction.reply({
-              content: `There is no music playing`,
-              flags: MessageFlags.Ephemeral,
-            });
-          } else {
-            queue.node.skip();
             const PlayerSkipEmbed = await new EmbedBuilder()
               .setColor("#e66229")
               .setDescription(`${usera} has skipped a song.`);
@@ -149,10 +50,10 @@ module.exports = async (interaction, client, handler) => {
           }
 
           break;
-
         case "Stop":
           try {
-            queue.delete();
+            if (!player ) return interaction.reply({content: `The bot is not in a voice channel`, flags: MessageFlags.Ephemeral });
+            player.destroy().catch(e => null);
             const PlayerStopEmbed = await new EmbedBuilder()
               .setColor("#e66229")
               .setDescription(`${usera} has disconnected the bot.`);
@@ -167,19 +68,19 @@ module.exports = async (interaction, client, handler) => {
           break;
         case "Loop":
           try {
-            let repeatMode = queue.repeatMode;
-            if (repeatMode === 0) {
+            if (player.loop === "queue") {
+              const PlayerLoopEmbed2 = await new EmbedBuilder()
+              .setColor("#e66229")
+              .setDescription(`${usera} has unlooped the queue.`);
+            interaction.reply({ embeds: [PlayerLoopEmbed2] });
+            player.setLoop("none")
+            } else {
               const PlayerLoopEmbed = await new EmbedBuilder()
                 .setColor("#e66229")
                 .setDescription(`${usera} has looped the queue.`);
               interaction.reply({ embeds: [PlayerLoopEmbed] });
-              queue.setRepeatMode(2);
-            } else {
-              const PlayerLoopEmbed2 = await new EmbedBuilder()
-                .setColor("#e66229")
-                .setDescription(`${usera} has unlooped the queue.`);
-              interaction.reply({ embeds: [PlayerLoopEmbed2] });
-              queue.setRepeatMode(0);
+              player.setLoop("queue")
+
             }
           } catch {
             interaction.reply({
@@ -191,7 +92,7 @@ module.exports = async (interaction, client, handler) => {
           break;
         case "Shuffle":
           try {
-            queue.tracks.shuffle();
+            player.queue.shuffle();
             const PlayerShuffleEmbed = await new EmbedBuilder()
               .setColor("#e66229")
               .setDescription(`${usera} has shuffled the queue.`);

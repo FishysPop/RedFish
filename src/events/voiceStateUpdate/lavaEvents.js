@@ -1,7 +1,6 @@
 const { ChannelType } = require('discord.js');
 
 module.exports = async (oldChannel, newChannel, client ) => {
-    if (client.playerType === 'discord_player') return;
 	const player = await client.manager?.players.get(newChannel.guild.id);
 	if (!player) return;
 	

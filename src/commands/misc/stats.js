@@ -1,9 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const Analytics = require('../../models/Analytics');
-const { Player } = require('discord-player');
-
-
-let player;
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -19,26 +15,15 @@ module.exports = {
             let topGuildsData = []; 
             if (client.cluster) {
                 const results = await client.cluster.broadcastEval(async (c) => {
-                    let localChannelsConnected = 0;
-                    let localTopGuilds = [];
-
-                    if (c.playerType === 'discord_player' || c.playerType === 'both') {
-                        const player = useMainPlayer();
-                        const playerStats = player.generateStatistics();
-                        localChannelsConnected = playerStats.queues.length;
-                    } else {
-                        localChannelsConnected = c.manager.players.size;
-                    }
-
                     // Retrieve essential guild data in each shard/worker
-                    localTopGuilds = c.guilds.cache.map(guild => ({
+                    const localTopGuilds = c.guilds.cache.map(guild => ({
                         guildId: guild.id,
                         name: guild.name,
                         memberCount: guild.memberCount,
                     }));
 
                     return {
-                        channelsConnected: localChannelsConnected,
+                        channelsConnected: c.manager?.players.size || 0,
                         topGuilds: localTopGuilds,
                     };
                 });
@@ -47,6 +32,13 @@ module.exports = {
                     channelsConnected += result.channelsConnected;
                     topGuildsData = topGuildsData.concat(result.topGuilds);
                 }
+            } else {
+                channelsConnected = client.manager?.players.size || 0;
+                topGuildsData = client.guilds.cache.map(guild => ({
+                    guildId: guild.id,
+                    name: guild.name,
+                    memberCount: guild.memberCount,
+                }));
             }
             const totalPlays = analytics.totalPlayCount;
             const topGuilds = topGuildsData
@@ -87,7 +79,7 @@ function usedSearchEnginesStringWithPercentages(usedSearchEngines) {
     if (totalSearches === 0) return 'No data';
 
     return Object.entries(usedSearchEngines)
-        .sort(([, countA], [, countB]) => countB - countA) // Sort by count (descending)
+        .sort(([, countA], [, countB]) => countB - countA) 
         .map(([engine, count]) => `${engine}: ${count} (${((count / totalSearches) * 100).toFixed(2)}%)`)
         .join('\n');
 }
@@ -96,5 +88,4 @@ function topGuildsStringWithPercentages(topGuilds, totalPlays) {
     if(topGuilds.length === 0) return "No data"
 
     return topGuilds.map(guild => `${guild.name} (Members: ${guild.memberCount}, Plays: ${guild.playCount} (${((guild.playCount / totalPlays) * 100).toFixed(2)}%))`).join('\n');
-
 }

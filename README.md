@@ -42,7 +42,7 @@ RedFish is a simple yet versatile Discord bot that brings various functionalitie
    
 ## 🛠️ Technical Details
 
-- **Music Engine:** Powered by [discord-player](https://www.npmjs.com/package/discord-player) and [Lavalink](https://lavalink.dev/).
+- **Music Engine:** Powered by [Lavalink](https://lavalink.dev/).
 
 
 ## 🤖 Self Hosting
@@ -53,25 +53,16 @@ RedFish is a simple yet versatile Discord bot that brings various functionalitie
 Create a .env file in the root directory and copy the contents of .env.example into it. Replace the placeholder values with your actual credentials:
 
 ### 3. Music Setup:
-#### 1. Using Lavalink (Recommended for better performance): 
 Host your own lavalink server ([Setup Guide](https://lavalink.dev/getting-started/index.html)) with ([Youtube Source Plugin](https://github.com/lavalink-devs/youtube-source))
 or use public lavalink servers with ```npm run publicLavalinkServers``` or at https://lavalink.darrennathanael.com/
 ```
 #.env
-DISCORD_PLAYER = false
-
 LAVALINK = true
 LAVALINK_URI = YOUR_IP:UR_PORT@UR_PASSWORD
 
 #https://developer.spotify.com/dashboard If you dont have a Spotify id
 SPOTIFY_ID = YOUR_SPOTIFY_ID
 SPOTIFY_SECRET =  YOUR_SPORTIFY_SECRET
-```
-#### 2. Using discord-player (Simpler setup, but may have performance and ratelimit problems):
-```
-#.env
-LAVALINK = false
-DISCORD_PLAYER = true
 ```
 ### 4. Start the Bot:
 ```npm run start```

@@ -109,7 +109,7 @@ async function ensureInteractiveWebSocket(client, debugEnabled) {
 /**
  * Attempts to get a direct stream from the SpotifyNativeStream API for a given URL.
  * @param {string} url The potential Spotify track URL.
- * @param {import("shoukaku").ShoukakuPlayer | import("discord-player").Player} player The player instance (Shoukaku or Discord-Player).
+ * @param {import("shoukaku").ShoukakuPlayer} player The player instance (Shoukaku).
  * @param {import("discord.js").User} requester The user who requested the track.
  * @param {import("discord.js").Client} client The Discord client instance.
  * @returns {Promise<import("kazagumo").KazagumoSearchResult | null>} A Kazagumo search result with a modified track if successful, otherwise null.

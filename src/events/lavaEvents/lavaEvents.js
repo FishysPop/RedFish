@@ -7,20 +7,192 @@ const { checkQueueForTidalNativePlay } = require("../../utils/tidalNativePlay.js
 require("dotenv").config();
 
 
+const PlayerSession = require("../../models/PlayerSession");
+
 module.exports = (client) => {
-client.manager.shoukaku.on('ready', (name) => console.log(`Lavalink ${name}: Ready!`));
-client.manager.shoukaku.on('error', (name, error) => {
-  console.error(`Lavalink ${name}: Error Caught:`, error); 
-});
-client.manager.shoukaku.on('close', (name, code, reason) => console.warn(`Lavalink ${name}: Closed, Code ${code}, Reason ${reason || 'No reason'}`));
-if (process.env.DEBUG === "true") client.manager.shoukaku.on('debug', (name, info) => console.debug(`Lavalink ${name}: Debug,`, info));
-client.manager.shoukaku.on('disconnect', (name, players, moved) => {
-    if (moved) return;
-    try {
-    players.map(player => player.connection.disconnect())
-    console.warn(`Lavalink ${name}: Disconnected`);
-  } catch (error) {   
+client.manager.nodeManager.on('connect', async (node) => {
+  console.log(`Lavalink Node ${node.id}: Connected & Ready!`);
+  node.updateSession(true, 300_000);
+
+  try {
+    const savedSessions = await PlayerSession.find({});
+
+    for (const savedData of savedSessions) {
+      if (client.manager.getPlayer(savedData.guildId)) continue;
+
+      const player = client.manager.createPlayer({
+        guildId: savedData.guildId,
+        voiceChannelId: savedData.voiceChannelId,
+        textChannelId: savedData.textChannelId,
+        node: node.id,
+        volume: typeof savedData.volume === "number" ? savedData.volume : 30,
+        selfDeaf: savedData.selfDeaf ?? true,
+        customData: savedData.customData || {},
+      });
+
+      await player.connect();
+
+      if (savedData.currentTrack) {
+        try {
+          const builtCurrentTrack = client.manager.utils.buildTrack(savedData.currentTrack, savedData.currentTrack.requester || savedData.requester);
+          if (builtCurrentTrack) {
+            player.queue.current = builtCurrentTrack;
+          }
+        } catch (tErr) {
+          console.error("Error restoring current track from DB:", tErr);
+        }
+      }
+
+      if (savedData.queueTracks && Array.isArray(savedData.queueTracks) && savedData.queueTracks.length > 0) {
+        for (const rawTrack of savedData.queueTracks) {
+          try {
+            const builtTrack = client.manager.utils.buildTrack(rawTrack, rawTrack.requester || savedData.requester);
+            if (builtTrack) player.queue.add(builtTrack);
+          } catch (tErr) {
+            console.error("Error restoring queued track:", tErr);
+          }
+        }
+      }
+
+      if (player.queue.current) {
+        const startPos = savedData.position && savedData.position > 1000 ? savedData.position : 0;
+        await player.play({ track: player.queue.current, position: startPos, paused: Boolean(savedData.paused) }).catch(e => console.error("Error starting restored player playback:", e));
+      } else if (player.queue.tracks.length > 0 && !player.playing && !player.paused) {
+        await player.play().catch(e => console.error("Error starting restored player playback:", e));
+      }
+    }
+  } catch (err) {
+    console.error("Error during fallback session restoration from DB:", err);
   }
+});
+
+client.manager.nodeManager.on('resumed', async (node, payload, fetchedPlayers) => {
+  console.log(`Node "${node.id}" successfully resumed with ${fetchedPlayers?.length || 0} players.`);
+
+  for (const lavalinkData of fetchedPlayers) {
+    try {
+      const savedData = await PlayerSession.findOne({ guildId: lavalinkData.guildId });
+
+      if (!lavalinkData.state?.connected) {
+        if (savedData) await PlayerSession.deleteOne({ guildId: lavalinkData.guildId });
+        continue;
+      }
+
+      const voiceChannelId = savedData?.voiceChannelId || lavalinkData.voiceChannelId;
+      const textChannelId = savedData?.textChannelId || lavalinkData.textChannelId;
+      if (!voiceChannelId) continue;
+
+      const player = client.manager.createPlayer({
+        guildId: lavalinkData.guildId,
+        voiceChannelId: voiceChannelId,
+        textChannelId: textChannelId,
+        node: node.id,
+        volume: client.manager.options.playerOptions?.volumeDecrementer
+          ? Math.round(lavalinkData.volume / client.manager.options.playerOptions.volumeDecrementer)
+          : lavalinkData.volume,
+        selfDeaf: savedData?.selfDeaf ?? true,
+        customData: savedData?.customData || {},
+      });
+
+      await player.connect();
+
+      if (lavalinkData.filters) {
+        player.filterManager.data = lavalinkData.filters;
+      }
+
+      await player.queue.utils.sync(true, false).catch(() => null);
+
+      if (savedData?.queueTracks && Array.isArray(savedData.queueTracks) && savedData.queueTracks.length > 0) {
+        for (const rawTrack of savedData.queueTracks) {
+          try {
+            const builtTrack = client.manager.utils.buildTrack(rawTrack, rawTrack.requester || savedData.requester);
+            if (builtTrack) player.queue.add(builtTrack);
+          } catch (tErr) {
+            console.error("Error restoring queued track:", tErr);
+          }
+        }
+      }
+
+      if (lavalinkData.track) {
+        const req = savedData?.requester || player.queue.current?.requester || client.user;
+        player.queue.current = client.manager.utils.buildTrack(lavalinkData.track, req);
+      }
+
+      player.lastPosition = lavalinkData.state.position;
+      player.lastPositionChange = Date.now();
+      if (lavalinkData.state.ping) player.ping.lavalink = lavalinkData.state.ping;
+
+      player.paused = lavalinkData.paused;
+      player.playing = !lavalinkData.paused && !!lavalinkData.track;
+    } catch (err) {
+      console.error(`Error resuming player for guild ${lavalinkData.guildId}:`, err);
+    }
+  }
+});
+
+const savePlayerSession = async (player) => {
+  if (!player || !player.guildId) return;
+  try {
+    const queueTracksToSave = player.queue?.tracks?.map(t => ({
+      encoded: t.encoded,
+      info: t.info,
+      requester: t.requester,
+      userData: t.userData
+    })) || [];
+
+    const currentTrackToSave = player.queue?.current ? {
+      encoded: player.queue.current.encoded,
+      info: player.queue.current.info,
+      requester: player.queue.current.requester,
+      userData: player.queue.current.userData
+    } : null;
+
+    await PlayerSession.findOneAndUpdate(
+      { guildId: player.guildId },
+      {
+        guildId: player.guildId,
+        voiceChannelId: player.voiceChannelId,
+        textChannelId: player.textChannelId || player.textId,
+        volume: player.volume ?? 30,
+        position: player.position || player.lastPosition || 0,
+        paused: Boolean(player.paused),
+        selfDeaf: player.options?.selfDeaf ?? true,
+        currentTrack: currentTrackToSave,
+        requester: player.queue?.current?.requester,
+        customData: player.customData || {},
+        queueTracks: queueTracksToSave,
+        updatedAt: new Date(),
+      },
+      { upsert: true, new: true }
+    );
+  } catch (err) {
+    console.error("Error persisting player session to database:", err);
+  }
+};
+
+client.manager.on("playerCreate", (player) => {
+  savePlayerSession(player);
+});
+
+client.manager.on("playerUpdate", async (oldPlayer, newPlayer) => {
+  savePlayerSession(newPlayer || oldPlayer);
+});
+
+client.manager.on("playerDestroy", async (player) => {
+  try {
+    await PlayerSession.deleteOne({ guildId: player.guildId });
+  } catch (err) {
+    console.error("Error deleting player session from database:", err);
+  }
+});
+client.manager.nodeManager.on('error', (node, error) => {
+  console.error(`Lavalink Node ${node.id}: Error Caught:`, error); 
+});
+client.manager.nodeManager.on('disconnect', (node, reason) => {
+  console.warn(`Lavalink Node ${node.id}: Disconnected. Reason:`, reason);
+});
+client.manager.nodeManager.on('reconnect', (node) => {
+  console.log(`Lavalink Node ${node.id}: Reconnecting...`);
 });
 if (process.env.DEBUG === "true") client.manager.on("debug", (info, data) => {
   console.error(`debug: ${info} - `, data);
@@ -61,15 +233,15 @@ client.manager.on("playerException", async (player, data) => {
       .setTitle('Oops... seems something went wrong skipping to next!')
       .setDescription(description);
       try {
-        if (player.customData.playerMessages === "default") { // 
-          const message = player.data.get("message");
+        if (player.customData?.playerMessages === "default") {
+          const message = player.customData?.message;
           if (message) { 
             message.edit({ embeds: [embed], components: []}).catch(err => { if (!err.code === 50013) console.log("Error sending playerEnd message:", err)});
           } else { 
             channel.send({ embeds: [embed] }).catch(err => { if (!err.code === 50013) console.log("Error sending playerEnd message:", err)});
           }
       } else { 
-          const message = player.data.get("message");
+          const message = player.customData?.message;
           if (message) message.delete().catch(err => { if (!err.code === 50013) console.log("Error sending playerEnd message:", err)});
       }
 
@@ -81,11 +253,21 @@ client.manager.on("playerException", async (player, data) => {
 
 
   
-client.manager.on("playerStart", async (player, track) => {
+client.manager.on("trackStart", async (player, track) => {
+  savePlayerSession(player);
   checkQueueForNativePlay(player, client);
   checkQueueForTidalNativePlay(player, client); 
-  if (player.customData.playerMessages === "noMessage") return;
-  const channel = client.channels.cache.get(player.textId);
+  if (player.customData?.message) {
+    const prevMessage = player.customData.message;
+    if (player.customData?.playerMessages === "deleteAfter") {
+      prevMessage.delete().catch(err => { if (err.code !== 50013 && err.code !== 10008) console.log("Error deleting previous message:", err); });
+    } else {
+      prevMessage.edit({ components: [] }).catch(err => { if (err.code !== 50013 && err.code !== 10008) console.log("Error editing previous message buttons:", err); });
+    }
+    player.customData.message = null;
+  }
+  if (player.customData?.playerMessages === "noMessage") return;
+  const channel = client.channels.cache.get(player.textChannelId || player.textId);
   const guild = client.guilds.cache.get(player.guildId);
   if (!guild) return;
 
@@ -96,14 +278,46 @@ client.manager.on("playerStart", async (player, track) => {
     return;
   }
 
+  const title = track?.info?.title || track?.title || "Missing Title";
+  const uri = track?.info?.uri || track?.uri || track?.realUri || "https://youtube.com";
+  const artworkUrl = track?.info?.artworkUrl || track?.thumbnail || "https://i.imgur.com/K9LWwgw.png";
+  const duration = track?.info?.duration || track?.length || 0;
+  const sourceName = track?.info?.sourceName || track?.sourceName;
+  let req = track?.userData?.requester || track?.requester;
+  if (req && typeof req === "object" && req.requester) req = req.requester;
+  let requesterName = req?.globalName || req?.username;
+
+  if (!requesterName) {
+    const userId = req?.id || (typeof req === "string" && req.match(/^\d+$/) ? req : null);
+    if (userId) {
+      try {
+        const fetchedUser = client.users.cache.get(userId) || await client.users.fetch(userId).catch(() => null);
+        if (fetchedUser) {
+          requesterName = fetchedUser.globalName || fetchedUser.username;
+          if (typeof track.requester === "object") {
+            Object.assign(track.requester, fetchedUser);
+          } else {
+            track.requester = fetchedUser;
+          }
+        }
+      } catch (fErr) {
+        console.error("Error fetching requester user:", fErr);
+      }
+    }
+  }
+
+  if (!requesterName) {
+    requesterName = (typeof req === "string" && !req.match(/^\d+$/) ? req : null) || "User";
+  }
+
     const playerStartEmbed = new EmbedBuilder()
 	.setColor('#e66229')
-	.setTitle(track?.title || "Missing Title")
-	.setURL(track.sourceName === 'spotify_native' ? track.uri : (track?.realUri || "https://youtube.com"))
-	.setThumbnail(track?.thumbnail || "https://i.imgur.com/K9LWwgw.png")
-    .setDescription(`Duration: **${convertTime(track?.length || 0, true)}**`)
+	.setTitle(title)
+	.setURL(sourceName === 'spotify_native' ? uri : uri)
+	.setThumbnail(artworkUrl)
+    .setDescription(`Duration: **${convertTime(duration, true)}**`)
     .setTimestamp()
-    .setFooter({ text: `Requested by: ${track?.requester?.username}${Math.random() < 0.06 ? ' | Dont want these messages? Disable them with /player-settings' : ''}`});
+    .setFooter({ text: `Requested by: ${requesterName}${Math.random() < 0.06 ? ' | Dont want these messages? Disable them with /player-settings' : ''}`});
 
     switch (track.sourceName) {
         case 'spotify_native':
@@ -135,7 +349,8 @@ client.manager.on("playerStart", async (player, track) => {
     }
    }
    if (!message) return;
-   player.data.set("message", message);
+   if (!player.customData) player.customData = {};
+   player.customData.message = message;
        let ms = track?.length || "300000";
        if (ms < "300000") {
         } else {
@@ -145,7 +360,7 @@ client.manager.on("playerStart", async (player, track) => {
         idle: ms,
         });
           collector.on("end", async () => {
-            if (player.customData.playerMessages === "default") {
+            if (player.customData?.playerMessages === "default") {
             try {
               const fetchedMessage = await message.channel.messages.fetch(message.id)
               fetchedMessage.edit({
@@ -166,64 +381,58 @@ client.manager.on("playerStart", async (player, track) => {
           })
 });
 
-client.manager.on("playerEnd", (player) => {
-  if (player.customData.playerMessages === "default") {
-    player.data.get("message")?.edit({
-        components: [],
-      }).catch(err => { if (!err.code === 50013) console.log("Error editing playerEnd message:", err)});
-    } else {
-      player.data.get("message")?.delete().catch(err => { if (!err.code === 50013) console.log("Error editing playerEnd message:", err)});
-    }
-
-});
-
-  // Autoplay Event
-  client.manager.on("playerEmpty", async (player) => {
+client.manager.on("queueEnd", async (player) => {
+  if (player.customData?.autoPlay) {
     try {
-      if (player.customData.autoPlay === false) return;
-      const history = player.queue.previous.reverse();
-      const lastTrack = history[0];
-      let id = player.queue.previous.reverse()[0].identifier;
-      if (!id) {
-        res = await player.search(`${lastTrack.title} + ${lastTrack.author}`, {
-          engine: "youtube_music",
-          requester: { username: "Autoplay" },
+      const history = [...(player.queue.previous || [])].reverse();
+      const lastTrack = history[0] || player.queue.current;
+      if (!lastTrack) return;
+
+      let id = lastTrack.info?.identifier || lastTrack.identifier;
+      let res = null;
+      if (id) {
+        res = await player.search({ query: `https://music.youtube.com/watch?v=${id}&list=RD${id}` }, { username: "Autoplay" }).catch(() => null);
+      }
+      if (!res || !res.tracks?.length) {
+        const title = lastTrack.info?.title || lastTrack.title || "";
+        const author = lastTrack.info?.author || lastTrack.author || "";
+        if (title) {
+          res = await player.search({ query: `${title} ${author}`.trim(), source: "ytmsearch" }, { username: "Autoplay" }).catch(() => null);
+        }
+      }
+
+      if (res?.tracks?.length) {
+        const filter = MetadataFilter.createSpotifyFilter();
+        filter.extend(MetadataFilter.createAmazonFilter());
+        const lastFiveTracks = history.slice(0, 5);
+
+        const filteredHistoryTitles = lastFiveTracks.map((track) => {
+          const tName = track.info?.title || track.title || "";
+          return MetadataFilter.youtube(tName).toLowerCase();
         });
-        id = res.tracks[0].identifier;
+
+        const filteredTracks = res.tracks.filter((track) => {
+          const tName = (track.info?.title || track.title || "").toLowerCase();
+          return !filteredHistoryTitles.some((historyTrack) => historyTrack && tName.includes(historyTrack));
+        });
+
+        const randomTrack = (filteredTracks.length ? filteredTracks : res.tracks)[Math.floor(Math.random() * (filteredTracks.length || res.tracks.length))];
+
+        if (randomTrack) {
+          player.queue.add(randomTrack);
+          if (!player.playing && !player.paused) await player.play();
+          return;
+        }
       }
-      // find recommended tracks
-      const res = await player.search(
-        `https://music.youtube.com/watch?v=${id}&list=RD${id}`, { requester: { username: "Autoplay" }});
-
-      // Remove Metadata from titles
-      const filter = MetadataFilter.createSpotifyFilter();
-      filter.extend(MetadataFilter.createAmazonFilter());
-      const lastFiveTracks = history.slice(0, 5);
-
-      const filteredHistoryTitles = [];
-      lastFiveTracks.forEach(async (track) => {
-        let title = MetadataFilter.youtube(track.title);
-        filteredHistoryTitles.push(title);
-      });
-
-      const filteredTracks = res.tracks.filter((track) => {
-        return !filteredHistoryTitles.some((historyTrack) =>
-          track.title.toLowerCase().includes(historyTrack.toLowerCase())
-        );
-      });
-
-      let randomTrack;
-      if (filteredTracks.length < 1) {
-        randomTrack = res.tracks[Math.floor(Math.random() * res.tracks.length)];
-      } else {
-        randomTrack = filteredTracks[Math.floor(Math.random() * filteredTracks.length)];
-      }
-
-      if (!randomTrack) randomTrack = res[0];
-      player.queue.add(randomTrack);
-      if (!player.playing && !player.paused) player.play();
     } catch (error) {
-      console.log("error while running lavalink autoplay", error);
+      console.error("Error while running lavalink autoplay:", error);
     }
-  });
+  }
+
+  if (player.customData?.playerMessages === "default") {
+    player.customData.message?.edit({ components: [] }).catch(err => { if (err.code !== 50013 && err.code !== 10008) console.log("Error editing playerEnd message:", err); });
+  } else {
+    player.customData.message?.delete().catch(err => { if (err.code !== 50013 && err.code !== 10008) console.log("Error deleting playerEnd message:", err); });
+  }
+});
 }

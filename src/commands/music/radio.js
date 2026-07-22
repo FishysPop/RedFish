@@ -121,23 +121,26 @@ module.exports =  {
         }
 
         try {
-          const player = await client.manager.createPlayer({
-            guildId: interaction.guild.id,
-            textId: interaction.channel.id,
-            voiceId: channel.id,
-            volume: playerSettings.volume,
-            deaf: true,
-            nodeName: `${process.env.NAME}1`,
-            data: {
-              autoPlay: false,
-              playerMessages: playerSettings.playerMessages
-            }
-          });
+          let player = client.manager.getPlayer(interaction.guild.id);
+          if (!player) {
+            player = await client.manager.createPlayer({
+              guildId: interaction.guild.id,
+              textChannelId: interaction.channel.id,
+              voiceChannelId: channel.id,
+              volume: parseInt(playerSettings.volume, 10) || 30,
+              selfDeaf: true,
+              customData: {
+                autoPlay: false,
+                playerMessages: playerSettings.playerMessages
+              }
+            });
+          }
+          if (!player.connected) await player.connect();
 
-          const res = await player.search(data[0].url_resolved, { requester: interaction.user });
+          const res = await player.search({ query: data[0].url_resolved, source: "http" }, interaction.user);
           if (!res.tracks.length) return interaction.editReply("No results found!");
-          player.queue.add(res.tracks[0]);
-          if (!player.playing && !player.paused) player.play();
+          await player.queue.add(res.tracks[0]);
+          if (!player.playing && !player.paused) await player.play();
 
           if (!interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.ViewChannel) || !interaction.guild.members.me.permissionsIn(interaction.channel).has(PermissionsBitField.Flags.SendMessages)) {
             const embed = new EmbedBuilder()

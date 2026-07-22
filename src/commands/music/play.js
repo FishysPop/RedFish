@@ -48,19 +48,24 @@ module.exports =  {
     let embed = new EmbedBuilder().setColor('#e66229');
 
     try { 
-      player = await client.manager.createPlayer({
-        guildId: interaction.guild.id,
-        textId: interaction.channel.id,
-        voiceId: channel.id,
-        shardId: interaction.guild.shardId,
-        volume: playerSettings.volume,
-        deaf: true,
-        nodeName: `${playerSettings.PreferedNode ? playerSettings.PreferedNode : client.manager.shoukaku.getIdealNode()?.name}`,
-        data: {
-          autoPlay: false,
-          playerMessages: playerSettings.playerMessages
-        }
-      });
+      player = client.manager.getPlayer(interaction.guild.id);
+      if (!player) {
+        player = await client.manager.createPlayer({
+          guildId: interaction.guild.id,
+          textChannelId: interaction.channel.id,
+          voiceChannelId: channel.id,
+          volume: parseInt(playerSettings.volume, 10) || 30,
+          selfDeaf: true,
+          nodeOptions: playerSettings.PreferedNode ? { id: playerSettings.PreferedNode } : undefined,
+          customData: {
+            autoPlay: false,
+            playerMessages: playerSettings.playerMessages
+          }
+        });
+      } else if (player.textChannelId !== interaction.channel.id) {
+        player.textChannelId = interaction.channel.id;
+      }
+      if (!player.connected) await player.connect();
 
       let res;
 
@@ -124,19 +129,19 @@ module.exports =  {
                               res = nativeResult;
                               usedSearchEngine = 'tidal_native';
                           } else {
-                              res = await player.search(query, { requester: interaction.user });
+                              res = await player.search({ query: query, source: "ytmsearch" }, interaction.user);
                               usedSearchEngine = 'youtube_music';
                           }
                       } catch (tidalError) {
                           console.error("[Play Command] Error in Tidal native playback:", tidalError);
-                          res = await player.search(query, { requester: interaction.user });
+                          res = await player.search({ query: query, source: "ytmsearch" }, interaction.user);
                           usedSearchEngine = 'youtube_music';
                       }
                   }
               }
 
               if (!res || !res.tracks.length) {
-                  res = await player.search(query, { requester: interaction.user });
+                  res = await player.search({ query: query, source: "ytmsearch" }, interaction.user);
               }
             }
 
@@ -219,7 +224,10 @@ module.exports =  {
       if (!usedSearchEngine) usedSearchEngine = res?.tracks[0]?.sourceName;
       if (!res || !res.tracks.length) return handleNoResults(interaction, name);
 
-      if (res.type === "PLAYLIST") {
+      const isPlaylist = res.isPlaylist || res.loadType === "PLAYLIST_LOADED" || res.loadType === "playlist" || !!res.playlist;
+      const playlistName = res.playlistName || res.playlist?.name || res.playlist?.title || res.data?.name || "Playlist";
+
+      if (isPlaylist) {
           for (let track of res.tracks) player.queue.add(track);
           if (!player.playing && !player.paused) {
               try {
@@ -229,7 +237,7 @@ module.exports =  {
                   return handlePlayError(interaction, name, playError, player);
               }
           }
-          embed.setColor('#e66229').setDescription(`**Enqueued: [${res.playlistName}](${name}) (${res.tracks.length} tracks)**`);
+          embed.setColor('#e66229').setDescription(`**Enqueued: [${playlistName}](${name}) (${res.tracks.length} tracks)**`);
       } else {
           player.queue.add(res.tracks[0]);
           if (!player.playing && !player.paused) {
@@ -240,10 +248,15 @@ module.exports =  {
                   return handlePlayError(interaction, name, playError, player);
               }
           }
-          embed.setColor('#e66229').setDescription(`**Enqueued: [${res.tracks[0].title}](${res.tracks[0].uri}) - ${res.tracks[0].author}** \`${convertTime(res.tracks[0].length, true)}\``);
+          const addedTrack = res.tracks[0];
+          const trackTitle = addedTrack.info?.title || addedTrack.title;
+          const trackUri = addedTrack.info?.uri || addedTrack.uri;
+          const trackAuthor = addedTrack.info?.author || addedTrack.author;
+          const trackDuration = addedTrack.info?.duration || addedTrack.length || 0;
+          embed.setColor('#e66229').setDescription(`**Enqueued: [${trackTitle}](${trackUri}) - ${trackAuthor}** \`${convertTime(trackDuration, true)}\``);
       }
 
-      client.totalTracksPlayed += res.type === "PLAYLIST" ? res.tracks.length : 1;
+      client.totalTracksPlayed += isPlaylist ? res.tracks.length : 1;
       await sendTrackEmbed(interaction, embed); 
 
       updatePlayAnalytics({ guildId: interaction.guild.id, hasPlayerSettings, usedSearchEngine });
@@ -299,17 +312,33 @@ module.exports =  {
     }
     interaction.client.userInteractions.set(interaction.user.id, Date.now());
 
-    const resultsSoundcloudLavalink = await client.manager.search(query, { engine: 'soundcloud'}).catch(() => null) || null;
-    const resultsSpotifyLavalink = await client.manager.search(query, { engine: 'spotify'}).catch(() => null) || null;
-    const tracksSoundcloudLavalink = resultsSoundcloudLavalink && resultsSoundcloudLavalink.tracks[0] ? resultsSoundcloudLavalink.tracks.slice(0, 5).map((t) => ({
-      name: `SoundCloud: ${`${t.title} - ${t.author} (${convertTime(t.length, true)})`.length > 70 ? `${`${t.title} - ${t.author}`.substring(0, 70)}... (${convertTime(t.length, true)})` : `${t.title} - ${t.author} (${convertTime(t.length, true)})`}`,
-      value: t.uri.length > 92 ? `${t.title} ${t.author}`.substring(0, 95) : t.uri,
-    })) : [{ name: "No SoundCloud Results Found", value: query}];  
+    const node = client.manager.nodeManager.getNode();
+    const resultsSoundcloudLavalink = node ? await node.search({ query, source: 'scsearch' }, interaction.user).catch(() => null) : null;
+    const resultsSpotifyLavalink = node ? await node.search({ query, source: 'spsearch' }, interaction.user).catch(() => null) : null;
 
-    const tracksSpotifyLavalink = resultsSpotifyLavalink ? resultsSpotifyLavalink.tracks.slice(0, 5).map((t) => ({
-      name: `Spotify: ${`${t.title} - ${t.author} (${convertTime(t.length, true)})`.length > 75 ? `${`${t.title} - ${t.author}`.substring(0, 75)}... (${convertTime(t.length, true)})` : `${t.title} - ${t.author} (${convertTime(t.length, true)})`}`,
-      value: t.uri.length > 92 ? `${t.title} ${t.author}`.substring(0, 95) : t.uri,
-    })) : [{ name: "No Spotify Results Found", value: query}];
+    const tracksSoundcloudLavalink = resultsSoundcloudLavalink?.tracks?.length ? resultsSoundcloudLavalink.tracks.slice(0, 5).map((t) => {
+      const title = t.info?.title || t.title;
+      const author = t.info?.author || t.author;
+      const duration = t.info?.duration || t.length || 0;
+      const uri = t.info?.uri || t.uri;
+      const labelText = `SoundCloud: ${title} - ${author} (${convertTime(duration, true)})`;
+      return {
+        name: labelText.length > 95 ? labelText.substring(0, 92) + '...' : labelText,
+        value: uri.length > 92 ? `${title} ${author}`.substring(0, 95) : uri,
+      };
+    }) : [{ name: "No SoundCloud Results Found", value: query.substring(0, 95) }];  
+
+    const tracksSpotifyLavalink = resultsSpotifyLavalink?.tracks?.length ? resultsSpotifyLavalink.tracks.slice(0, 5).map((t) => {
+      const title = t.info?.title || t.title;
+      const author = t.info?.author || t.author;
+      const duration = t.info?.duration || t.length || 0;
+      const uri = t.info?.uri || t.uri;
+      const labelText = `Spotify: ${title} - ${author} (${convertTime(duration, true)})`;
+      return {
+        name: labelText.length > 95 ? labelText.substring(0, 92) + '...' : labelText,
+        value: uri.length > 92 ? `${title} ${author}`.substring(0, 95) : uri,
+      };
+    }) : [{ name: "No Spotify Results Found", value: query.substring(0, 95) }];
     
     const tracksLavalink = [];
     tracksSoundcloudLavalink.forEach((t) => tracksLavalink.push({ name: t.name, value: t.value }));

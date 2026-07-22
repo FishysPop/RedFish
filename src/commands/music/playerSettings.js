@@ -106,16 +106,16 @@ module.exports = {
               { label: 'Disabled', value: 'noMessage' }, { label: 'Delete After Finish', value: 'deleteAfter' }, { label: 'Default', value: 'default' }
             ).setMaxValues(1)
           );
-          const nodesArray = Array.from(client.manager.shoukaku.nodes);
+          const nodesArray = Array.from(client.manager.nodeManager.nodes.values());
           const preferedNodeSelectMenu = new StringSelectMenuBuilder().setCustomId('preferedNodeSelectMenu').setPlaceholder('Prefered Node');
-          for (const node of nodesArray) preferedNodeSelectMenu.addOptions(new StringSelectMenuOptionBuilder().setLabel(node[1].name).setValue(node[1].name));
+          for (const node of nodesArray) preferedNodeSelectMenu.addOptions(new StringSelectMenuOptionBuilder().setLabel(node.id).setValue(node.id));
           row5 = new ActionRowBuilder().addComponents(preferedNodeSelectMenu);
         }
       } else {
         embed.setTitle("Player Settings").setDescription("You need to vote to access player settings.");
         row.addComponents(
           new ButtonBuilder().setLabel("Vote").setStyle(ButtonStyle.Link).setURL("https://top.gg/bot/1105149646612987934/"),
-          new ButtonBuilder().setCustomId("reloadButton").setLabel("🔄").setStyle(ButtonStyle.Primary)
+          new ButtonBuilder().setCustomId("reloadButton").setLabel("🔄").setStyle(ButtonStyle.Secondary)
         );
       }
     };

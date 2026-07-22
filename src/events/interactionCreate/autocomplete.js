@@ -1,6 +1,7 @@
 module.exports = async (interaction, client, handler) => {
     if (interaction.isAutocomplete()) {
-        const command = client.commands.get(interaction.commandName);
+        const command = client.commands?.get(interaction.commandName);
+        if (!command || typeof command.autocompleteRun !== 'function') return;
         try {
             await command.autocompleteRun(interaction, client);
         } catch (error) {
@@ -9,7 +10,7 @@ module.exports = async (interaction, client, handler) => {
             }
             console.log(`Error while autocompleting: ${error}`);   
             return;  
-           }
+        }
     } else {
         return;
     }

@@ -2,10 +2,6 @@ require("dotenv").config();
 const { Client, GatewayIntentBits, Collection, Options } = require("discord.js");
 const mongoose = require("mongoose");
 const { CommandHandler } = require('djs-commander');
-const { Kazagumo, Plugins } = require("kazagumo");
-const Spotify = require('kazagumo-spotify');
-const Deezer = require('kazagumo-deezer');
-const { Connectors } = require("shoukaku");
 const fs = require('fs');
 const Topgg = require("@top-gg/sdk");
 const { ClusterClient, getInfo } = require('discord-hybrid-sharding');
@@ -44,7 +40,8 @@ cacheManager.initializeCacheManager(client);
 
 
 if (process.env.LAVALINK === 'true') {
-  const lavaNodes = []
+  const { LavalinkManager } = require("lavalink-client");
+  const lavaNodes = [];
   const lavaURI = process.env.LAVALINK_URI; 
   if (lavaURI) {
     const nodes = lavaURI.split(';');
@@ -53,10 +50,11 @@ if (process.env.LAVALINK === 'true') {
       if (portAndAuth) {
         const [port, password] = portAndAuth.split('@');
         lavaNodes.push({
-          name: `${process.env.NAME}${index + 1}`,
-          url: `${ip}:${port}`, 
-          auth: password, 
-          secure: false 
+          id: `${process.env.NAME || 'node'}_${index + 1}`,
+          host: ip,
+          port: parseInt(port, 10),
+          authorization: password,
+          secure: false
         });
       } else {
         console.warn(`Invalid Lavalink node configuration: ${node}`);
@@ -65,38 +63,44 @@ if (process.env.LAVALINK === 'true') {
   } else {
     console.warn('No Lavalink node configuration found. eg LAVALINK_URI = YOUR_IP:PORT@PASSWORD');
   }
-  client.manager = new Kazagumo({
-    defaultSearchEngine: "youtube_music",
-    sourceForceResolve : "deezer",  
-    plugins: [
-      new Plugins.PlayerMoved(client),
-      new Deezer({
-        playlistLimit: 20
-      }),
-      new Spotify({
-      clientId: process.env.SPOTIFY_ID,
-      clientSecret: process.env.SPOTIFY_SECRET,
-      playlistPageLimit: 5, // ( 100 tracks per page )
-      albumPageLimit: 4, //( 50 tracks per page )
-      searchLimit: 10, // ( track search limit. Max 50 )
-      searchMarket: 'US', //( eg: US, IN, EN ] )//
-    }),],
-    send: (guildId, payload) => {
-        const guild = client.guilds.cache.get(guildId);
-        if (guild) guild.shard.send(payload);
-    }
-}, new Connectors.DiscordJS(client), lavaNodes, {
-  reconnectInterval: 10,
-  moveOnDisconnect: true,
-  resume: true,
-  resumeByLibrary: false,
-  reconnectTries: 6,
-  resumeTimeout: 60,
-});
-require('./events/lavaEvents/lavaEvents.js')(client)
-const playCommand = require('./commands/music/play.js');
-client.commands = new Collection();
-client.commands.set('play', playCommand);
+
+  client.manager = new LavalinkManager({
+    nodes: lavaNodes,
+    sendToShard: (guildId, payload) => {
+      const guild = client.guilds.cache.get(guildId);
+      if (guild) guild.shard.send(payload);
+    },
+    client: {
+      id: process.env.CLIENT_ID || "1050000000000000000",
+      username: "RedFish",
+    },
+    autoMove: true,
+    autoSkipOnResolveError: true,
+    playerOptions: {
+      defaultSearchPlatform: "ytmsearch",
+      onEmptyQueue: {
+        destroyAfterMs: 30000,
+      },
+      onDisconnect: {
+        destroy: true,
+        autoReconnect: true,
+      },
+    },
+  });
+
+  client.once("ready", () => {
+    client.manager.options.client.id = client.user.id;
+    client.manager.options.client.username = client.user.username;
+    client.manager.init(client.user.id);
+  });
+
+  client.on("raw", (d) => client.manager.sendRawData(d));
+  require('./events/lavaEvents/lavaEvents.js')(client);
+  const playCommand = require('./commands/music/play.js');
+  const playnextCommand = require('./commands/music/playnext.js');
+  client.commands = new Collection();
+  client.commands.set('play', playCommand);
+  client.commands.set('playnext', playnextCommand);
 }
 
 if (process.env.LAVALINK !== 'true') {

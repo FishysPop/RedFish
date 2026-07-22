@@ -37,7 +37,7 @@ module.exports = {
         totalTracksPlayed = client.totalTracksPlayed; 
       }
 
-      const playerStats = client.manager.shoukaku.nodes;
+      const nodesArray = client.manager?.nodeManager?.nodes ? Array.from(client.manager.nodeManager.nodes.values()) : [];
       const embed = new EmbedBuilder()
         .setColor('#e66229')
         .setDescription(`**System Status**
@@ -47,26 +47,32 @@ module.exports = {
                       **${memUsage} MB** Memory Usage
                     **${totalTracksPlayed}** Tracks Since Restart`).setFooter({text: `Shard: ${interaction.guild?.shardId ? interaction.guild?.shardId : '0'} | Cluster: ${client.cluster?.id ?? 0}`});
 
-      for (const node of playerStats.values()) {
+      for (const node of nodesArray) {
         const options = interaction.options.get('ratelimit_check')?.value;
         let RateLimited = '';
         if (options === "yes")  {
-          const search = await client.manager.search("https://www.youtube.com/watch?v=C0DPdy98e4c", {engine: 'youtube', nodeName: node.name});
-          if (search.tracks?.length) {
+          const search = await node.search({ query: "https://www.youtube.com/watch?v=C0DPdy98e4c", source: "ytsearch" }).catch(() => null);
+          if (search?.tracks?.length) {
             RateLimited = '\n Rate Limited: False';
           } else {
             RateLimited = '\n Rate Limited: True';
           }
         }
+        const nodeName = node.id || node.name || "Lavalink Node";
         embed.addFields({
-          name: `Node: ${node.name}`,
-          value: `Players: ${node.stats?.players ? node.stats.players : '0'}\nPlaying: ${node.stats?.playingPlayers ? node.stats.playingPlayers : '0'}\nUptime: ${node.stats?.uptime ? prettyMs(node.stats?.uptime, {compact: true}) : 'N/A'}\nMemory: ${node.stats?.memory ? (node.stats.memory.used / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}\nCPU: ${node.stats?.cpu.systemLoad ? (node.stats.cpu.systemLoad * 100).toFixed(2) + '%' : 'N/A'}${RateLimited}`,
+          name: `Node: ${nodeName}`,
+          value: `Players: ${node.stats?.players ? node.stats.players : '0'}\nPlaying: ${node.stats?.playingPlayers ? node.stats.playingPlayers : '0'}\nUptime: ${node.stats?.uptime ? prettyMs(node.stats?.uptime, {compact: true}) : 'N/A'}\nMemory: ${node.stats?.memory ? (node.stats.memory.used / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}\nCPU: ${node.stats?.cpu?.systemLoad ? (node.stats.cpu.systemLoad * 100).toFixed(2) + '%' : 'N/A'}${RateLimited}`,
         });
       }
-      interaction.editReply({ embeds: [embed] });
+      return interaction.editReply({ embeds: [embed] });
 
     } catch (error) {
-      console.log("error while running status", error)   
+      console.error("error while running status", error);
+      if (interaction.deferred || interaction.replied) {
+        return interaction.editReply({ content: "An error occurred while fetching status." }).catch(() => {});
+      } else {
+        return interaction.reply({ content: "An error occurred while fetching status.", flags: MessageFlags.Ephemeral }).catch(() => {});
+      }
     }
   },
 };

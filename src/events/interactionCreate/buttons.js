@@ -12,37 +12,36 @@ module.exports = async (interaction, client, handler) => {
     try {
       switch (buttonname) {
         case "Pause":
-          try {
-            let playing = player.paused
-            if (!playing) {
-              const PlayerPauseEmbed = await new EmbedBuilder()
-                .setColor("#e66229")
-                .setDescription(`${usera} has paused the queue.`);
-              interaction.reply({ embeds: [PlayerPauseEmbed] });
-              player.pause(true);
-            } else {
-              const PlayerResumedEmbed = await new EmbedBuilder()
-                .setColor("#e66229")
-                .setDescription(`${usera} has resumed the queue.`);
-              interaction.reply({ embeds: [PlayerResumedEmbed] });
-              player.pause(false);
-            }
-          } catch {
+          if (!player) {
             interaction.reply({
               content: `The bot is not in a voice channel`,
               flags: MessageFlags.Ephemeral,
             });
+          } else {
+            if (!player.paused) {
+              await player.pause();
+              const PlayerPauseEmbed = new EmbedBuilder()
+                .setColor("#e66229")
+                .setDescription(`${usera} has paused the queue.`);
+              interaction.reply({ embeds: [PlayerPauseEmbed] });
+            } else {
+              await player.resume();
+              const PlayerResumedEmbed = new EmbedBuilder()
+                .setColor("#e66229")
+                .setDescription(`${usera} has resumed the queue.`);
+              interaction.reply({ embeds: [PlayerResumedEmbed] });
+            }
           }
 
           break;
         case "Skip":
-          if (!player) {
+          if (!player || (!player.queue.current && !player.queue.tracks.length)) {
             interaction.reply({
-              content: `There is no music playing`,
+              content: `There is no music playing to skip.`,
               flags: MessageFlags.Ephemeral,
             });
           } else {
-            player.skip();
+            await player.skip(0, false).catch(() => null);
             const PlayerSkipEmbed = await new EmbedBuilder()
               .setColor("#e66229")
               .setDescription(`${usera} has skipped a song.`);
@@ -68,23 +67,29 @@ module.exports = async (interaction, client, handler) => {
           break;
         case "Loop":
           try {
-            if (player.loop === "queue") {
-              const PlayerLoopEmbed2 = await new EmbedBuilder()
-              .setColor("#e66229")
-              .setDescription(`${usera} has unlooped the queue.`);
-            interaction.reply({ embeds: [PlayerLoopEmbed2] });
-            player.setLoop("none")
+            if (!player) {
+              return interaction.reply({
+                content: `There is no music playing`,
+                flags: MessageFlags.Ephemeral,
+              });
+            }
+            if (player.repeatMode === "queue") {
+              await player.setRepeatMode("off");
+              const PlayerLoopEmbed2 = new EmbedBuilder()
+                .setColor("#e66229")
+                .setDescription(`${usera} has unlooped the queue.`);
+              interaction.reply({ embeds: [PlayerLoopEmbed2] });
             } else {
-              const PlayerLoopEmbed = await new EmbedBuilder()
+              await player.setRepeatMode("queue");
+              const PlayerLoopEmbed = new EmbedBuilder()
                 .setColor("#e66229")
                 .setDescription(`${usera} has looped the queue.`);
               interaction.reply({ embeds: [PlayerLoopEmbed] });
-              player.setLoop("queue")
-
             }
-          } catch {
+          } catch (err) {
+            console.error("Error setting loop mode:", err);
             interaction.reply({
-              content: `There is no music playing`,
+              content: `Error changing loop mode`,
               flags: MessageFlags.Ephemeral,
             });
           }

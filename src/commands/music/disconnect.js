@@ -19,7 +19,7 @@ module.exports = {
       });
     }
 
-    const player = client.manager.players.get(interaction.guild.id);
+    const player = client.manager.getPlayer(interaction.guild.id);
     if (!player) {
       return interaction.reply({
         content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,

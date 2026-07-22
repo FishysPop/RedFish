@@ -48,7 +48,7 @@ module.exports =  {
     let embed = new EmbedBuilder().setColor('#e66229');
 
     try { 
-      player = client.manager.players.get(interaction.guild.id);
+      player = client.manager.getPlayer(interaction.guild.id);
       if (!player) {
         return interaction.editReply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`, flags: MessageFlags.Ephemeral});
       }
@@ -212,18 +212,26 @@ module.exports =  {
       if (!usedSearchEngine) usedSearchEngine = res?.tracks[0]?.sourceName;
       if (!res || !res.tracks.length) return handleNoResults(interaction, name);
 
-      if (res.type === "PLAYLIST") {
+      const isPlaylist = res.isPlaylist || res.loadType === "PLAYLIST_LOADED" || res.loadType === "playlist" || !!res.playlist;
+      const playlistName = res.playlistName || res.playlist?.name || res.playlist?.title || res.data?.name || "Playlist";
+
+      if (isPlaylist) {
           const tracks = res.tracks;
           for (let i = tracks.length - 1; i >= 0; i--) {
               player.queue.splice(0, 0, tracks[i]);
           }
-          embed.setColor('#e66229').setDescription(`**Playing Next: [${res.playlistName}](${name}) (${res.tracks.length} tracks)**`);
+          embed.setColor('#e66229').setDescription(`**Playing Next: [${playlistName}](${name}) (${res.tracks.length} tracks)**`);
       } else {
           player.queue.splice(0, 0, res.tracks[0]);
-          embed.setColor('#e66229').setDescription(`**Playing Next: [${res.tracks[0].title}](${res.tracks[0].uri}) - ${res.tracks[0].author}** \`${convertTime(res.tracks[0].length, true)}\``);
+          const t = res.tracks[0];
+          const tTitle = t.info?.title || t.title;
+          const tUri = t.info?.uri || t.uri;
+          const tAuthor = t.info?.author || t.author;
+          const tDuration = t.info?.duration || t.length || 0;
+          embed.setColor('#e66229').setDescription(`**Playing Next: [${tTitle}](${tUri}) - ${tAuthor}** \`${convertTime(tDuration, true)}\``);
       }
 
-      client.totalTracksPlayed += res.type === "PLAYLIST" ? res.tracks.length : 1;
+      client.totalTracksPlayed += isPlaylist ? res.tracks.length : 1;
       return interaction.editReply({ embeds: [embed] });
     } catch (e) {
       return handlePlayError(interaction, name, e, player);
@@ -258,17 +266,33 @@ module.exports =  {
     }
     interaction.client.userInteractions.set(interaction.user.id, Date.now());
 
-    const resultsSoundcloudLavalink = await client.manager.search(query, { engine: 'soundcloud'}).catch(() => null) || null;
-    const resultsSpotifyLavalink = await client.manager.search(query, { engine: 'spotify'}).catch(() => null) || null;
-    const tracksSoundcloudLavalink = resultsSoundcloudLavalink && resultsSoundcloudLavalink.tracks[0] ? resultsSoundcloudLavalink.tracks.slice(0, 5).map((t) => ({
-      name: `SoundCloud: ${`${t.title} - ${t.author} (${convertTime(t.length, true)})`.length > 70 ? `${`${t.title} - ${t.author}`.substring(0, 70)}... (${convertTime(t.length, true)})` : `${t.title} - ${t.author} (${convertTime(t.length, true)})`}`,
-      value: t.uri.length > 92 ? `${t.title} ${t.author}`.substring(0, 95) : t.uri,
-    })) : [{ name: "No SoundCloud Results Found", value: query}];  
+    const node = client.manager.nodeManager.getNode();
+    const resultsSoundcloudLavalink = node ? await node.search({ query, source: 'scsearch' }, interaction.user).catch(() => null) : null;
+    const resultsSpotifyLavalink = node ? await node.search({ query, source: 'spsearch' }, interaction.user).catch(() => null) : null;
 
-    const tracksSpotifyLavalink = resultsSpotifyLavalink ? resultsSpotifyLavalink.tracks.slice(0, 5).map((t) => ({
-      name: `Spotify: ${`${t.title} - ${t.author} (${convertTime(t.length, true)})`.length > 75 ? `${`${t.title} - ${t.author}`.substring(0, 75)}... (${convertTime(t.length, true)})` : `${t.title} - ${t.author} (${convertTime(t.length, true)})`}`,
-      value: t.uri.length > 92 ? `${t.title} ${t.author}`.substring(0, 95) : t.uri,
-    })) : [{ name: "No Spotify Results Found", value: query}];
+    const tracksSoundcloudLavalink = resultsSoundcloudLavalink?.tracks?.length ? resultsSoundcloudLavalink.tracks.slice(0, 5).map((t) => {
+      const title = t.info?.title || t.title;
+      const author = t.info?.author || t.author;
+      const duration = t.info?.duration || t.length || 0;
+      const uri = t.info?.uri || t.uri;
+      const labelText = `SoundCloud: ${title} - ${author} (${convertTime(duration, true)})`;
+      return {
+        name: labelText.length > 95 ? labelText.substring(0, 92) + '...' : labelText,
+        value: uri.length > 92 ? `${title} ${author}`.substring(0, 95) : uri,
+      };
+    }) : [{ name: "No SoundCloud Results Found", value: query.substring(0, 95) }];  
+
+    const tracksSpotifyLavalink = resultsSpotifyLavalink?.tracks?.length ? resultsSpotifyLavalink.tracks.slice(0, 5).map((t) => {
+      const title = t.info?.title || t.title;
+      const author = t.info?.author || t.author;
+      const duration = t.info?.duration || t.length || 0;
+      const uri = t.info?.uri || t.uri;
+      const labelText = `Spotify: ${title} - ${author} (${convertTime(duration, true)})`;
+      return {
+        name: labelText.length > 95 ? labelText.substring(0, 92) + '...' : labelText,
+        value: uri.length > 92 ? `${title} ${author}`.substring(0, 95) : uri,
+      };
+    }) : [{ name: "No Spotify Results Found", value: query.substring(0, 95) }];
     
     const tracksLavalink = [];
     tracksSoundcloudLavalink.forEach((t) => tracksLavalink.push({ name: t.name, value: t.value }));

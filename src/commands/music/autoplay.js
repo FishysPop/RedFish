@@ -20,7 +20,7 @@ module.exports = {
     }
 
     try {
-      const player = client.manager.players.get(interaction.guild.id);
+      const player = client.manager.getPlayer(interaction.guild.id);
       if (!player) {
         return interaction.reply({
           content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,
@@ -28,21 +28,24 @@ module.exports = {
         });
       }
 
-      if (player.customData.autoPlay === false) {
+      if (!player.customData) player.customData = {};
+      const isAutoPlayEnabled = Boolean(player.customData.autoPlay);
+
+      if (!isAutoPlayEnabled) {
+        player.customData.autoPlay = true;
+        await player.setRepeatMode("off");
         const embed = new EmbedBuilder()
           .setColor("#e66229")
           .setDescription(`**Autoplay enabled**`)
           .setFooter({ text: `Run this command again to disable it.` });
-        interaction.reply({ embeds: [embed] });
-        player.customData.autoPlay = true;
-        player.setLoop("none");
+        return interaction.reply({ embeds: [embed] });
       } else {
+        player.customData.autoPlay = false;
         const embed2 = new EmbedBuilder()
           .setColor("#e66229")
           .setDescription(`**Autoplay disabled**`)
           .setFooter({ text: `Run this command again to enable it.` });
-        interaction.reply({ embeds: [embed2] });
-        player.customData.autoPlay = false;
+        return interaction.reply({ embeds: [embed2] });
       }
     } catch (error) {
       console.log("error running autoplay command", error);

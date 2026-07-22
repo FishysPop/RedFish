@@ -208,7 +208,7 @@ async function handleSpotifyNativePlay(url, player, requester, client, originalT
 
         if (fileUrl) {
             if (debugEnabled) console.debug(`[SpotifyNativePlay-DEBUG] Resolving stream URL with Lavalink.`);
-            const streamResult = await player.search(fileUrl, { requester });
+            const streamResult = await player.search({ query: fileUrl, source: "http" }, requester);
             if (!streamResult || !streamResult.tracks.length) {
                 console.error(`[SpotifyNativePlay] Lavalink could not resolve the stream URL: ${fileUrl}`);
                 return null;
@@ -260,7 +260,7 @@ async function handleSpotifyNativePlaylist(url, player, requester, client) {
     if (debugEnabled) console.debug(`[SpotifyNativePlay-Playlist] Handling playlist URL: ${url}`);
 
     try {
-        const playlistResult = await client.manager.search(url, { requester, engine: 'spotify' });
+        const playlistResult = await player.search({ query: url, source: 'spsearch' }, requester);
 
         if (!playlistResult || playlistResult.type !== 'PLAYLIST' || !playlistResult.tracks.length) {
             console.log(`[SpotifyNativePlay-Playlist] Could not resolve playlist from URL: ${url}`);
@@ -314,7 +314,8 @@ async function handleSpotifyNativePlaylist(url, player, requester, client) {
  */
 async function checkQueueForNativePlay(player, client) {
     const debugEnabled = process.env.DEBUG === 'true';
-    const tracksToResolve = player.queue.filter(track => track.spotifynative === "awaiting_resolve").slice(0, 2);
+    const queueTracks = player.queue.tracks || [];
+    const tracksToResolve = queueTracks.filter(track => track.spotifynative === "awaiting_resolve").slice(0, 2);
 
     if (!tracksToResolve.length) return;
 
@@ -341,7 +342,7 @@ async function checkQueueForNativePlay(player, client) {
         if (!success) {
             if (debugEnabled) console.warn(`[SpotifyNativePlay-Resolver] Native resolve failed for ${track.title}. Falling back to YouTube search.`);
             try {
-                const fallbackResult = await player.search(`${track.title} ${track.author}`, { requester: track.requester, engine: 'youtube' });
+                const fallbackResult = await player.search({ query: `${track.title} ${track.author}`, source: 'ytsearch' }, track.requester);
                 
                 if (fallbackResult && fallbackResult.tracks.length > 0) {
                     resolvedTrack = fallbackResult.tracks[0];
@@ -355,7 +356,7 @@ async function checkQueueForNativePlay(player, client) {
             }
         }
 
-        const trackIndex = player.queue.findIndex(t => t === track);
+        const trackIndex = player.queue.tracks.findIndex(t => t === track);
 
         if (trackIndex !== -1) {
             if (resolvedTrack) {

@@ -62,7 +62,7 @@ module.exports = {
       }
     }
 
-    const player = client.manager.players.get(interaction.guild.id);
+    const player = client.manager.getPlayer(interaction.guild.id);
     if (!player || !player.playing) {
       return interaction.reply({
         content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,
@@ -71,28 +71,39 @@ module.exports = {
     }
 
     const currentTrack = player.queue.current;
-    const currentPos = player.queue.kazagumoPlayer.shoukaku.position;
-    const songLength = player.queue.current.length;
+    if (!currentTrack) {
+      return interaction.reply({
+        content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,
+        flags: MessageFlags.Ephemeral,
+      });
+    }
 
-    if (player.loop === "queue") {
+    const currentPos = player.position || 0;
+    const songLength = currentTrack.info?.duration || currentTrack.length || 0;
+    const title = currentTrack.info?.title || currentTrack.title;
+    const uri = currentTrack.info?.uri || currentTrack.uri;
+    const author = currentTrack.info?.author || currentTrack.author;
+    const artworkUrl = currentTrack.info?.artworkUrl || currentTrack.thumbnail || "https://i.imgur.com/K9LWwgw.png";
+
+    if (player.repeatMode === "queue" || player.repeatMode === "track") {
       repeatModeEmoji = "✅";
     }
-    if (player.customData.autoPlay === true) {
+    if (player.customData?.autoPlay === true) {
       autoPlayEmoji = "✅";
     }
 
     const embed = new EmbedBuilder()
       .setAuthor({ name: "Now Playing" })
       .setColor("#e66229")
-      .setTitle(currentTrack.title)
-      .setURL(currentTrack.uri)
-      .setDescription(`By: **${currentTrack.author}**`)
-      .setThumbnail(currentTrack.thumbnail)
+      .setTitle(title)
+      .setURL(uri)
+      .setDescription(`By: **${author}**`)
+      .setThumbnail(artworkUrl)
       .setTimestamp()
       .addFields([
         {
           name: "Progress",
-          value: `${createProgressBar(currentPos, songLength)} (${((currentPos / 1000) / (songLength / 1000) * 100).toFixed(0)}%)`,
+          value: `${createProgressBar(currentPos, songLength)} (${((currentPos / 1000) / (songLength / 1000 || 1) * 100).toFixed(0)}%)`,
         },
         {
           name: "Settings",
@@ -100,7 +111,7 @@ module.exports = {
         },
       ])
       .setFooter({
-        text: `Requested by ${currentTrack.requester?.username} | Node: ${player.queue.kazagumoPlayer.shoukaku.node.name}`,
+        text: `Requested by ${currentTrack.userData?.requester?.globalName || currentTrack.userData?.requester?.username || currentTrack.requester?.requester?.globalName || currentTrack.requester?.requester?.username || currentTrack.requester?.globalName || currentTrack.requester?.username || (typeof currentTrack.requester === 'string' ? currentTrack.requester : 'Unknown')} | Node: ${player.node?.id || 'Unknown'}`,
       });
 
     return interaction.reply({ embeds: [embed] });

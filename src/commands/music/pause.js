@@ -19,7 +19,7 @@ module.exports = {
       });
     }
 
-    const player = client.manager.players.get(interaction.guild.id);
+    const player = client.manager.getPlayer(interaction.guild.id);
     if (!player) {
       return interaction.reply({
         content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,
@@ -27,19 +27,18 @@ module.exports = {
       });
     }
 
-    const playing = player.paused;
-    if (!playing) {
+    if (!player.paused) {
       const PlayerPauseEmbed = new EmbedBuilder()
         .setColor("#e66229")
         .setDescription(`${interaction.user} has paused the queue.`);
       interaction.reply({ embeds: [PlayerPauseEmbed] });
-      player.pause(true);
+      await player.pause();
     } else {
       const PlayerResumedEmbed = new EmbedBuilder()
         .setColor("#e66229")
         .setDescription(`${interaction.user} has resumed the queue.`);
       interaction.reply({ embeds: [PlayerResumedEmbed] });
-      player.pause(false);
+      await player.resume();
     }
   },
 };

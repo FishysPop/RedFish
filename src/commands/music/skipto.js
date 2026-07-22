@@ -26,7 +26,7 @@ module.exports = {
     }
 
     const amount = interaction.options.getInteger("amount");
-    const player = client.manager.players.get(interaction.guild.id);
+    const player = client.manager.getPlayer(interaction.guild.id);
     if (!player) {
       return interaction.reply({
         content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,
@@ -34,18 +34,19 @@ module.exports = {
       });
     }
 
-    if (amount > player.queue.size || (amount && !player.queue[amount - 1])) {
+    const queueTracks = player.queue.tracks || [];
+    if (amount > queueTracks.length || (amount && !queueTracks[amount - 1])) {
       return interaction.reply({
-        content: `There are \`${player.queue.size}\` tracks in the queue. You cant skip to \`${amount}\`.\n\nView all tracks in the queue with **\`/queue\`**.`,
+        content: `There are \`${queueTracks.length}\` tracks in the queue. You cant skip to \`${amount}\`.\n\nView all tracks in the queue with **\`/queue\`**.`,
         flags: MessageFlags.Ephemeral,
       });
     }
 
     if (amount === 1) {
-      player.skip();
+      await player.skip(0, false).catch(() => null);
     } else {
       await player.queue.splice(0, amount - 1);
-      await player.skip();
+      await player.skip(0, false).catch(() => null);
     }
     interaction.reply(`${amount} Tracks Skipped`);
   },

@@ -166,7 +166,7 @@ async function handleTidalNativePlay(url, player, requester, client, originalTra
 
 
 async function handleTidalNativePlaylist(url, player, requester, client) {
-    const playlistResult = await client.manager.search(url, { requester, engine: 'youtube' });
+    const playlistResult = await player.search({ query: url, source: 'ytsearch' }, requester);
     if (!playlistResult || playlistResult.type !== 'PLAYLIST' || !playlistResult.tracks.length) {
         return null;
     }

@@ -19,15 +19,15 @@ module.exports = {
       });
     }
 
-    const player = client.manager.players.get(interaction.guild.id);
-    if (!player) {
+    const player = client.manager.getPlayer(interaction.guild.id);
+    if (!player || (!player.queue.current && !player.queue.tracks.length)) {
       return interaction.reply({
-        content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,
+        content: `There is nothing currently playing to skip.`,
         flags: MessageFlags.Ephemeral,
       });
     }
 
-    player.skip();
+    await player.skip(0, false).catch(() => null);
     interaction.reply("Track Skipped");
   },
 };

@@ -28,7 +28,7 @@ module.exports = {
       });
     }
 
-    const player = client.manager.players.get(interaction.guild.id);
+    const player = client.manager.getPlayer(interaction.guild.id);
     if (!player) {
       return interaction.reply({
         content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,
@@ -36,8 +36,9 @@ module.exports = {
       });
     }
 
-    const currentPos = player.queue.kazagumoPlayer.shoukaku.position / 1000;
-    const songLength = player.queue.current.length / 1000;
+    const currentPos = (player.position || 0) / 1000;
+    const currentTrack = player.queue.current;
+    const songLength = ((currentTrack?.info?.duration || currentTrack?.length || 0)) / 1000;
     let newPosition = currentPos + seconds;
     if (newPosition >= songLength) {
       newPosition = songLength - 1;

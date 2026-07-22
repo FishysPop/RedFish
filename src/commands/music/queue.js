@@ -20,7 +20,7 @@ module.exports = {
       });
     }
 
-    const player = client.manager.players.get(interaction.guild.id);
+    const player = client.manager.getPlayer(interaction.guild.id);
     if (!player) {
       return interaction.reply({
         content: `There is nothing currently playing. \nPlay something using **\`/play\`**`,
@@ -28,7 +28,8 @@ module.exports = {
       });
     }
 
-    if (player.queue.length === 0) {
+    const queueTracks = player.queue.tracks || [];
+    if (queueTracks.length === 0) {
       return interaction.reply({
         content: `There aren't any other tracks in the queue. Use **/info** to show information about the current track.`,
         flags: MessageFlags.Ephemeral,
@@ -51,8 +52,13 @@ module.exports = {
 
     const row = new ActionRowBuilder().addComponents(prevButton, nextButton);
 
-    const tracks = player.queue.map(
-      (track, idx) => `\`${idx + 1}.\` [${track.title}](${track.uri}) - ${track.author} | ${track.requester}`
+    const tracks = queueTracks.map(
+      (track, idx) => {
+        let req = track.userData?.requester || track.requester;
+        if (req && typeof req === "object" && req.requester) req = req.requester;
+        const ping = req?.id ? `<@${req.id}>` : (req?.globalName || req?.username || (typeof req === 'string' ? req : 'Unknown'));
+        return `\`${idx + 1}.\` [${track.info?.title || track.title}](${track.info?.uri || track.uri}) - ${track.info?.author || track.author} | ${ping}`;
+      }
     );
 
     const pages = Math.ceil(tracks.length / chunkSize);
@@ -61,12 +67,14 @@ module.exports = {
       const start = i * chunkSize;
       const end = start + chunkSize;
 
+      const queueDuration = queueTracks.reduce((acc, tr) => acc + (tr.info?.duration || tr.length || 0), 0);
+
       const embed = new EmbedBuilder()
         .setColor("#e66229")
         .setTitle("Tracks Queue")
         .setDescription(tracks.slice(start, end).join("\n") || "**No queued songs**")
         .setFooter({
-          text: `Page ${i + 1}/${pages} | Tracks: ${player.queue.size} | Time remaining: ${convertTime(player.queue.durationLength)}`,
+          text: `Page ${i + 1}/${pages} | Tracks: ${queueTracks.length} | Time remaining: ${convertTime(queueDuration)}`,
         });
 
       embeds.push(embed);

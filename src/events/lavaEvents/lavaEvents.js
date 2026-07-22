@@ -430,9 +430,9 @@ client.manager.on("queueEnd", async (player) => {
   }
 
   if (player.customData?.playerMessages === "default") {
-    player.customData.message?.edit({ components: [] }).catch(err => { if (err.code !== 50013 && err.code !== 10008) console.log("Error editing playerEnd message:", err); });
+    player.customData?.message?.edit({ components: [] }).catch(err => { if (err.code !== 50013 && err.code !== 10008) console.log("Error editing playerEnd message:", err); });
   } else {
-    player.customData.message?.delete().catch(err => { if (err.code !== 50013 && err.code !== 10008) console.log("Error deleting playerEnd message:", err); });
+    player.customData?.message?.delete().catch(err => { if (err.code !== 50013 && err.code !== 10008) console.log("Error deleting playerEnd message:", err); });
   }
 });
 }

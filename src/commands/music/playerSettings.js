@@ -115,7 +115,7 @@ module.exports = {
         embed.setTitle("Player Settings").setDescription("You need to vote to access player settings.");
         row.addComponents(
           new ButtonBuilder().setLabel("Vote").setStyle(ButtonStyle.Link).setURL("https://top.gg/bot/1105149646612987934/"),
-          new ButtonBuilder().setCustomId("reloadButton").setLabel("🔄").setStyle(ButtonStyle.Secondary)
+          new ButtonBuilder().setCustomId("reloadButton").setEmoji("<:restart:1278452014807912539>").setStyle(ButtonStyle.Secondary)
         );
       }
     };

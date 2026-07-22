@@ -79,7 +79,6 @@ if (process.env.LAVALINK === 'true') {
     playerOptions: {
       defaultSearchPlatform: "ytmsearch",
       onEmptyQueue: {
-        destroyAfterMs: 30000,
       },
       onDisconnect: {
         destroy: true,

@@ -99,14 +99,11 @@ async function getPublicLavalinkServers() {
         
   });
     client.manager.on('error', (name, error) => {
-      //   console.error(`Lavalink ${name}: Error Caught,`, error)
      });
     client.manager.on('close', (name, code, reason) => {
-       // console.warn(`Lavalink ${name}: Closed, Code ${code}, Reason ${reason || 'No reason'}`)
         client.manager.removeNode(name)
         console.log(`Removing node: ${name}`)
     });
-  //  client.manager.shoukaku.on('debug', (name, info) => console.debug(`Lavalink ${name}: Debug,`, info));
     client.manager.on('disconnect', (name, players, moved) => {
     if (moved) return;
     try {

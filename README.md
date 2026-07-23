@@ -6,63 +6,59 @@
   </a>
 </p>
 
-RedFish is a simple yet versatile Discord bot that brings various functionalities to your server. From music playback and giveaways to moderation, auto-rooms, and more, RedFish is designed to enhance your Discord experience.
+[Discord Server](https://discord.com/invite/rDHPK2er3j) | [Invite Bot](https://top.gg/bot/1105149646612987934)
 
-## ✨ Features
+RedFish is a Discord bot built with Node.js and Discord.js, designed to handle high-quality audio playback and server utility.
 
-### 🎶 Music
-- Play songs or playlists from YouTube, Spotify, SoundCloud, radio stations, or direct URLs.
-- Intuitive button controls for seamless music management.
+## Features
 
-### 👋 Welcome System
-- Set custom welcome, leave, and ban messages to greet and manage your community.
+- **Music Playback**: Stream tracks, playlists, and live radio from YouTube, Spotify, SoundCloud, Deezer, Tidal, and direct streams via Lavalink.
+- **Auto Rooms**: Dynamic temporary voice channel creation on user join.
+- **Giveaways**: System for hosting, managing, rerolling, and ending community giveaways.
+- **Ticket System**: Button-based support ticket creation and management.
+- **Moderation**: Commands for moderation workflows including ban, kick, and timeout management.
+- **Auto Role & Leveling**: Automatic role assignment on join and activity tracking.
 
-### 🎙️ Auto Rooms
-- Effortlessly create temporary voice channels for your members.
+## Self Hosting
 
-### 🎁 Giveaways
-- Host exciting giveaways with options to create, manage, reroll, and delete them.
+### 1. Requirements & Setup
 
-### 🎫 Tickets
-- Implement a straightforward ticket system with user-friendly buttons.
+Install project dependencies:
 
-### 🔨 Moderation
-- Commands for banning, kicking, and timing out users to keep your server in check.
-
-### 🤖 AutoRole
-- Automatically assign roles to new members upon joining.
-
-### ⬆️ Levels
-- Engage your community with a fun leveling system.
-
-## 🚀 Getting Started
-
-1. **Invite RedFish:** [Invite Link](https://top.gg/bot/1105149646612987934)
-2. Host Your Own!
-   
-## 🛠️ Technical Details
-
-- **Music Engine:** Powered by [Lavalink](https://lavalink.dev/).
-
-
-## 🤖 Self Hosting
-
-### 1. Install Dependencies:
-```npm install```
-### 2. Environment Variables:
-Create a .env file in the root directory and copy the contents of .env.example into it. Replace the placeholder values with your actual credentials:
-
-### 3. Music Setup:
-Host your own lavalink server ([Setup Guide](https://lavalink.dev/getting-started/index.html)) with ([Youtube Source Plugin](https://github.com/lavalink-devs/youtube-source))
-or use public lavalink servers with ```npm run publicLavalinkServers``` or at https://lavalink.darrennathanael.com/
+```bash
+npm install
 ```
-#.env
-LAVALINK = true
-LAVALINK_URI = YOUR_IP:UR_PORT@UR_PASSWORD
 
-#https://developer.spotify.com/dashboard If you dont have a Spotify id
-SPOTIFY_ID = YOUR_SPOTIFY_ID
-SPOTIFY_SECRET =  YOUR_SPORTIFY_SECRET
+### 2. Environment Configuration
+
+Create a `.env` file in the root directory following `.env.example`:
+
+```env
+BOT_TOKEN=YOUR_BOT_TOKEN
+CLIENT_ID=YOUR_CLIENT_ID
+MONGODB_URI=YOUR_MONGODB_CONNECTION_STRING
+
+# Lavalink Connection
+LAVALINK=true
+LAVALINK_URI=HOST:PORT@PASSWORD
+
+# Spotify API Credentials
+SPOTIFY_ID=YOUR_SPOTIFY_CLIENT_ID
+SPOTIFY_SECRET=YOUR_SPOTIFY_CLIENT_SECRET
 ```
-### 4. Start the Bot:
-```npm run start```
+
+### 3. Audio Engine (Lavalink)
+
+Audio playback relies on a [Lavalink v4](https://lavalink.dev/) server with source plugins (such as LavaSrc). 
+
+You can host your own node or configure public nodes. To fetch active public Lavalink nodes:
+
+```bash
+npm run publicLavalinkServers
+```
+
+### 4. Start the Application
+
+```bash
+npm run start
+```

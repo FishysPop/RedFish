@@ -29,6 +29,10 @@ const userPlayerSettingsSchema = new Schema({
     type: Boolean,
     default: false,
   },
+  hideTips: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 module.exports = model("UserPlayerSettings", userPlayerSettingsSchema);

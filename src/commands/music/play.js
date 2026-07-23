@@ -9,6 +9,7 @@ const { thirdPartySourceHandler } = require("../../utils/thirdPartySourceHandler
 const { searchTidalTracks } = require("../../utils/tidalNativePlay.js");
 const youtubeSr = require("youtube-sr").default;
 const { sanitizeSearchQuery } = require("../../utils/searchSanitization.js");
+const { searchWithNodeFallback } = require("../../utils/nodeFallbackHelper.js");
 
 module.exports =  {
     data: new SlashCommandBuilder()
@@ -40,7 +41,8 @@ module.exports =  {
       TidalNativePlay: user?.TidalNativePlay || false,
       playerMessages: serverSettings?.playerMessages || "default",
       convertLinks: user?.convertLinks || false,
-      PreferedNode: serverSettings?.preferredNode || null
+      PreferedNode: serverSettings?.preferredNode || null,
+      hideTips: user?.hideTips || false
     }
     const hasPlayerSettings = !!user;
     let player = null;
@@ -119,33 +121,18 @@ module.exports =  {
             }
 
             if (query) {
-              if (playerSettings.TidalNativePlay) {
-                  const tidalSearchResult = await searchTidalTracks(query, interaction.user);                    
-                  if (tidalSearchResult?.tracks?.length > 0) {
-                      const track = tidalSearchResult.tracks[0];
-                      try {
-                          const nativeResult = await thirdPartySourceHandler.handleSource(track.uri, player, interaction.user, client, track, false, playerSettings);
-                          if (nativeResult?.tracks?.length > 0) {
-                              res = nativeResult;
-                              usedSearchEngine = 'tidal_native';
-                          } else {
-                              res = await player.search({ query: query, source: "ytmsearch" }, interaction.user);
-                              usedSearchEngine = 'youtube_music';
-                          }
-                      } catch (tidalError) {
-                          console.error("[Play Command] Error in Tidal native playback:", tidalError);
-                          res = await player.search({ query: query, source: "ytmsearch" }, interaction.user);
-                          usedSearchEngine = 'youtube_music';
-                      }
+              const convertEngines = ['deezer', 'qobuz', 'spotify', 'youtube_music'];
+              for (const engine of convertEngines) {
+                  const result = await searchWithNodeFallback(player, query, interaction.user, engine);
+                  if (result?.tracks?.length) {
+                      res = result;
+                      usedSearchEngine = engine;
+                      break;
                   }
-              }
-
-              if (!res || !res.tracks.length) {
-                  res = await player.search({ query: query, source: "ytmsearch" }, interaction.user);
               }
             }
 
-            if (!res || !res.tracks.length) {
+            if (!res || !res.tracks?.length) {
               res = await player.search(name, { requester: interaction.user });
             }
           } catch (YoutubeConvertError) {
@@ -196,19 +183,23 @@ module.exports =  {
                       }
                   }
               }
-          } else {
-              const searchStrategy = [playerSettings.searchEngine || 'youtube_music', 'spotify']; 
+           } else {
+              const userEngine = playerSettings.searchEngine || 'youtube_music';
+              const searchStrategy = [userEngine, 'spotify', 'youtube_music']; 
+              const triedEngines = new Set();
 
               for (const engine of searchStrategy) {
+                  if (triedEngines.has(engine)) continue;
+                  triedEngines.add(engine);
+
                   usedSearchEngine = engine;
-                  const searchOptions = { requester: interaction.user };
-                  searchOptions[engine === 'deezer' ? 'source' : 'engine'] = engine === 'deezer' ? 'dzsearch:' : engine;
-                  res = await player.search(name, searchOptions);
-                  if (res?.tracks.length) {
+                  res = await searchWithNodeFallback(player, name, interaction.user, engine);
+
+                  if (res?.tracks?.length) {
                       const track = res.tracks[0];
                       const isSpotifyResult = track.sourceName === 'spotify';
                       if (isSpotifyResult && playerSettings.SpotifyNativePlay) {
-                          const nativeResult = await thirdPartySourceHandler.handleSource(track.realUri, player, interaction.user, client, null, false, playerSettings);
+                          const nativeResult = await thirdPartySourceHandler.handleSource(track.realUri || track.uri, player, interaction.user, client, null, false, playerSettings);
                           if (nativeResult) {
                               res = nativeResult;
                               usedSearchEngine = 'spotify_native';
@@ -270,7 +261,7 @@ module.exports =  {
 
       if (!hasViewChannelPermission || !hasSendMessagesPermission) {
           embed.setFooter({ text: `Media Controls Disabled: Missing Permissions` });
-      } else if (Math.random() < 0.08) { 
+      } else if (!playerSettings.hideTips && Math.random() < 0.08) { 
           const tips = [
               `Change the default volume with /player-settings!`,
               `Want to use another search engine? Change it with /player-settings!`,

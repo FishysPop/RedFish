@@ -53,7 +53,7 @@ module.exports = {
         }
     }
     const capitalizeSearchEngine = (searchEngine) => {
-      return { "youtube": "YouTube", "soundcloud": "SoundCloud", "deezer": "Deezer", "tidal": "Tidal" }[searchEngine] || searchEngine.charAt(0).toUpperCase() + searchEngine.slice(1);
+      return { "youtube": "YouTube", "soundcloud": "SoundCloud", "deezer": "Deezer", "qobuz": "Qobuz", "tidal": "Tidal" }[searchEngine] || searchEngine.charAt(0).toUpperCase() + searchEngine.slice(1);
     };
     const formatNowPlaying = (searchEngine) => {
       return { "noMessage": "Disabled", "deleteAfter": "Deletes After Song Finishes", "default": "Default" }[searchEngine] || searchEngine.charAt(0).toUpperCase() + searchEngine.slice(1);
@@ -71,11 +71,12 @@ module.exports = {
           .setDescription("Welcome to Player Settings! Here, you can customize your music experience.\n\n**Important:** The bot uses the settings of the person who starts the music queue (the first person to use `/play`).")
           .setFooter({ text: "More Settings Coming Soon!" });
 
-        embed.addFields({ name: "User Settings", value: `Spotify Native Play: ${user.SpotifyNativePlay ? "Enabled" : "Disabled"} (Streams from Spotify)\nTidal Native Play: ${user.TidalNativePlay ? "Enabled" : "Disabled"} (Streams from Tidal)\nConverting Links: ${user.convertLinks ? "Enabled" : "Disabled"} (Converts Youtube Links To Another Platform)\nDefault Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}` });
+        embed.addFields({ name: "User Settings", value: `Spotify Native Play: ${user.SpotifyNativePlay ? "Enabled" : "Disabled"} (Broken)\nTidal Native Play: ${user.TidalNativePlay ? "Enabled" : "Disabled"} (Broken)\nConverting Links: ${user.convertLinks ? "Enabled" : "Disabled"} (Converts Youtube Links To Another Platform)\nTips: ${user.hideTips ? "Hidden" : "Visible"}\nDefault Search engine: ${capitalizeSearchEngine(user.defaultSearchEngine)}` });
         row.addComponents(
           new ButtonBuilder().setCustomId('spotifyNativePlayButton').setLabel(user.SpotifyNativePlay ? "Disable Spotify Native" : "Enable Spotify Native").setStyle(user.SpotifyNativePlay ? ButtonStyle.Danger : ButtonStyle.Success),
           new ButtonBuilder().setCustomId('tidalNativePlayButton').setLabel(user.TidalNativePlay ? "Disable Tidal Native" : "Enable Tidal Native").setStyle(user.TidalNativePlay ? ButtonStyle.Danger : ButtonStyle.Success),
-          new ButtonBuilder().setCustomId('convertLinksButton').setLabel(user.convertLinks ? "Disable Converting links" : "Enable Converting links").setStyle(user.convertLinks ? ButtonStyle.Danger : ButtonStyle.Success)
+          new ButtonBuilder().setCustomId('convertLinksButton').setLabel(user.convertLinks ? "Disable Converting links" : "Enable Converting links").setStyle(user.convertLinks ? ButtonStyle.Danger : ButtonStyle.Success),
+          new ButtonBuilder().setCustomId('hideTipsButton').setLabel(user.hideTips ? "Show Tips" : "Hide Tips").setStyle(user.hideTips ? ButtonStyle.Danger : ButtonStyle.Success)
         );
 
         row2 = new ActionRowBuilder().addComponents(
@@ -84,6 +85,7 @@ module.exports = {
             new StringSelectMenuOptionBuilder().setLabel('Spotify').setValue('spotify'),
             new StringSelectMenuOptionBuilder().setLabel('SoundCloud').setValue('soundcloud'),
             new StringSelectMenuOptionBuilder().setLabel('Deezer').setValue('deezer'),
+            new StringSelectMenuOptionBuilder().setLabel('Qobuz').setValue('qobuz'),
             new StringSelectMenuOptionBuilder().setLabel('Tidal').setValue('tidal'),
           ).setMaxValues(1)
         );
@@ -164,6 +166,12 @@ module.exports = {
           break;
           case "convertLinksButton":
             user.convertLinks = !user.convertLinks;
+            await user.save();
+            await generateUI();
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true, flags: MessageFlags.Ephemeral });
+            break;
+          case "hideTipsButton":
+            user.hideTips = !user.hideTips;
             await user.save();
             await generateUI();
             interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true, flags: MessageFlags.Ephemeral });

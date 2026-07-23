@@ -8,11 +8,32 @@ require("dotenv").config();
 
 
 const PlayerSession = require("../../models/PlayerSession");
+const User = require("../../models/UserPlayerSettings");
 
 module.exports = (client) => {
 client.manager.nodeManager.on('connect', async (node) => {
   console.log(`Lavalink Node ${node.id}: Connected & Ready!`);
-  node.updateSession(true, 300_000);
+  
+  if (process.env.DEBUG === 'true') {
+    try {
+      const info = typeof node.getInfo === 'function' ? await node.getInfo() : (typeof node.fetchInfo === 'function' ? await node.fetchInfo() : node.info);
+      if (info) {
+        const pluginsList = info.plugins?.map(p => `${p.name}@${p.version}`).join(", ") || "None";
+        const sourcesList = info.sourceManagers?.join(", ") || "None";
+        console.log(`[Node ${node.id} Debug] Plugins: [${pluginsList}] | Sources: [${sourcesList}]`);
+      } else {
+        console.log(`[Node ${node.id} Debug] Node connected (info not available directly). Node properties: ${Object.keys(node).join(", ")}`);
+      }
+    } catch (err) {
+      console.error(`[Node ${node.id} Debug] Could not fetch node info:`, err.message);
+    }
+  }
+
+  node.updateSession(true, 300_000).catch(err => {
+    if (process.env.DEBUG === 'true') {
+      console.warn(`[Node ${node.id}] Could not update session:`, err.message);
+    }
+  });
 
   try {
     const savedSessions = await PlayerSession.find({});
@@ -310,6 +331,10 @@ client.manager.on("trackStart", async (player, track) => {
     requesterName = (typeof req === "string" && !req.match(/^\d+$/) ? req : null) || "User";
   }
 
+    const requesterId = req?.id || (typeof req === "string" && req.match(/^\d+$/) ? req : null);
+    const userSettings = requesterId ? await User.findOne({ userId: requesterId }) : null;
+    const hideTips = userSettings?.hideTips || false;
+
     const playerStartEmbed = new EmbedBuilder()
 	.setColor('#e66229')
 	.setTitle(title)
@@ -317,14 +342,20 @@ client.manager.on("trackStart", async (player, track) => {
 	.setThumbnail(artworkUrl)
     .setDescription(`Duration: **${convertTime(duration, true)}**`)
     .setTimestamp()
-    .setFooter({ text: `Requested by: ${requesterName}${Math.random() < 0.06 ? ' | Dont want these messages? Disable them with /player-settings' : ''}`});
+    .setFooter({ text: `Requested by: ${requesterName}${!hideTips && Math.random() < 0.06 ? ' | Dont want these messages? Disable them with /player-settings' : ''}`});
 
-    switch (track.sourceName) {
+    switch (track.info?.sourceName || track.sourceName) {
         case 'spotify_native':
-            playerStartEmbed.setAuthor({ name: 'Now Playing', iconURL: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Spotify_icon.svg/1982px-Spotify_icon.svg.png' });
+            playerStartEmbed.setAuthor({ name: 'Now Playing', iconURL: 'https://images.icon-icons.com/836/PNG/512/Spotify_icon-icons.com_66783.png' });
             break;
         case 'tidal_native':
             playerStartEmbed.setAuthor({ name: 'Now Playing', iconURL: 'https://images.icon-icons.com/2429/PNG/512/tidal_logo_icon_147227.png' });
+            break;
+        case 'deezer':
+            playerStartEmbed.setAuthor({ name: 'Now Playing', iconURL: 'https://companieslogo.com/img/orig/DEEZR.PA-dbdcf2cf.png?t=1721547851' });
+            break;
+        case 'qobuz':
+            playerStartEmbed.setAuthor({ name: 'Now Playing', iconURL: 'https://os.md/MZFBDA.png' });
             break;
         default:
             playerStartEmbed.setAuthor({ name: 'Now Playing' });

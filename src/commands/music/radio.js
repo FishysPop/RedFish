@@ -16,25 +16,28 @@ const CACHE_DURATION = 1000 * 60 * 60; // 1 hour
  * Get a random available radio-browser server, with caching.
  * @returns {Promise<string>} A promise that resolves with a base url for the radio-browser api.
  */
-async function getRadioBrowserServer() {
+async function getRadioBrowserServers() {
     const now = Date.now();
     if (radioBrowserServers.length === 0 || now - lastFetch > CACHE_DURATION) {
         try {
             const hosts = await resolveSrv("_api._tcp.radio-browser.info");
             if (hosts && hosts.length > 0) {
-                radioBrowserServers = hosts.map(host => "https://" + host.name);
+                // Shuffle servers for load balancing
+                radioBrowserServers = hosts.map(host => "https://" + host.name).sort(() => 0.5 - Math.random());
                 lastFetch = now;
             } else {
-                throw new Error("DNS SRV lookup for radio-browser returned no hosts.");
+                throw new Error("DNS SRV lookup returned no hosts.");
             }
         } catch (error) {
-            console.error(`[RadioCommand] Failed to resolve radio-browser servers via DNS: ${error.message}. Using fallback or stale cache.`);
-            if (radioBrowserServers.length === 0) {
-                radioBrowserServers = ["https://de1.api.radio-browser.info"];
-            }
+            console.error(`[RadioCommand] Failed to resolve radio-browser servers via DNS: ${error.message}. Using fallback servers.`);
+            radioBrowserServers = [
+                "https://de1.api.radio-browser.info",
+                "https://at1.api.radio-browser.info",
+                "https://nl1.api.radio-browser.info"
+            ].sort(() => 0.5 - Math.random());
         }
     }
-    return radioBrowserServers[Math.floor(Math.random() * radioBrowserServers.length)];
+    return radioBrowserServers;
 }
 
 module.exports =  {
@@ -70,8 +73,28 @@ module.exports =  {
     const name = interaction.options.getString('name');
 
     try {
-        const radioServerBaseUrl = await getRadioBrowserServer();
-        let { data } = await axios.get(`${radioServerBaseUrl}/json/stations/byname/${encodeURIComponent(name)}`);
+        const servers = await getRadioBrowserServers();
+        let data = null;
+        let lastErr = null;
+
+        for (const baseUrl of servers) {
+            try {
+                const response = await axios.get(`${baseUrl}/json/stations/byname/${encodeURIComponent(name)}`, {
+                    headers: {
+                        'User-Agent': 'FishyBot/1.0 (https://github.com/FishysPop/fishbot)'
+                    },
+                    timeout: 5000
+                });
+                data = response.data;
+                break;
+            } catch (err) {
+                lastErr = err;
+            }
+        }
+
+        if (!data) {
+            throw lastErr || new Error("Failed to reach any radio-browser server.");
+        }
 
         if (data.length < 1) {
             return interaction.editReply(`❌ | No radio station found for "${name}".  A full list can be found [here](https://www.radio-browser.info/search?page=1&hidebroken=true&order=votes&reverse=true)`);

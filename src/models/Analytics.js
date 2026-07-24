@@ -15,17 +15,6 @@ const AnalyticsSchema = new Schema({
     type: Map,  
     of: Number
   },
-  guildPlayCount: [{  
-    guildId: {       
-      type: String,
-      required: true
-    },
-    playCount: {    
-      type: Number,
-      default: 0
-    },
-    _id: false 
-  }],
   failedPlayCount: {
     type: Number,
     required: true,

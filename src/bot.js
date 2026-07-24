@@ -6,6 +6,7 @@ const fs = require('fs');
 const Topgg = require("@top-gg/sdk");
 const { ClusterClient, getInfo } = require('discord-hybrid-sharding');
 const AnalyticsModel = require("./models/Analytics"); 
+const GuildAnalyticsModel = require("./models/GuildAnalytics"); 
 const cacheManager = require('./utils/cacheManager');
 const { Client: YTIClient } = require("youtubei");
 
@@ -166,7 +167,7 @@ new CommandHandler({
     if (process.env.DEBUG === 'true') {
       console.debug('[Bot] Starting analytics processor');
     }
-    startAnalyticsProcessor(AnalyticsModel);
+    startAnalyticsProcessor(AnalyticsModel, GuildAnalyticsModel);
     require('./events/giveawayEvents/checkGiveaway.js')(client);
     client.login(process.env.TOKEN); 
   } catch (error) {

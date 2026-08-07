@@ -75,12 +75,43 @@ client.manager.nodeManager.on('connect', async (node) => {
         }
       }
 
-      if (player.queue.current) {
-        const startPos = savedData.position && savedData.position > 1000 ? savedData.position : 0;
-        await player.play({ track: player.queue.current, position: startPos, paused: Boolean(savedData.paused) }).catch(e => console.error("Error starting restored player playback:", e));
-      } else if (player.queue.tracks.length > 0 && !player.playing && !player.paused) {
-        await player.play().catch(e => console.error("Error starting restored player playback:", e));
-      }
+      const attemptPlayRestored = async (p) => {
+        try {
+          if (p.queue.current) {
+            const startPos = savedData.position && savedData.position > 1000 ? savedData.position : 0;
+            await p.play({ track: p.queue.current, position: startPos, paused: Boolean(savedData.paused) });
+          } else if (p.queue.tracks.length > 0 && !p.playing && !p.paused) {
+            await p.play();
+          }
+        } catch (e) {
+          console.error("Error starting restored player playback:", e?.message || e);
+          if (e?.message?.includes("Node Request resulted into an error")) {
+            console.warn(`[Lavalink Restore] Attempting player recreation on alternate node for guild ${savedData.guildId}...`);
+            await p.destroy().catch(() => {});
+            const altNodes = Array.from(client.manager.nodeManager.nodes.values()).filter(n => n.connected && n.id !== node.id);
+            const targetNode = altNodes.length > 0 ? altNodes[Math.floor(Math.random() * altNodes.length)] : null;
+            try {
+              const newPlayer = await client.manager.createPlayer({
+                guildId: savedData.guildId,
+                voiceChannelId: savedData.voiceChannelId,
+                textChannelId: savedData.textChannelId,
+                node: targetNode?.id,
+                volume: savedData.volume || 30,
+                selfDeaf: true
+              });
+              if (!newPlayer.connected) await newPlayer.connect();
+              if (p.queue.current) newPlayer.queue.add(p.queue.current);
+              for (const t of p.queue.tracks) newPlayer.queue.add(t);
+              if (newPlayer.queue.current) {
+                await newPlayer.play({ track: newPlayer.queue.current, paused: Boolean(savedData.paused) }).catch(() => {});
+              }
+            } catch (recreateErr) {
+              console.error("Error recreating player on alternate node:", recreateErr);
+            }
+          }
+        }
+      };
+      await attemptPlayRestored(player);
     }
   } catch (err) {
     console.error("Error during fallback session restoration from DB:", err);

@@ -277,10 +277,49 @@ module.exports =  {
     async function handlePlayError(interaction, name, error, player) {
       console.error(`Error Running Play:[${interaction.guild.name}] (ID: ${interaction.guild.id}) Request: (${name || 'N/A'}) Node: (${player?.node?.name || player?.shoukaku?.node?.name || 'N/A'}) Error:`, error);
       updatePlayAnalytics({ errorType: 'playError' });
+
+      // If the node request failed (e.g. invalid session ID on node restart/drop), attempt automatic node failover
+      if (error?.message?.includes("Node Request resulted into an error") && player) {
+        try {
+          console.warn(`[Play Command] Node Request error encountered for guild ${interaction.guild.id}. Attempting node failover/recreation...`);
+          await player.destroy().catch(() => {});
+          
+          // Find an alternative connected node
+          const nodes = Array.from(client.manager.nodeManager.nodes.values()).filter(n => n.connected && n.id !== player.node?.id);
+          const newNode = nodes.length > 0 ? nodes[Math.floor(Math.random() * nodes.length)] : null;
+          
+          const newPlayer = await client.manager.createPlayer({
+            guildId: interaction.guild.id,
+            textChannelId: interaction.channel.id,
+            voiceChannelId: interaction.member.voice.channel.id,
+            volume: parseInt(playerSettings.volume, 10) || 30,
+            selfDeaf: true,
+            nodeOptions: newNode ? { id: newNode.id } : undefined,
+            customData: {
+              autoPlay: false,
+              playerMessages: playerSettings.playerMessages
+            }
+          });
+          if (!newPlayer.connected) await newPlayer.connect();
+          
+          if (res && res.tracks && res.tracks.length > 0) {
+            if (isPlaylist) {
+              for (let track of res.tracks) newPlayer.queue.add(track);
+            } else {
+              newPlayer.queue.add(res.tracks[0]);
+            }
+            await newPlayer.play();
+            return sendTrackEmbed(interaction, embed);
+          }
+        } catch (retryErr) {
+          console.error(`[Play Command] Retry following node failover failed:`, retryErr);
+        }
+      }
+
       if (player && client.manager && typeof handleExcessiveLavaErrors === 'function') {
         handleExcessiveLavaErrors(player, client.manager);
       }
-      return interaction.editReply(`Oops seems something went wrong: ${error}, Please join the support server if this keeps happening`).catch(() => {});
+      return interaction.editReply(`Oops seems something went wrong: ${error?.message || error}, Please join the support server if this keeps happening`).catch(() => {});
     }
 
     async function handleNoResults(interaction, query) {

@@ -238,12 +238,13 @@ module.exports =  {
     }
 
     async function handlePlayError(interaction, name, error, player) {
-      console.error(`Error Running PlayNext:[${interaction.guild.name}] (ID: ${interaction.guild.id}) Request: (${name || 'N/A'}) Node: (${player?.node?.name || player?.shoukaku?.node?.name || 'N/A'}) Error:`, error);
+      const nodeId = player?.node?.id || player?.node?.options?.id || 'Unknown';
+      console.error(`Error Running PlayNext:[${interaction.guild.name}] (ID: ${interaction.guild.id}) Request: (${name || 'N/A'}) Node: [${nodeId}] Error:`, error);
       updatePlayAnalytics({ errorType: 'playError' });
       if (player && client.manager && typeof handleExcessiveLavaErrors === 'function') {
         handleExcessiveLavaErrors(player, client.manager);
       }
-      return interaction.editReply(`Oops seems something went wrong: ${error}, Please join the support server if this keeps happening`).catch(() => {});
+      return interaction.editReply(`Oops seems something went wrong on node [${nodeId}]: ${error?.message || error}, Please join the support server if this keeps happening`).catch(() => {});
     }
 
     async function handleNoResults(interaction, query) {

@@ -94,7 +94,7 @@ if (process.env.LAVALINK === 'true') {
     client.manager.init(client.user.id);
   });
 
-  client.on("raw", (d) => client.manager.sendRawData(d));
+  client.on("raw", (d) => client.manager.sendRawData(d).catch(() => {}));
   require('./events/lavaEvents/lavaEvents.js')(client);
   const playCommand = require('./commands/music/play.js');
   const playnextCommand = require('./commands/music/playnext.js');

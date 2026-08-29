@@ -10,6 +10,24 @@ module.exports = async (interaction, client, handler) => {
     const discriminator = interaction.user.discriminator;
     const player = client.manager.players.get(interaction.guildId);
     try {
+      const executePlayerActionWithRetry = async (actionFn) => {
+        try {
+          return await actionFn();
+        } catch (err) {
+          const nodeId = player?.node?.id || 'Unknown';
+          console.warn(`[Buttons] Action failed on Node [${nodeId}]: ${err.message}. Attempting node failover...`);
+          if (err?.message?.includes("Node Request resulted into an error") || err?.message?.includes("not connected")) {
+            const availableNodes = Array.from(client.manager.nodeManager.nodes.values()).filter(n => n.connected && n.id !== nodeId);
+            if (availableNodes.length > 0) {
+              const targetNode = availableNodes[Math.floor(Math.random() * availableNodes.length)];
+              await player.changeNode(targetNode).catch(() => {});
+              return await actionFn();
+            }
+          }
+          throw err;
+        }
+      };
+
       switch (buttonname) {
         case "Pause":
           if (!player) {
@@ -19,13 +37,13 @@ module.exports = async (interaction, client, handler) => {
             });
           } else {
             if (!player.paused) {
-              await player.pause();
+              await executePlayerActionWithRetry(() => player.pause());
               const PlayerPauseEmbed = new EmbedBuilder()
                 .setColor("#e66229")
                 .setDescription(`${usera} has paused the queue.`);
               interaction.reply({ embeds: [PlayerPauseEmbed] });
             } else {
-              await player.resume();
+              await executePlayerActionWithRetry(() => player.resume());
               const PlayerResumedEmbed = new EmbedBuilder()
                 .setColor("#e66229")
                 .setDescription(`${usera} has resumed the queue.`);
@@ -41,19 +59,19 @@ module.exports = async (interaction, client, handler) => {
               flags: MessageFlags.Ephemeral,
             });
           } else {
-            await player.skip(0, false).catch(() => null);
-            const PlayerSkipEmbed = await new EmbedBuilder()
+            await executePlayerActionWithRetry(() => player.skip(0, false)).catch(() => null);
+            const PlayerSkipEmbed = new EmbedBuilder()
               .setColor("#e66229")
               .setDescription(`${usera} has skipped a song.`);
-            interaction.reply({ embeds: [PlayerSkipEmbed] });
+              interaction.reply({ embeds: [PlayerSkipEmbed] });
           }
 
           break;
         case "Stop":
           try {
-            if (!player ) return interaction.reply({content: `The bot is not in a voice channel`, flags: MessageFlags.Ephemeral });
-            player.destroy().catch(e => null);
-            const PlayerStopEmbed = await new EmbedBuilder()
+            if (!player) return interaction.reply({ content: `The bot is not in a voice channel`, flags: MessageFlags.Ephemeral });
+            player.destroy().catch(() => null);
+            const PlayerStopEmbed = new EmbedBuilder()
               .setColor("#e66229")
               .setDescription(`${usera} has disconnected the bot.`);
             interaction.reply({ embeds: [PlayerStopEmbed] });
@@ -74,20 +92,21 @@ module.exports = async (interaction, client, handler) => {
               });
             }
             if (player.repeatMode === "queue") {
-              await player.setRepeatMode("off");
+              await executePlayerActionWithRetry(() => player.setRepeatMode("off"));
               const PlayerLoopEmbed2 = new EmbedBuilder()
                 .setColor("#e66229")
                 .setDescription(`${usera} has unlooped the queue.`);
               interaction.reply({ embeds: [PlayerLoopEmbed2] });
             } else {
-              await player.setRepeatMode("queue");
+              await executePlayerActionWithRetry(() => player.setRepeatMode("queue"));
               const PlayerLoopEmbed = new EmbedBuilder()
                 .setColor("#e66229")
                 .setDescription(`${usera} has looped the queue.`);
               interaction.reply({ embeds: [PlayerLoopEmbed] });
             }
           } catch (err) {
-            console.error("Error setting loop mode:", err);
+            const nodeId = player?.node?.id || 'Unknown';
+            console.error(`Error setting loop mode on Node [${nodeId}]:`, err);
             interaction.reply({
               content: `Error changing loop mode`,
               flags: MessageFlags.Ephemeral,
@@ -348,7 +367,7 @@ module.exports = async (interaction, client, handler) => {
           break;
       }
     } catch (error) {
-      console.log("error with buttons", error);
+      console.error(`Error with buttons [${buttonname}] on Node [${player?.node?.id || 'N/A'}]:`, error);
     }
   }
 };

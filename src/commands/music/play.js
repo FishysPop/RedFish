@@ -48,6 +48,9 @@ module.exports =  {
     let player = null;
     let usedSearchEngine;
     let embed = new EmbedBuilder().setColor('#e66229');
+    let res = null;
+    let isPlaylist = false;
+    let playlistName = "Playlist";
 
     try { 
       player = client.manager.getPlayer(interaction.guild.id);
@@ -68,8 +71,6 @@ module.exports =  {
         player.textChannelId = interaction.channel.id;
       }
       if (!player.connected) await player.connect();
-
-      let res;
 
       const isThirdPartyLink = thirdPartySourceHandler.getSupportedSources().some(source => {
           const sourceConfig = thirdPartySourceHandler.getSource(source);
@@ -215,8 +216,8 @@ module.exports =  {
       if (!usedSearchEngine) usedSearchEngine = res?.tracks[0]?.sourceName;
       if (!res || !res.tracks.length) return handleNoResults(interaction, name);
 
-      const isPlaylist = res.isPlaylist || res.loadType === "PLAYLIST_LOADED" || res.loadType === "playlist" || !!res.playlist;
-      const playlistName = res.playlistName || res.playlist?.name || res.playlist?.title || res.data?.name || "Playlist";
+      isPlaylist = Boolean(res.isPlaylist || res.loadType === "PLAYLIST_LOADED" || res.loadType === "playlist" || !!res.playlist);
+      playlistName = res.playlistName || res.playlist?.name || res.playlist?.title || res.data?.name || "Playlist";
 
       if (isPlaylist) {
           for (let track of res.tracks) player.queue.add(track);
@@ -224,7 +225,8 @@ module.exports =  {
               try {
                   await player.play();
               } catch (playError) {
-                  console.error("[Play Command] Error during player.play():", playError);
+                  const nodeId = player?.node?.id || player?.node?.options?.id || 'Unknown';
+                  console.error(`[Play Command] Error during player.play() on Node [${nodeId}]:`, playError);
                   return handlePlayError(interaction, name, playError, player);
               }
           }
@@ -235,7 +237,8 @@ module.exports =  {
               try {
                   await player.play();
               } catch (playError) {
-                  console.error("[Play Command] Error during player.play():", playError);
+                  const nodeId = player?.node?.id || player?.node?.options?.id || 'Unknown';
+                  console.error(`[Play Command] Error during player.play() on Node [${nodeId}]:`, playError);
                   return handlePlayError(interaction, name, playError, player);
               }
           }
@@ -275,51 +278,55 @@ module.exports =  {
     }
 
     async function handlePlayError(interaction, name, error, player) {
-      console.error(`Error Running Play:[${interaction.guild.name}] (ID: ${interaction.guild.id}) Request: (${name || 'N/A'}) Node: (${player?.node?.name || player?.shoukaku?.node?.name || 'N/A'}) Error:`, error);
+      const nodeId = player?.node?.id || player?.node?.options?.id || 'Unknown';
+      console.error(`Error Running Play:[${interaction.guild.name}] (ID: ${interaction.guild.id}) Request: (${name || 'N/A'}) Node: [${nodeId}] Error:`, error);
       updatePlayAnalytics({ errorType: 'playError' });
 
-      // If the node request failed (e.g. invalid session ID on node restart/drop), attempt automatic node failover
-      if (error?.message?.includes("Node Request resulted into an error") && player) {
+      if (player && (error?.message?.includes("Node Request resulted into an error") || error?.message?.includes("not connected"))) {
         try {
-          console.warn(`[Play Command] Node Request error encountered for guild ${interaction.guild.id}. Attempting node failover/recreation...`);
-          await player.destroy().catch(() => {});
+          const availableNodes = Array.from(client.manager.nodeManager.nodes.values()).filter(n => n.connected && n.id !== nodeId);
+          console.warn(`[Play Command] Node [${nodeId}] error encountered for guild ${interaction.guild.id}. Attempting automatic retry on alternate node...`);
           
-          // Find an alternative connected node
-          const nodes = Array.from(client.manager.nodeManager.nodes.values()).filter(n => n.connected && n.id !== player.node?.id);
-          const newNode = nodes.length > 0 ? nodes[Math.floor(Math.random() * nodes.length)] : null;
-          
-          const newPlayer = await client.manager.createPlayer({
-            guildId: interaction.guild.id,
-            textChannelId: interaction.channel.id,
-            voiceChannelId: interaction.member.voice.channel.id,
-            volume: parseInt(playerSettings.volume, 10) || 30,
-            selfDeaf: true,
-            nodeOptions: newNode ? { id: newNode.id } : undefined,
-            customData: {
-              autoPlay: false,
-              playerMessages: playerSettings.playerMessages
-            }
-          });
-          if (!newPlayer.connected) await newPlayer.connect();
-          
+          if (availableNodes.length > 0) {
+            const targetNode = availableNodes[Math.floor(Math.random() * availableNodes.length)];
+            console.log(`[Play Command] Moving player to node [${targetNode.id}] and retrying...`);
+            await player.changeNode(targetNode);
+          } else {
+            await player.destroy().catch(() => {});
+            player = await client.manager.createPlayer({
+              guildId: interaction.guild.id,
+              textChannelId: interaction.channel.id,
+              voiceChannelId: channel.id,
+              volume: parseInt(playerSettings.volume, 10) || 30,
+              selfDeaf: true,
+              customData: {
+                autoPlay: false,
+                playerMessages: playerSettings.playerMessages
+              }
+            });
+            if (!player.connected) await player.connect();
+            await new Promise(r => setTimeout(r, 500));
+          }
+
           if (res && res.tracks && res.tracks.length > 0) {
             if (isPlaylist) {
-              for (let track of res.tracks) newPlayer.queue.add(track);
+              for (let track of res.tracks) player.queue.add(track);
             } else {
-              newPlayer.queue.add(res.tracks[0]);
+              player.queue.add(res.tracks[0]);
             }
-            await newPlayer.play();
+            if (!player.playing && !player.paused) await player.play();
             return sendTrackEmbed(interaction, embed);
           }
         } catch (retryErr) {
-          console.error(`[Play Command] Retry following node failover failed:`, retryErr);
+          const retryNodeId = player?.node?.id || 'Unknown';
+          console.error(`[Play Command] Automatic retry failed on Node [${retryNodeId}]:`, retryErr);
         }
       }
 
       if (player && client.manager && typeof handleExcessiveLavaErrors === 'function') {
         handleExcessiveLavaErrors(player, client.manager);
       }
-      return interaction.editReply(`Oops seems something went wrong: ${error?.message || error}, Please join the support server if this keeps happening`).catch(() => {});
+      return interaction.editReply(`Oops seems something went wrong on node [${nodeId}]: ${error?.message || error}. Please join the support server if this keeps happening`).catch(() => {});
     }
 
     async function handleNoResults(interaction, query) {

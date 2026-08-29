@@ -1,30 +1,30 @@
 module.exports = async (player, manager) => {
     try {
+        if (!player || !player.node) return false;
         const node = player.node;
-        const nodeName = player.node.name;
+        const nodeId = node.id || node.options?.id || 'Unknown';
         const debugEnabled = process.env.DEBUG === 'true'; 
 
         if (debugEnabled) {
-            console.debug(`[DEBUG] Checking node ${nodeName} for excessive errors.`);
+            console.debug(`[DEBUG] Checking node ${nodeId} for excessive errors.`);
         }
 
         if (node.isDisconnecting) {
             if (debugEnabled) {
-                console.debug(`[DEBUG] Node ${nodeName} is already disconnecting. Skipping.`);
+                console.debug(`[DEBUG] Node ${nodeId} is already disconnecting. Skipping.`);
             }
             return false;
         }
 
         const now = Date.now();
         const cutoff = now - 900000; 
-        const nodes = manager.shoukaku.nodes;
-        const nodesArray = Array.from(nodes);
+        const nodes = Array.from(manager.nodeManager.nodes.values());
 
-        const availableNodes = nodesArray.filter(
-            (node) => node[1].name !== nodeName && node[1].state === 2 && !node[1].isDisconnecting 
+        const availableNodes = nodes.filter(
+            (n) => n.id !== nodeId && n.connected && !n.isDisconnecting 
         );
         if (debugEnabled) {
-            console.debug(`[DEBUG] Node ${nodeName} - Available nodes:`, availableNodes.map(n => n[1].name));
+            console.debug(`[DEBUG] Node ${nodeId} - Available fallback nodes:`, availableNodes.map(n => n.id));
         }
 
         if (!node.errors) {
@@ -35,53 +35,41 @@ module.exports = async (player, manager) => {
         node.errors = node.errors.filter((timestamp) => timestamp >= cutoff);
 
         if (debugEnabled) {
-            console.debug(`[DEBUG] Node ${nodeName} - Error count within 15 minutes: ${node.errors.length}`);
+            console.debug(`[DEBUG] Node ${nodeId} - Error count within 15 minutes: ${node.errors.length}`);
         }
 
         if (node.errors.length > 10) {
             node.isDisconnecting = true;
-            console.warn(`Removing Lavalink node ${nodeName} due to excessive errors.`);
+            console.warn(`[Lavalink] Removing Lavalink node ${nodeId} due to excessive errors (${node.errors.length} in 15m).`);
 
-            if (debugEnabled) {
-                console.debug(`[DEBUG] Node ${nodeName} - Excessive errors detected. Attempting to move players.`);
-            }
-
-            if (availableNodes.length > 0 && node.state === 2) {
-                const targetNode = availableNodes[0][1];
+            if (availableNodes.length > 0) {
+                const targetNode = availableNodes[0];
                 if (debugEnabled) {
-                    console.debug(`[DEBUG] Node ${nodeName} - Moving players to node: ${targetNode.name}`);
+                    console.debug(`[DEBUG] Node ${nodeId} - Moving players to fallback node: ${targetNode.id}`);
                 }
-                for (const player of manager.players.values()) {
-                    if (player.node.name === nodeName) {
+                for (const p of manager.players.values()) {
+                    if (p.node?.id === nodeId) {
                         try {
-                            await player.shoukaku.move(targetNode.name);
+                            await p.changeNode(targetNode);
                         } catch (moveError) {
-                            console.error(`Failed to move player`, moveError);
+                            console.error(`Failed to move player for guild ${p.guildId} from ${nodeId} to ${targetNode.id}:`, moveError);
                         }
                     }
                 }
-                setTimeout(() => {
-                    if (debugEnabled) {
-                        console.debug(`[DEBUG] Node ${nodeName} - Disconnecting node after player move.`);
-                    }
-                    node.disconnect(5, 'Node disconnected by command');
-                    node.ws.close();
-                }, 5000);
-            } else {
-                if (debugEnabled) {
-                    console.debug(`[DEBUG] Node ${nodeName} - No available nodes to move players to.`);
+            }
+            
+            try {
+                if (typeof manager.nodeManager.disconnectNode === 'function') {
+                    await manager.nodeManager.disconnectNode(nodeId);
+                } else if (typeof node.destroy === 'function') {
+                    await node.destroy();
                 }
+            } catch (dcError) {
+                console.error(`Error disconnecting node ${nodeId}:`, dcError);
             }
-            if (debugEnabled) {
-                console.debug(`[DEBUG] Node ${nodeName} - Removing node from Shoukaku.`);
-            }
-            await manager.shoukaku.removeNode(nodeName, "Excessive errors detected.");
             return true;
         }
 
-        if (debugEnabled) {
-            console.debug(`[DEBUG] Node ${nodeName} - No excessive errors detected.`);
-        }
         return false;
     } catch (error) {
         console.error('Failed to handle excessive Lavalink errors:', error);

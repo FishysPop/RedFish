@@ -36,6 +36,9 @@ client.manager.nodeManager.on('connect', async (node) => {
   });
 
   try {
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+    await PlayerSession.deleteMany({ updatedAt: { $lt: thirtyMinutesAgo } }).catch(() => {});
+
     const savedSessions = await PlayerSession.find({});
 
     for (const savedData of savedSessions) {
@@ -77,6 +80,7 @@ client.manager.nodeManager.on('connect', async (node) => {
 
       const attemptPlayRestored = async (p) => {
         try {
+          await new Promise(res => setTimeout(res, 500));
           if (p.queue.current) {
             const startPos = savedData.position && savedData.position > 1000 ? savedData.position : 0;
             await p.play({ track: p.queue.current, position: startPos, paused: Boolean(savedData.paused) });
@@ -84,29 +88,22 @@ client.manager.nodeManager.on('connect', async (node) => {
             await p.play();
           }
         } catch (e) {
-          console.error("Error starting restored player playback:", e?.message || e);
+          console.error(`[Node ${p.node?.id || node.id}] Error starting restored player playback for guild ${savedData.guildId}:`, e?.message || e);
           if (e?.message?.includes("Node Request resulted into an error")) {
-            console.warn(`[Lavalink Restore] Attempting player recreation on alternate node for guild ${savedData.guildId}...`);
-            await p.destroy().catch(() => {});
             const altNodes = Array.from(client.manager.nodeManager.nodes.values()).filter(n => n.connected && n.id !== node.id);
-            const targetNode = altNodes.length > 0 ? altNodes[Math.floor(Math.random() * altNodes.length)] : null;
-            try {
-              const newPlayer = await client.manager.createPlayer({
-                guildId: savedData.guildId,
-                voiceChannelId: savedData.voiceChannelId,
-                textChannelId: savedData.textChannelId,
-                node: targetNode?.id,
-                volume: savedData.volume || 30,
-                selfDeaf: true
-              });
-              if (!newPlayer.connected) await newPlayer.connect();
-              if (p.queue.current) newPlayer.queue.add(p.queue.current);
-              for (const t of p.queue.tracks) newPlayer.queue.add(t);
-              if (newPlayer.queue.current) {
-                await newPlayer.play({ track: newPlayer.queue.current, paused: Boolean(savedData.paused) }).catch(() => {});
+            if (altNodes.length > 0) {
+              const targetNode = altNodes[Math.floor(Math.random() * altNodes.length)];
+              console.warn(`[Lavalink Restore] Switching to fallback node ${targetNode.id} for guild ${savedData.guildId}...`);
+              try {
+                await p.changeNode(targetNode);
+                if (p.queue.current) {
+                  await p.play({ track: p.queue.current, paused: Boolean(savedData.paused) }).catch(() => {});
+                } else if (p.queue.tracks.length > 0) {
+                  await p.play().catch(() => {});
+                }
+              } catch (recreateErr) {
+                console.error(`[Node ${targetNode.id}] Error retrying playback on fallback node:`, recreateErr);
               }
-            } catch (recreateErr) {
-              console.error("Error recreating player on alternate node:", recreateErr);
             }
           }
         }
@@ -250,24 +247,24 @@ if (process.env.DEBUG === "true") client.manager.on("debug", (info, data) => {
   console.error(`debug: ${info} - `, data);
 });
 client.manager.on("playerStuck", (player, data) => {
-  console.error(`Player Stuck: ${player.guildId} - `, data);
-  handleExcessiveLavalinkErrors(player, client.manager)
+  console.error(`Player Stuck: Node: [${player?.node?.id || 'N/A'}], Guild: ${player.guildId} - `, data);
+  handleExcessiveLavalinkErrors(player, client.manager);
 });
 client.manager.on("playerException", async (player, data) => {
   const guild = client.guilds.cache.get(player.guildId);
-  const guildName = guild ? guild.name : "Unknown Guild"; // Handle cases where guild is not found
+  const guildName = guild ? guild.name : "Unknown Guild";
+  const nodeId = player?.node?.id || player?.node?.options?.id || "Unknown Node";
   
-  console.error(`Player Exception Error: Node: ${player.shoukaku.node.name}, Guild: ${guildName}(${player.guildId}) - `, data.exception); 
-  handleExcessiveLavalinkErrors(player, client.manager)
-  const channel = client.channels.cache.get(player.textId);
-  if (!channel) return;  // Check if channel exists
+  console.error(`Player Exception Error: Node: [${nodeId}], Guild: ${guildName}(${player.guildId}) - `, data.exception); 
+  handleExcessiveLavalinkErrors(player, client.manager);
+  const channel = client.channels.cache.get(player.textId || player.textChannelId);
+  if (!channel) return;
 
-  if (player.customData.playerMessages !== "noMessage") { 
-    // Handle null/undefined exception cause and truncate to avoid Discord embed limit (4096 chars)
+  if (player.customData?.playerMessages !== "noMessage") { 
     const errorMessage = data.exception?.cause || data.exception?.message || 'Unknown error';
     const truncatedError = errorMessage.length > 1000 ? errorMessage.substring(0, 997) + '...' : errorMessage;
     
-    let description = `Track: ${data.track.info.title}\nError: ${truncatedError}\nNode: ${player.shoukaku.node.name}\n-# Please join the [support server](https://discord.com/invite/rDHPK2er3j) if this keeps happening`;
+    let description = `Track: ${data.track?.info?.title || data.track?.title || 'Unknown'}\nError: ${truncatedError}\nNode: [${nodeId}]\n-# Please join the [support server](https://discord.com/invite/rDHPK2er3j) if this keeps happening`;
     
     // Check for YouTube rate limiting errors
     const isYoutubeError = data.exception?.message?.includes('This video requires login.') || 

@@ -246,57 +246,96 @@ client.manager.nodeManager.on('reconnect', (node) => {
 if (process.env.DEBUG === "true") client.manager.on("debug", (info, data) => {
   console.error(`debug: ${info} - `, data);
 });
-client.manager.on("playerStuck", (player, data) => {
-  console.error(`Player Stuck: Node: [${player?.node?.id || 'N/A'}], Guild: ${player.guildId} - `, data);
-  handleExcessiveLavalinkErrors(player, client.manager);
-});
-client.manager.on("playerException", async (player, data) => {
+client.manager.on("trackStuck", async (player, track, payload) => {
   const guild = client.guilds.cache.get(player.guildId);
   const guildName = guild ? guild.name : "Unknown Guild";
   const nodeId = player?.node?.id || player?.node?.options?.id || "Unknown Node";
-  
-  console.error(`Player Exception Error: Node: [${nodeId}], Guild: ${guildName}(${player.guildId}) - `, data.exception); 
-  handleExcessiveLavalinkErrors(player, client.manager);
+  const trackToUse = track || player?.queue?.current || payload?.track;
+  const trackTitle = trackToUse?.info?.title || trackToUse?.title || "Unknown Track";
+
+  console.error(`Track Stuck: Node: [${nodeId}], Guild: ${guildName} (${player.guildId}) for track "${trackTitle}":`, payload);
+  await handleExcessiveLavalinkErrors(player, client.manager);
+});
+
+client.manager.on("trackError", async (player, track, payload) => {
+  if (!payload && track && (track.exception || track.type === "TrackExceptionEvent")) {
+    payload = track;
+    track = player?.queue?.current || null;
+  }
+
+  const guild = client.guilds.cache.get(player.guildId);
+  const guildName = guild ? guild.name : "Unknown Guild";
+  const nodeId = player?.node?.id || player?.node?.options?.id || "Unknown Node";
+  const trackToUse = track || player?.queue?.current || payload?.track;
+  const trackTitle = trackToUse?.info?.title || trackToUse?.title || "Unknown Track";
+
+  const exception = payload?.exception || (payload instanceof Error ? payload : null);
+  const errorMessage = exception?.message || payload?.error || (typeof payload === 'string' ? payload : '') || 'Unknown error';
+  const errorCause = exception?.cause || (payload instanceof Error ? payload.stack : '') || '';
+  const fullErrorText = `${errorMessage} ${errorCause}`;
+
+  console.error(`Track Error on Node [${nodeId}] in Guild "${guildName}" (${player.guildId}) for track "${trackTitle}":`, exception || payload);
+  await handleExcessiveLavalinkErrors(player, client.manager);
+
   const channel = client.channels.cache.get(player.textId || player.textChannelId);
   if (!channel) return;
 
-  if (player.customData?.playerMessages !== "noMessage") { 
-    const errorMessage = data.exception?.cause || data.exception?.message || 'Unknown error';
-    const truncatedError = errorMessage.length > 1000 ? errorMessage.substring(0, 997) + '...' : errorMessage;
-    
-    let description = `Track: ${data.track?.info?.title || data.track?.title || 'Unknown'}\nError: ${truncatedError}\nNode: [${nodeId}]\n-# Please join the [support server](https://discord.com/invite/rDHPK2er3j) if this keeps happening`;
-    
-    // Check for YouTube rate limiting errors
-    const isYoutubeError = data.exception?.message?.includes('This video requires login.') || 
-                          data.exception?.message?.includes('Sign in to confirm') ||
-                          data.exception?.message?.includes('Not success status code: 403') ||
-                          data.exception?.message?.includes('Video player configuration error') ||
-                          data.exception?.message?.includes('Invalid status code for player api response: 400') ||
-                          data.exception?.message?.includes('All clients failed to load the item');
-    
-    if (isYoutubeError) {
-      description += `\n\n**Tip:** This is caused by youtube ratelimiting our servers. Try enabling direct Tidal or Spotify streaming in \`/player-settings\` (beta).`;
+  if (guild?.members?.me) {
+    const permissions = guild.members.me.permissionsIn(channel);
+    if (!permissions.has(PermissionsBitField.Flags.ViewChannel) || !permissions.has(PermissionsBitField.Flags.SendMessages)) {
+      return;
     }
-    const embed = new EmbedBuilder()
-      .setColor('#e66229')  
-      .setTitle('Oops... seems something went wrong skipping to next!')
-      .setDescription(description);
-      try {
-        if (player.customData?.playerMessages === "default") {
-          const message = player.customData?.message;
-          if (message) { 
-            message.edit({ embeds: [embed], components: []}).catch(err => { if (!err.code === 50013) console.log("Error sending playerEnd message:", err)});
-          } else { 
-            channel.send({ embeds: [embed] }).catch(err => { if (!err.code === 50013) console.log("Error sending playerEnd message:", err)});
-          }
-      } else { 
-          const message = player.customData?.message;
-          if (message) message.delete().catch(err => { if (!err.code === 50013) console.log("Error sending playerEnd message:", err)});
-      }
+  }
 
-      } catch (err) {
-          console.error("Error sending player exception message:", err);
-      }
+  if (player.customData?.playerMessages !== "noMessage") {
+    const isYoutubeError = fullErrorText.includes('This video requires login') ||
+                          fullErrorText.includes('Sign in to confirm') ||
+                          fullErrorText.includes('Not success status code: 403') ||
+                          fullErrorText.includes('Video player configuration error') ||
+                          fullErrorText.includes('Invalid status code for player api response: 400') ||
+                          fullErrorText.includes('All clients failed to load the item') ||
+                          fullErrorText.includes('The page needs to be reloaded');
+
+    const truncatedError = errorMessage.length > 500 ? errorMessage.substring(0, 497) + '...' : errorMessage;
+
+    let description = `Track: **${trackTitle}**\nReason: ${truncatedError}\nNode: \`${nodeId}\`\n\n-# Join the [support server](https://discord.com/invite/rDHPK2er3j) if this continues`;
+
+    if (isYoutubeError) {
+      description += `\n\n**Tip:** YouTube is currently rate-limiting or blocking playback requests on our servers. Try enabling direct Tidal or Spotify streaming in \`/player-settings\`.`;
+    }
+
+    const hasUpcomingTracks = Array.isArray(player.queue?.tracks) && player.queue.tracks.length > 0;
+    const embed = new EmbedBuilder()
+      .setColor('#e66229')
+      .setTitle(hasUpcomingTracks ? 'Playback Error - Skipping to Next Track' : 'Playback Error')
+      .setDescription(description);
+
+    const nowPlayingMessage = player.customData?.message;
+    player.customData.message = null;
+
+    let targetMessage = null;
+    if (nowPlayingMessage) {
+      targetMessage = await nowPlayingMessage.edit({ embeds: [embed], components: [] }).catch(err => {
+        if (err.code !== 50013 && err.code !== 10008) console.error("Error editing now playing message to error embed:", err);
+        return null;
+      });
+    }
+
+    if (!targetMessage) {
+      targetMessage = await channel.send({ embeds: [embed] }).catch(err => {
+        if (err.code !== 50013) console.error("Error sending playback error message:", err);
+        return null;
+      });
+    }
+
+    if (targetMessage && player.customData?.playerMessages === "deleteAfter") {
+      const timer = setTimeout(() => {
+        targetMessage.delete().catch(err => {
+          if (err.code !== 50013 && err.code !== 10008) console.error("Error deleting error message:", err);
+        });
+      }, 15000);
+      if (typeof timer?.unref === "function") timer.unref();
+    }
   }
 });
 
@@ -398,7 +437,7 @@ client.manager.on("trackStart", async (player, track) => {
    .addComponents(playPauseButton, skipButton, stopButton, loopButton, shuffleButton);
    let message = null;
    try {
-    message = await channel.send({ embeds: [playerStartEmbed], components: [row] }).catch(err => { if (!err.code === 50013) console.log("Error sending playerStart message:", err)});
+    message = await channel.send({ embeds: [playerStartEmbed], components: [row] }).catch(err => { if (err.code !== 50013) console.error("Error sending playerStart message:", err); });
    } catch (err) {
     if (err.code === 50013) {
         return;
@@ -421,17 +460,17 @@ client.manager.on("trackStart", async (player, track) => {
           collector.on("end", async () => {
             if (player.customData?.playerMessages === "default") {
             try {
-              const fetchedMessage = await message.channel.messages.fetch(message.id)
+              const fetchedMessage = await message.channel.messages.fetch(message.id);
               fetchedMessage.edit({
                 components: [],
-              }).catch(err => { if (!err.code === 50013) console.log("Error removing playerStart Buttons", err)});
+              }).catch(err => { if (err.code !== 50013 && err.code !== 10008) console.error("Error removing playerStart Buttons:", err); });
             } catch (error) {
               return;
             }
           } else {
             try {
-              const fetchedMessage = await message.channel.messages.fetch(message.id)
-              fetchedMessage.delete().catch(err => { if (!err.code === 50013) console.log("Error Deleting playerStart Message", err)});
+              const fetchedMessage = await message.channel.messages.fetch(message.id);
+              fetchedMessage.delete().catch(err => { if (err.code !== 50013 && err.code !== 10008) console.error("Error deleting playerStart message:", err); });
             } catch (error) {
               return;
             }

@@ -92,8 +92,84 @@ async function searchWithNodeFallback(player, queryOrOptions, requester, targetS
     return res;
 }
 
+async function migratePlayerNode(player, targetNode, client = null) {
+    if (!player || !targetNode) return false;
+    const manager = player.LavalinkManager || player.manager || client?.manager;
+    const targetNodeObj = typeof targetNode === 'string' ? manager?.nodeManager?.nodes?.get(targetNode) : targetNode;
+    if (!targetNodeObj || !targetNodeObj.connected) return false;
+    if (player.node?.id === targetNodeObj.id) return true;
+
+    const discordClient = client || player.LavalinkManager?.client || manager?.client;
+    const guild = discordClient?.guilds?.cache?.get(player.guildId);
+    const botVoiceChannelId = guild?.members?.me?.voice?.channelId || player.voiceChannelId;
+
+    const hasVoiceData = Boolean(
+        player.voice?.endpoint &&
+        player.voice?.sessionId &&
+        player.voice?.token
+    );
+
+    if (hasVoiceData) {
+        try {
+            await player.changeNode(targetNodeObj);
+            return true;
+        } catch (err) {
+            if (!err.message?.includes("Voice Data is missing")) {
+                console.error(`[NodeMigration] Failed to change node via changeNode for guild ${player.guildId}:`, err.message);
+                throw err;
+            }
+        }
+    }
+
+    if (!botVoiceChannelId) {
+        try {
+            if (typeof player.destroy === 'function') {
+                await player.destroy("ZombiePlayerNoVoiceData");
+            }
+        } catch {
+            if (manager?.players) manager.players.delete(player.guildId);
+        }
+        return false;
+    }
+
+    try {
+        const currentTrack = player.queue?.current;
+        const position = player.lastPosition || player.position || 0;
+        const isPaused = Boolean(player.paused);
+
+        if (player.node?.connected && typeof player.node.destroyPlayer === 'function') {
+            await player.node.destroyPlayer(player.guildId).catch(() => {});
+        }
+
+        player.node = targetNodeObj;
+        if (player.options) player.options.node = targetNodeObj.id;
+        player.voiceChannelId = botVoiceChannelId;
+        if (player.options) player.options.voiceChannelId = botVoiceChannelId;
+
+        if (typeof player.connect === 'function') {
+            await player.connect();
+        }
+
+        if (currentTrack && typeof player.play === 'function') {
+            await player.play({
+                track: currentTrack,
+                position,
+                paused: isPaused
+            }).catch(playErr => {
+                console.warn(`[NodeMigration] Could not auto-resume track after reconnect on node ${targetNodeObj.id}:`, playErr?.message);
+            });
+        }
+        return true;
+    } catch (fallbackErr) {
+        console.error(`[NodeMigration] Fallback migration failed for guild ${player.guildId}:`, fallbackErr);
+        return false;
+    }
+}
+
 module.exports = {
     isSourceSupportedByNode,
     findBestNodeForSource,
-    searchWithNodeFallback
+    searchWithNodeFallback,
+    migratePlayerNode
 };
+

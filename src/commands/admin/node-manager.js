@@ -1,4 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags } = require('discord.js');
+const { migratePlayerNode } = require('../../utils/nodeFallbackHelper');
 
 async function getPrettyMs() {
   const { default: prettyMilliseconds } = await import('pretty-ms');
@@ -112,7 +113,7 @@ ${rateLimited}
               
               if (playersToMove.length > 0 && targetNode) {
                 for (const player of playersToMove) {
-                  await player.changeNode(targetNode.id).catch(err => console.error("Error migrating player node:", err));
+                  await migratePlayerNode(player, targetNode, client).catch(err => console.error("Error migrating player node:", err));
                 }
               }
 
@@ -133,7 +134,7 @@ ${rateLimited}
               
               if (playersToMove.length > 0 && targetNode) {
                 for (const player of playersToMove) {
-                  await player.changeNode(targetNode.id).catch(err => console.error("Error migrating player node:", err));
+                  await migratePlayerNode(player, targetNode, client).catch(err => console.error("Error migrating player node:", err));
                 }
               }
 

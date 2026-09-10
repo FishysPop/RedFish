@@ -1,3 +1,5 @@
+const { migratePlayerNode } = require('./nodeFallbackHelper');
+
 module.exports = async (player, manager) => {
     try {
         if (!player || !player.node) return false;
@@ -50,7 +52,7 @@ module.exports = async (player, manager) => {
                 for (const p of manager.players.values()) {
                     if (p.node?.id === nodeId) {
                         try {
-                            await p.changeNode(targetNode);
+                            await migratePlayerNode(p, targetNode, manager?.client);
                         } catch (moveError) {
                             console.error(`Failed to move player for guild ${p.guildId} from ${nodeId} to ${targetNode.id}:`, moveError);
                         }

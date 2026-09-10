@@ -41,6 +41,8 @@ cacheManager.initializeCacheManager(client);
 
 
 if (process.env.LAVALINK === 'true') {
+  const { applyLavalinkPatches } = require("./utils/lavalinkPatch");
+  applyLavalinkPatches();
   const { LavalinkManager } = require("lavalink-client");
   const lavaNodes = [];
   const lavaURI = process.env.LAVALINK_URI; 

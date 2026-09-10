@@ -4,22 +4,25 @@ require("dotenv").config();
 module.exports = (client) => {
 
     process.on('unhandledRejection', async (reason, promise) => {
+        const message = reason?.message || String(reason);
+        if (message.includes("does not provide any /v4/info") || message.includes("Voice Data is missing")) {
+            console.warn(`[Lavalink Handled Rejection]: ${message}`);
+            return;
+        }
+
         console.log("unhandled rejection at:", promise, 'reason:', reason);
         try {
-        if (reason instanceof DiscordAPIError && reason.code === 50001) {
-            console.log("Error occurred due to Missing Access.");
-            
-            // Extracting relevant information for the request
-            const requestBody = reason.requestBody;
-            const embeds = requestBody?.json?.embeds;
-            const content = requestBody?.json?.content;
-    
-            console.log("Embeds:", embeds);
-            console.log("Content:", content);
+            if (reason instanceof DiscordAPIError && reason.code === 50001) {
+                console.log("Error occurred due to Missing Access.");
+                const requestBody = reason.requestBody;
+                const embeds = requestBody?.json?.embeds;
+                const content = requestBody?.json?.content;
+                console.log("Embeds:", embeds);
+                console.log("Content:", content);
+            }
+        } catch (error) {
+            return;            
         }
-    } catch (error) {
-    return;            
-    }
     });
     
 

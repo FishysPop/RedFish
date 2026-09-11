@@ -1,3 +1,4 @@
+const path = require('path');
 const { getAvailableNodes, migratePlayerNode } = require('./nodeFallbackHelper');
 
 let proberInterval = null;
@@ -5,6 +6,18 @@ let proberInterval = null;
 function isRateLimitError(err) {
     if (!err) return false;
     const msg = (typeof err === 'string' ? err : (err.message || String(err))).toLowerCase();
+
+    if (
+        msg.includes('blocked due to the claimed content') ||
+        msg.includes('copyright') ||
+        msg.includes('this video is private') ||
+        msg.includes('content warning') ||
+        msg.includes('not available in your country') ||
+        msg.includes('who has blocked it on copyright grounds')
+    ) {
+        return false;
+    }
+
     return (
         msg.includes('429') ||
         msg.includes('too many requests') ||
@@ -42,6 +55,8 @@ async function broadcastNodeSync(client, action, nodeId, reason) {
         await client.cluster.broadcastEval(
             async (c, { action, targetNodeId, targetReason }) => {
                 const demotion = require('./utils/handleExcessiveLavaErrors');
+                const helperPath = require('path').join(process.cwd(), 'src', 'utils', 'handleExcessiveLavaErrors');
+                const demotion = require(helperPath);
                 if (c.manager) {
                     if (action === 'demote') {
                         await demotion.demoteNode(c.manager, targetNodeId, targetReason, true);
@@ -72,6 +87,7 @@ async function demoteNode(manager, nodeId, reason = 'Excessive errors', isSync =
 
     console.warn(`[Lavalink Demotion] Demoting node ${nodeId}. Reason: ${reason}`);
 
+    const discordClient = manager?.client || manager?.options?.clientInstance;
     const availableNodes = getAvailableNodes(manager, nodeId);
     if (availableNodes.length > 0 && manager.players) {
         const targetNode = availableNodes[0];
@@ -79,6 +95,7 @@ async function demoteNode(manager, nodeId, reason = 'Excessive errors', isSync =
             if (p.node?.id === nodeId) {
                 try {
                     await migratePlayerNode(p, targetNode, manager?.client);
+                    await migratePlayerNode(p, targetNode, discordClient);
                 } catch (moveError) {
                     console.error(`[Lavalink Demotion] Failed to migrate player for guild ${p.guildId} to ${targetNode.id}:`, moveError);
                 }
@@ -88,6 +105,8 @@ async function demoteNode(manager, nodeId, reason = 'Excessive errors', isSync =
 
     if (!isSync && manager?.client) {
         await broadcastNodeSync(manager.client, 'demote', nodeId, reason);
+    if (!isSync && discordClient) {
+        await broadcastNodeSync(discordClient, 'demote', nodeId, reason);
     }
 
     return true;
@@ -112,6 +131,9 @@ async function promoteNode(manager, nodeId, isSync = false) {
 
     if (!isSync && manager?.client) {
         await broadcastNodeSync(manager.client, 'promote', nodeId);
+    const discordClient = manager?.client || manager?.options?.clientInstance;
+    if (!isSync && discordClient) {
+        await broadcastNodeSync(discordClient, 'promote', nodeId);
     }
 
     return true;
@@ -146,6 +168,7 @@ async function probeNodeHealth(node, options = {}) {
     } else {
         testTargets.push({ query: 'ytsearch:My Jealousy' });
         testTargets.push({ query: 'ytsearch:popular hits' });
+        testTargets.push({ query: 'ytsearch:NCS release' });
     }
 
     const probeGuildId = "999999999999999999";
@@ -266,6 +289,11 @@ async function probeNodeHealth(node, options = {}) {
 function startDemotedNodeProber(client, options = {}) {
     const isMainCluster = !client?.cluster || client.cluster.id === 0;
     if (!isMainCluster) return;
+    const clusterId = client?.cluster?.id !== undefined
+        ? client.cluster.id
+        : (process.env.CLUSTER !== undefined ? Number(process.env.CLUSTER) : 0);
+
+    if (clusterId !== 0) return;
 
     if (proberInterval) return;
 
@@ -315,6 +343,40 @@ function stopDemotedNodeProber() {
     }
 }
 
+function isProberRunning() {
+    return Boolean(proberInterval);
+}
+
+async function syncDemotedNodesFromCluster0(client) {
+    const clusterId = client?.cluster?.id !== undefined
+        ? client.cluster.id
+        : (process.env.CLUSTER !== undefined ? Number(process.env.CLUSTER) : 0);
+
+    if (clusterId === 0 || !client?.cluster || typeof client.cluster.broadcastEval !== 'function') return;
+
+    try {
+        const demotedStates = await client.cluster.broadcastEval((c) => {
+            if (c.cluster?.id !== 0 || !c.manager?.nodeManager?.nodes) return null;
+            const demoted = [];
+            for (const node of c.manager.nodeManager.nodes.values()) {
+                if (node.isDemoted) {
+                    demoted.push({ id: node.id, reason: node.demoteReason });
+                }
+            }
+            return demoted;
+        });
+
+        const cluster0Demoted = demotedStates.find(Array.isArray);
+        if (cluster0Demoted && cluster0Demoted.length > 0 && client.manager) {
+            for (const { id, reason } of cluster0Demoted) {
+                await demoteNode(client.manager, id, reason, true);
+            }
+        }
+    } catch (err) {
+        console.warn('[Lavalink Demotion Sync] Error syncing demoted nodes from cluster 0:', err.message);
+    }
+}
+
 async function handleExcessiveLavaErrors(player, manager, options = {}) {
     try {
         if (!player || !player.node) return false;
@@ -360,6 +422,8 @@ handleExcessiveLavaErrors.promoteNode = promoteNode;
 handleExcessiveLavaErrors.probeNodeHealth = probeNodeHealth;
 handleExcessiveLavaErrors.startDemotedNodeProber = startDemotedNodeProber;
 handleExcessiveLavaErrors.stopDemotedNodeProber = stopDemotedNodeProber;
+handleExcessiveLavaErrors.isProberRunning = isProberRunning;
+handleExcessiveLavaErrors.syncDemotedNodesFromCluster0 = syncDemotedNodesFromCluster0;
 handleExcessiveLavaErrors.isRateLimitError = isRateLimitError;
 handleExcessiveLavaErrors.calculateProbeBackoff = calculateProbeBackoff;
 handleExcessiveLavaErrors.recordFailedProbe = recordFailedProbe;

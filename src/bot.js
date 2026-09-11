@@ -37,6 +37,7 @@ const clientOptions = {
 };
 
 const client = new Client(clientOptions);
+client.cluster = new ClusterClient(client);
 cacheManager.initializeCacheManager(client); 
 
 
@@ -95,11 +96,16 @@ if (process.env.LAVALINK === 'true') {
       },
     },
   });
+  client.manager.client = client;
 
   client.once("ready", () => {
     client.manager.options.client.id = client.user.id;
     client.manager.options.client.username = client.user.username;
     client.manager.init(client.user.id);
+    const handleExcessiveLavalinkErrors = require('./utils/handleExcessiveLavaErrors');
+    if (typeof handleExcessiveLavalinkErrors.syncDemotedNodesFromCluster0 === 'function') {
+      handleExcessiveLavalinkErrors.syncDemotedNodesFromCluster0(client);
+    }
   });
 
   client.on("raw", (d) => client.manager.sendRawData(d).catch(() => {}));
@@ -155,6 +161,9 @@ new CommandHandler({
     if (process.env.DEBUG === 'true') {
       console.debug('[Bot] Initializing cluster client:', {
         clusterId: process.env.CLUSTER_ID,
+      console.debug('[Bot] Cluster client info:', {
+        clusterId: client.cluster?.id,
+        hasCluster: !!client.cluster,
         shardList: getInfo().SHARD_LIST,
         totalShards: getInfo().TOTAL_SHARDS
       });

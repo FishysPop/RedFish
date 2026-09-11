@@ -9,6 +9,8 @@ require("dotenv").config();
 
 const PlayerSession = require("../../models/PlayerSession");
 const User = require("../../models/UserPlayerSettings");
+const { getAvailableNodes, findBestNodeForSource, migratePlayerNode } = require("../../utils/nodeFallbackHelper.js");
+const { processSessionSaveState, processTrackEndState, evaluateSessionRestoration } = require("../../utils/sessionHelper.js");
 
 module.exports = (client) => {
 if (typeof handleExcessiveLavalinkErrors.startDemotedNodeProber === 'function') {
@@ -38,84 +40,124 @@ client.manager.nodeManager.on('connect', async (node) => {
     }
   });
 
-  try {
-    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
-    await PlayerSession.deleteMany({ updatedAt: { $lt: thirtyMinutesAgo } }).catch(() => {});
+  let isRestoringSessions = false;
+  const restoreSavedSessions = async () => {
+    if (isRestoringSessions) return;
+    isRestoringSessions = true;
+    try {
+      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+      await PlayerSession.deleteMany({ updatedAt: { $lt: thirtyMinutesAgo } }).catch(() => {});
 
-    const savedSessions = await PlayerSession.find({});
+      const savedSessions = await PlayerSession.find({});
+      for (const savedData of savedSessions) {
+        if (client.manager.getPlayer(savedData.guildId)) continue;
 
-    for (const savedData of savedSessions) {
-      if (client.manager.getPlayer(savedData.guildId)) continue;
-
-      const player = client.manager.createPlayer({
-        guildId: savedData.guildId,
-        voiceChannelId: savedData.voiceChannelId,
-        textChannelId: savedData.textChannelId,
-        node: node.id,
-        volume: typeof savedData.volume === "number" ? savedData.volume : 30,
-        selfDeaf: savedData.selfDeaf ?? true,
-        customData: savedData.customData || {},
-      });
-
-      await player.connect();
-
-      if (savedData.currentTrack) {
-        try {
-          const builtCurrentTrack = client.manager.utils.buildTrack(savedData.currentTrack, savedData.currentTrack.requester || savedData.requester);
-          if (builtCurrentTrack) {
-            player.queue.current = builtCurrentTrack;
-          }
-        } catch (tErr) {
-          console.error("Error restoring current track from DB:", tErr);
+        const evalResult = evaluateSessionRestoration(savedData, Date.now());
+        if (!evalResult.shouldRestore) {
+          console.log(`[Session Restore] Skipping guild ${savedData.guildId} session (${evalResult.reason}). Removing completed/idle session.`);
+          await PlayerSession.deleteOne({ guildId: savedData.guildId }).catch(() => {});
+          continue;
         }
-      }
 
-      if (savedData.queueTracks && Array.isArray(savedData.queueTracks) && savedData.queueTracks.length > 0) {
-        for (const rawTrack of savedData.queueTracks) {
+        const guild = client.guilds?.cache?.get(savedData.guildId);
+        if (!guild) {
+          await PlayerSession.deleteOne({ guildId: savedData.guildId }).catch(() => {});
+          continue;
+        }
+
+        const voiceChannel = guild.channels?.cache?.get(savedData.voiceChannelId);
+        if (!voiceChannel) {
+          await PlayerSession.deleteOne({ guildId: savedData.guildId }).catch(() => {});
+          continue;
+        }
+
+        const hasHumanMembers = voiceChannel.members?.some(m => !m.user?.bot);
+        if (!hasHumanMembers && !savedData.customData?.twentyFourSeven) {
+          console.log(`[Session Restore] Voice channel in guild ${savedData.guildId} has no active listeners. Removing session.`);
+          await PlayerSession.deleteOne({ guildId: savedData.guildId }).catch(() => {});
+          continue;
+        }
+
+        const availableNode = findBestNodeForSource(client.manager, 'youtube_music') || getAvailableNodes(client.manager)[0];
+        if (!availableNode) {
+          console.warn(`[Session Restore] No available Lavalink nodes found to restore guild ${savedData.guildId}.`);
+          break;
+        }
+
+        const player = client.manager.createPlayer({
+          guildId: savedData.guildId,
+          voiceChannelId: savedData.voiceChannelId,
+          textChannelId: savedData.textChannelId,
+          node: availableNode.id,
+          volume: typeof savedData.volume === "number" ? savedData.volume : 30,
+          selfDeaf: savedData.selfDeaf ?? true,
+          customData: savedData.customData || {},
+        });
+
+        await player.connect();
+
+        if (evalResult.currentTrack) {
           try {
-            const builtTrack = client.manager.utils.buildTrack(rawTrack, rawTrack.requester || savedData.requester);
-            if (builtTrack) player.queue.add(builtTrack);
+            const builtCurrentTrack = client.manager.utils.buildTrack(evalResult.currentTrack, evalResult.currentTrack.requester || savedData.requester);
+            if (builtCurrentTrack) {
+              player.queue.current = builtCurrentTrack;
+            }
           } catch (tErr) {
-            console.error("Error restoring queued track:", tErr);
+            console.error("Error restoring current track from DB:", tErr);
           }
         }
-      }
 
-      const attemptPlayRestored = async (p) => {
-        try {
-          await new Promise(res => setTimeout(res, 500));
-          if (p.queue.current) {
-            const startPos = savedData.position && savedData.position > 1000 ? savedData.position : 0;
-            await p.play({ track: p.queue.current, position: startPos, paused: Boolean(savedData.paused) });
-          } else if (p.queue.tracks.length > 0 && !p.playing && !p.paused) {
-            await p.play();
-          }
-        } catch (e) {
-          console.error(`[Node ${p.node?.id || node.id}] Error starting restored player playback for guild ${savedData.guildId}:`, e?.message || e);
-          if (e?.message?.includes("Node Request resulted into an error")) {
-            const altNodes = Array.from(client.manager.nodeManager.nodes.values()).filter(n => n.connected && !n.isDemoted && n.id !== node.id);
-            if (altNodes.length > 0) {
-              const targetNode = altNodes[Math.floor(Math.random() * altNodes.length)];
-              console.warn(`[Lavalink Restore] Switching to fallback node ${targetNode.id} for guild ${savedData.guildId}...`);
-              try {
-                await p.changeNode(targetNode);
-                if (p.queue.current) {
-                  await p.play({ track: p.queue.current, paused: Boolean(savedData.paused) }).catch(() => {});
-                } else if (p.queue.tracks.length > 0) {
-                  await p.play().catch(() => {});
-                }
-              } catch (recreateErr) {
-                console.error(`[Node ${targetNode.id}] Error retrying playback on fallback node:`, recreateErr);
-              }
+        if (Array.isArray(evalResult.remainingQueue) && evalResult.remainingQueue.length > 0) {
+          for (const rawTrack of evalResult.remainingQueue) {
+            try {
+              const builtTrack = client.manager.utils.buildTrack(rawTrack, rawTrack.requester || savedData.requester);
+              if (builtTrack) player.queue.add(builtTrack);
+            } catch (tErr) {
+              console.error("Error restoring queued track:", tErr);
             }
           }
         }
-      };
-      await attemptPlayRestored(player);
+
+        const attemptPlayRestored = async (p) => {
+          try {
+            await new Promise(res => setTimeout(res, 500));
+            if (p.queue.current) {
+              const startPos = evalResult.position && evalResult.position > 1000 ? evalResult.position : 0;
+              await p.play({ track: p.queue.current, position: startPos, paused: Boolean(evalResult.paused) });
+            } else if (p.queue.tracks.length > 0 && !p.playing && !p.paused) {
+              await p.play();
+            }
+          } catch (e) {
+            console.error(`[Node ${p.node?.id || availableNode.id}] Error starting restored player playback for guild ${savedData.guildId}:`, e?.message || e);
+            if (e?.message?.includes("Node Request resulted into an error") || e?.message?.includes("No Lavalink Node was provided")) {
+              const altNodes = getAvailableNodes(client.manager, p.node?.id);
+              if (altNodes.length > 0) {
+                const targetNode = altNodes[0];
+                console.warn(`[Lavalink Restore] Switching to fallback node ${targetNode.id} for guild ${savedData.guildId}...`);
+                try {
+                  await p.changeNode(targetNode);
+                  if (p.queue.current) {
+                    await p.play({ track: p.queue.current, paused: Boolean(evalResult.paused) }).catch(() => {});
+                  } else if (p.queue.tracks.length > 0) {
+                    await p.play().catch(() => {});
+                  }
+                } catch (recreateErr) {
+                  console.error(`[Node ${targetNode.id}] Error retrying playback on fallback node:`, recreateErr);
+                }
+              }
+            }
+          }
+        };
+        await attemptPlayRestored(player);
+      }
+    } catch (err) {
+      console.error("Error during session restoration from DB:", err);
+    } finally {
+      isRestoringSessions = false;
     }
-  } catch (err) {
-    console.error("Error during fallback session restoration from DB:", err);
-  }
+  };
+
+  await restoreSavedSessions();
 });
 
 client.manager.nodeManager.on('resumed', async (node, payload, fetchedPlayers) => {
@@ -185,38 +227,18 @@ client.manager.nodeManager.on('resumed', async (node, payload, fetchedPlayers) =
 const savePlayerSession = async (player) => {
   if (!player || !player.guildId) return;
   try {
-    const queueTracksToSave = player.queue?.tracks?.map(t => ({
-      encoded: t.encoded,
-      info: t.info,
-      requester: t.requester,
-      userData: t.userData
-    })) || [];
-
-    const currentTrackToSave = player.queue?.current ? {
-      encoded: player.queue.current.encoded,
-      info: player.queue.current.info,
-      requester: player.queue.current.requester,
-      userData: player.queue.current.userData
-    } : null;
-
-    await PlayerSession.findOneAndUpdate(
-      { guildId: player.guildId },
-      {
-        guildId: player.guildId,
-        voiceChannelId: player.voiceChannelId,
-        textChannelId: player.textChannelId || player.textId,
-        volume: player.volume ?? 30,
-        position: player.position || player.lastPosition || 0,
-        paused: Boolean(player.paused),
-        selfDeaf: player.options?.selfDeaf ?? true,
-        currentTrack: currentTrackToSave,
-        requester: player.queue?.current?.requester,
-        customData: player.customData || {},
-        queueTracks: queueTracksToSave,
-        updatedAt: new Date(),
-      },
-      { upsert: true, new: true }
-    );
+    const decision = processSessionSaveState(player);
+    if (decision.action === 'delete') {
+      await PlayerSession.deleteOne({ guildId: player.guildId }).catch(() => {});
+      return;
+    }
+    if (decision.action === 'save') {
+      await PlayerSession.findOneAndUpdate(
+        { guildId: player.guildId },
+        decision.data,
+        { upsert: true, new: true }
+      );
+    }
   } catch (err) {
     console.error("Error persisting player session to database:", err);
   }
@@ -230,6 +252,23 @@ client.manager.on("playerUpdate", async (oldPlayer, newPlayer) => {
   savePlayerSession(newPlayer || oldPlayer);
 });
 
+client.manager.on("trackEnd", async (player, track, payload) => {
+  try {
+    const decision = processTrackEndState(player);
+    if (decision.action === 'delete') {
+      await PlayerSession.deleteOne({ guildId: player.guildId }).catch(() => {});
+    } else if (decision.action === 'save') {
+      await PlayerSession.findOneAndUpdate(
+        { guildId: player.guildId },
+        decision.data,
+        { upsert: true, new: true }
+      ).catch(() => {});
+    }
+  } catch (err) {
+    console.error("Error handling trackEnd session update:", err);
+  }
+});
+
 client.manager.on("playerDestroy", async (player) => {
   try {
     await PlayerSession.deleteOne({ guildId: player.guildId });
@@ -240,8 +279,24 @@ client.manager.on("playerDestroy", async (player) => {
 client.manager.nodeManager.on('error', (node, error) => {
   console.error(`Lavalink Node ${node.id}: Error Caught:`, error); 
 });
-client.manager.nodeManager.on('disconnect', (node, reason) => {
+client.manager.nodeManager.on('disconnect', async (node, reason) => {
   console.warn(`Lavalink Node ${node.id}: Disconnected. Reason:`, reason);
+  try {
+    const availableNodes = getAvailableNodes(client.manager, node.id);
+    if (availableNodes.length > 0 && client.manager.players) {
+      const targetNode = availableNodes[0];
+      for (const p of client.manager.players.values()) {
+        if (p.node?.id === node.id) {
+          console.log(`[Lavalink Disconnect] Migrating player in guild ${p.guildId} from disconnected node ${node.id} to ${targetNode.id}...`);
+          await migratePlayerNode(p, targetNode, client).catch(err => {
+            console.error(`[Lavalink Disconnect] Failed to migrate player ${p.guildId}:`, err);
+          });
+        }
+      }
+    }
+  } catch (migErr) {
+    console.error(`[Lavalink Disconnect] Error migrating players from node ${node.id}:`, migErr);
+  }
 });
 client.manager.nodeManager.on('reconnect', (node) => {
   console.log(`Lavalink Node ${node.id}: Reconnecting...`);
@@ -603,6 +658,8 @@ client.manager.on("queueEnd", async (player) => {
       console.error("Error while running lavalink autoplay:", error);
     }
   }
+
+  await PlayerSession.deleteOne({ guildId: player.guildId }).catch(() => {});
 
   if (player.customData?.playerMessages === "default") {
     player.customData?.message?.edit({ components: [] }).catch(err => { if (err.code !== 50013 && err.code !== 10008) console.log("Error editing playerEnd message:", err); });

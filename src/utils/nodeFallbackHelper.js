@@ -38,7 +38,14 @@ function isSourceSupportedByNode(node, source) {
 }
 
 function isNodeAvailable(node) {
-    return Boolean(node && node.connected && !node.isDemoted && !node.isDisconnecting);
+    return Boolean(
+        node &&
+        node.connected &&
+        node.sessionId &&
+        node.info &&
+        !node.isDemoted &&
+        !node.isDisconnecting
+    );
 }
 
 function getAvailableNodes(manager, excludeNodeId = null) {
@@ -66,42 +73,6 @@ function findBestNodeForSource(manager, targetSource, preferredNodeId = null) {
     return nodes[0];
 }
 
-async function searchWithNodeFallback(player, queryOrOptions, requester, targetSource) {
-    const manager = player.lavalink || player.manager;
-    const bestNode = findBestNodeForSource(manager, targetSource, player.node?.id);
-
-    let searchOptions = typeof queryOrOptions === 'string' ? { query: queryOrOptions } : { ...queryOrOptions };
-    if (requester) searchOptions.requester = requester;
-
-    if (targetSource === 'deezer') searchOptions.source = 'dzsearch';
-    else if (targetSource === 'qobuz') searchOptions.source = 'qbsearch';
-    else if (targetSource === 'spotify') searchOptions.source = 'spsearch';
-    else if (targetSource === 'applemusic') searchOptions.source = 'amsearch';
-    else if (targetSource === 'youtube') searchOptions.source = 'ytsearch';
-    else if (targetSource === 'youtube_music') searchOptions.source = 'ytmsearch';
-    else if (targetSource === 'soundcloud') searchOptions.source = 'scsearch';
-    else if (targetSource) searchOptions.source = targetSource;
-
-    if (bestNode && bestNode.id !== player.node?.id) {
-        searchOptions.node = bestNode;
-    }
-
-    let res = await player.search(searchOptions, requester).catch(err => {
-        console.warn(`[NodeFallback] Primary search on source '${targetSource}' failed:`, err.message);
-        return null;
-    });
-
-    if (res && res.tracks && res.tracks.length > 0) {
-        return res;
-    }
-
-    console.log(`[NodeFallback] Source '${targetSource}' returned no tracks. Falling back to ytmsearch.`);
-    searchOptions.source = 'ytmsearch';
-    delete searchOptions.node;
-
-    res = await player.search(searchOptions, requester).catch(() => null);
-    return res;
-}
 
 async function migratePlayerNode(player, targetNode, client = null) {
     if (!player || !targetNode) return false;
@@ -182,7 +153,6 @@ module.exports = {
     getAvailableNodes,
     isSourceSupportedByNode,
     findBestNodeForSource,
-    searchWithNodeFallback,
     migratePlayerNode
 };
 

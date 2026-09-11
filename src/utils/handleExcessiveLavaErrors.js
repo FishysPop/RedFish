@@ -18,6 +18,24 @@ function isRateLimitError(err) {
     );
 }
 
+const INITIAL_PROBE_BACKOFF_MS = 60 * 1000;
+const MAX_PROBE_BACKOFF_MS = 6 * 60 * 60 * 1000;
+const PROBE_BACKOFF_FACTOR = 2;
+
+function calculateProbeBackoff(failedAttempts = 0, initialMs = INITIAL_PROBE_BACKOFF_MS, maxMs = MAX_PROBE_BACKOFF_MS) {
+    if (failedAttempts <= 0) return initialMs;
+    const backoff = initialMs * Math.pow(PROBE_BACKOFF_FACTOR, failedAttempts);
+    return Math.min(backoff, maxMs);
+}
+
+function recordFailedProbe(node, initialMs = INITIAL_PROBE_BACKOFF_MS, maxMs = MAX_PROBE_BACKOFF_MS) {
+    node.failedProbeAttempts = (node.failedProbeAttempts || 0) + 1;
+    const backoff = calculateProbeBackoff(node.failedProbeAttempts, initialMs, maxMs);
+    node.currentProbeBackoffMs = backoff;
+    node.nextProbeAt = Date.now() + backoff;
+    return backoff;
+}
+
 async function broadcastNodeSync(client, action, nodeId, reason) {
     if (!client?.cluster || typeof client.cluster.broadcastEval !== 'function') return;
     try {
@@ -48,6 +66,9 @@ async function demoteNode(manager, nodeId, reason = 'Excessive errors', isSync =
     node.demotedAt = Date.now();
     node.demoteReason = reason;
     node.consecutiveProbeSuccesses = 0;
+    node.failedProbeAttempts = 0;
+    node.currentProbeBackoffMs = INITIAL_PROBE_BACKOFF_MS;
+    node.nextProbeAt = Date.now() + INITIAL_PROBE_BACKOFF_MS;
 
     console.warn(`[Lavalink Demotion] Demoting node ${nodeId}. Reason: ${reason}`);
 
@@ -83,6 +104,9 @@ async function promoteNode(manager, nodeId, isSync = false) {
     node.lastFailedTrack = null;
     node.errors = [];
     node.consecutiveProbeSuccesses = 0;
+    node.failedProbeAttempts = 0;
+    node.currentProbeBackoffMs = 0;
+    node.nextProbeAt = null;
 
     console.log(`[Lavalink Demotion] Node ${nodeId} restored and re-promoted back to active pool.`);
 
@@ -245,8 +269,7 @@ function startDemotedNodeProber(client, options = {}) {
 
     if (proberInterval) return;
 
-    const intervalMs = typeof options.intervalMs === 'number' ? options.intervalMs : 60000;
-    const minDemoteCooldownMs = typeof options.minDemoteCooldownMs === 'number' ? options.minDemoteCooldownMs : 60000;
+    const intervalMs = typeof options.intervalMs === 'number' ? options.intervalMs : 15000;
     const requiredSuccesses = typeof options.requiredSuccesses === 'number' ? options.requiredSuccesses : 2;
     const playbackDurationMs = typeof options.playbackDurationMs === 'number' ? options.playbackDurationMs : 10000;
 
@@ -257,20 +280,22 @@ function startDemotedNodeProber(client, options = {}) {
             for (const node of nodes) {
                 if (!node.isDemoted) continue;
 
-                const demotedAt = node.demotedAt || 0;
-                if (Date.now() - demotedAt < minDemoteCooldownMs) continue;
+                const now = Date.now();
+                if (node.nextProbeAt && now < node.nextProbeAt) continue;
 
                 const probeResult = await probeNodeHealth(node, { playbackDurationMs });
                 if (probeResult.healthy) {
                     node.consecutiveProbeSuccesses = (node.consecutiveProbeSuccesses || 0) + 1;
                     if (node.consecutiveProbeSuccesses >= requiredSuccesses) {
                         await promoteNode(client.manager, node.id, false);
+                    } else {
+                        node.nextProbeAt = Date.now() + 15000;
                     }
                 } else {
                     node.consecutiveProbeSuccesses = 0;
-                    if (process.env.DEBUG === 'true') {
-                        console.debug(`[Lavalink Probe] Demoted node ${node.id} probe failed: ${probeResult.reason}`);
-                    }
+                    const nextBackoff = recordFailedProbe(node);
+                    const delayMinutes = (nextBackoff / 60000).toFixed(1);
+                    console.warn(`[Lavalink Prober] Node ${node.id} probe failed (${probeResult.reason}). Next probe in ${delayMinutes}m (attempt ${node.failedProbeAttempts}, max 6h).`);
                 }
             }
         } catch (intervalErr) {
@@ -336,5 +361,9 @@ handleExcessiveLavaErrors.probeNodeHealth = probeNodeHealth;
 handleExcessiveLavaErrors.startDemotedNodeProber = startDemotedNodeProber;
 handleExcessiveLavaErrors.stopDemotedNodeProber = stopDemotedNodeProber;
 handleExcessiveLavaErrors.isRateLimitError = isRateLimitError;
+handleExcessiveLavaErrors.calculateProbeBackoff = calculateProbeBackoff;
+handleExcessiveLavaErrors.recordFailedProbe = recordFailedProbe;
+handleExcessiveLavaErrors.INITIAL_PROBE_BACKOFF_MS = INITIAL_PROBE_BACKOFF_MS;
+handleExcessiveLavaErrors.MAX_PROBE_BACKOFF_MS = MAX_PROBE_BACKOFF_MS;
 
 module.exports = handleExcessiveLavaErrors;

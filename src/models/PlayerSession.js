@@ -38,6 +38,10 @@ const playerSessionSchema = new Schema({
     type: Boolean,
     default: false,
   },
+  playing: {
+    type: Boolean,
+    default: true,
+  },
   queueTracks: {
     type: Array,
     default: [],

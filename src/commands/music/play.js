@@ -9,7 +9,7 @@ const { thirdPartySourceHandler } = require("../../utils/thirdPartySourceHandler
 const { searchTidalTracks } = require("../../utils/tidalNativePlay.js");
 const youtubeSr = require("youtube-sr").default;
 const { sanitizeSearchQuery } = require("../../utils/searchSanitization.js");
-const { searchWithNodeFallback, isNodeAvailable, migratePlayerNode } = require("../../utils/nodeFallbackHelper.js");
+const { isNodeAvailable, migratePlayerNode, findBestNodeForSource, getAvailableNodes } = require("../../utils/nodeFallbackHelper.js");
 
 module.exports =  {
     data: new SlashCommandBuilder()
@@ -60,6 +60,10 @@ module.exports =  {
           targetNodeId = prefNode.id;
         }
       }
+      if (!targetNodeId && client.manager) {
+        const bestAvailable = findBestNodeForSource(client.manager, 'youtube_music') || getAvailableNodes(client.manager)[0];
+        if (bestAvailable) targetNodeId = bestAvailable.id;
+      }
 
       player = client.manager.getPlayer(interaction.guild.id);
       if (!player) {
@@ -83,6 +87,11 @@ module.exports =  {
           const targetNode = client.manager.nodeManager.nodes.get(targetNodeId);
           if (targetNode && isNodeAvailable(targetNode)) {
             await migratePlayerNode(player, targetNode, client).catch(() => {});
+          }
+        } else if (!isNodeAvailable(player.node)) {
+          const fallbackNode = findBestNodeForSource(client.manager, 'youtube_music') || getAvailableNodes(client.manager)[0];
+          if (fallbackNode) {
+            await migratePlayerNode(player, fallbackNode, client).catch(() => {});
           }
         }
       }
@@ -140,7 +149,7 @@ module.exports =  {
             if (query) {
               const convertEngines = ['deezer', 'qobuz', 'spotify', 'youtube_music'];
               for (const engine of convertEngines) {
-                  const result = await searchWithNodeFallback(player, query, interaction.user, engine);
+                  const result = await player.search({ query, source: engine }, interaction.user);
                   if (result?.tracks?.length) {
                       res = result;
                       usedSearchEngine = engine;
@@ -210,7 +219,7 @@ module.exports =  {
                   triedEngines.add(engine);
 
                   usedSearchEngine = engine;
-                  res = await searchWithNodeFallback(player, name, interaction.user, engine);
+                  res = await player.search({ query: name, source: engine }, interaction.user);
 
                   if (res?.tracks?.length) {
                       const track = res.tracks[0];
@@ -298,21 +307,28 @@ module.exports =  {
       console.error(`Error Running Play:[${interaction.guild.name}] (ID: ${interaction.guild.id}) Request: (${name || 'N/A'}) Node: [${nodeId}] Error:`, error);
       updatePlayAnalytics({ errorType: 'playError' });
 
-      if (player && (error?.message?.includes("Node Request resulted into an error") || error?.message?.includes("not connected"))) {
+      if (player && (
+        error?.message?.includes("Node Request resulted into an error") ||
+        error?.message?.includes("not connected") ||
+        error?.message?.includes("No Lavalink Node was provided") ||
+        error?.message?.includes("backend unresponsive")
+      )) {
         try {
-          const availableNodes = Array.from(client.manager.nodeManager.nodes.values()).filter(n => n.connected && !n.isDemoted && n.id !== nodeId);
+          const availableNodes = getAvailableNodes(client.manager, nodeId);
           console.warn(`[Play Command] Node [${nodeId}] error encountered for guild ${interaction.guild.id}. Attempting automatic retry on alternate node...`);
           
           if (availableNodes.length > 0) {
-            const targetNode = availableNodes[Math.floor(Math.random() * availableNodes.length)];
+            const targetNode = availableNodes[0];
             console.log(`[Play Command] Moving player to node [${targetNode.id}] and retrying...`);
-            await player.changeNode(targetNode);
+            await migratePlayerNode(player, targetNode, client);
           } else {
             await player.destroy().catch(() => {});
+            const fallbackNode = getAvailableNodes(client.manager)[0];
             player = await client.manager.createPlayer({
               guildId: interaction.guild.id,
               textChannelId: interaction.channel.id,
               voiceChannelId: channel.id,
+              node: fallbackNode?.id,
               volume: parseInt(playerSettings.volume, 10) || 30,
               selfDeaf: true,
               customData: {
@@ -322,6 +338,10 @@ module.exports =  {
             });
             if (!player.connected) await player.connect();
             await new Promise(r => setTimeout(r, 500));
+          }
+
+          if (!res || !res.tracks?.length) {
+            res = await player.search(name, { requester: interaction.user });
           }
 
           if (res && res.tracks && res.tracks.length > 0) {
@@ -373,7 +393,7 @@ module.exports =  {
         if (prefNode && isNodeAvailable(prefNode)) node = prefNode;
       }
     }
-    if (!node) node = client.manager.nodeManager.getNode();
+    if (!node) node = findBestNodeForSource(client.manager, 'soundcloud') || getAvailableNodes(client.manager)[0];
     const resultsSoundcloudLavalink = node ? await node.search({ query, source: 'scsearch' }, interaction.user).catch(() => null) : null;
     const resultsSpotifyLavalink = node ? await node.search({ query, source: 'spsearch' }, interaction.user).catch(() => null) : null;
 

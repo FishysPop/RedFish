@@ -1,4 +1,5 @@
-const { LavalinkNode, Player, NodeManager } = require("lavalink-client");
+const { LavalinkNode, Player, NodeManager, LavalinkManager } = require("lavalink-client");
+const { isNodeAvailable } = require("./nodeFallbackHelper");
 
 function getDefaultNodeInfo(node) {
   return {
@@ -204,10 +205,107 @@ function applyLavalinkPatches() {
   if (NodeManager?.prototype?.leastUsedNodes) {
     const originalLeastUsedNodes = NodeManager.prototype.leastUsedNodes;
     NodeManager.prototype.leastUsedNodes = function (sortType, filterForNodeTypes) {
-      const nodes = originalLeastUsedNodes.call(this, sortType, filterForNodeTypes);
-      const nonDemoted = nodes.filter(n => !n.isDemoted);
-      return nonDemoted.length > 0 ? nonDemoted : nodes;
+      const customFilter = typeof sortType === "function" ? sortType : null;
+      const actualSort = customFilter ? "players" : sortType;
+      let nodes = originalLeastUsedNodes.call(this, actualSort, filterForNodeTypes);
+      if (customFilter) {
+        nodes = nodes.filter(customFilter);
+      }
+      const available = nodes.filter(n => isNodeAvailable(n));
+      return available.length > 0 ? available : nodes;
     };
+  }
+
+  if (LavalinkManager?.prototype?.createPlayer && !LavalinkManager.prototype._isCreatePlayerPatched) {
+    const originalCreatePlayer = LavalinkManager.prototype.createPlayer;
+    LavalinkManager.prototype.createPlayer = function (options) {
+      const oldPlayer = this.getPlayer(options?.guildId);
+      if (oldPlayer) {
+        if (!isNodeAvailable(oldPlayer.node)) {
+          const least = this.nodeManager.leastUsedNodes();
+          const targetNode = least[0];
+          if (targetNode && isNodeAvailable(targetNode)) {
+            oldPlayer.node = targetNode;
+            if (oldPlayer.options) oldPlayer.options.node = targetNode.id;
+          }
+        }
+        return oldPlayer;
+      }
+
+      if (options?.node) {
+        const reqNode = typeof options.node === "string" ? this.nodeManager.nodes.get(options.node) : options.node;
+        if (!isNodeAvailable(reqNode)) {
+          const least = this.nodeManager.leastUsedNodes();
+          const targetNode = least[0];
+          if (targetNode) {
+            options.node = targetNode.id;
+          }
+        }
+      } else {
+        const least = this.nodeManager.leastUsedNodes();
+        const targetNode = least[0];
+        if (targetNode) {
+          options = { ...(options || {}), node: targetNode.id };
+        }
+      }
+
+      const player = originalCreatePlayer.call(this, options);
+      if (player && !isNodeAvailable(player.node)) {
+        const least = this.nodeManager.leastUsedNodes();
+        const targetNode = least[0];
+        if (targetNode) {
+          player.node = targetNode;
+          if (player.options) player.options.node = targetNode.id;
+        }
+      }
+      return player;
+    };
+    LavalinkManager.prototype._isCreatePlayerPatched = true;
+  }
+
+  if (Player?.prototype?.search && !Player.prototype._isSearchPatched) {
+    const originalSearch = Player.prototype.search;
+    Player.prototype.search = async function (query, requestUser, throwOnEmpty = false) {
+      const specificNode = query?.node;
+      const targetSearchNode = (specificNode && isNodeAvailable(specificNode))
+        ? specificNode
+        : (isNodeAvailable(this.node) ? this.node : null);
+
+      if (targetSearchNode && targetSearchNode !== this.node && !isNodeAvailable(this.node)) {
+        this.node = targetSearchNode;
+        if (this.options) this.options.node = targetSearchNode.id;
+      }
+
+      if (targetSearchNode && typeof targetSearchNode.search === "function") {
+        const transformedQuery = this.LavalinkManager.utils.transformQuery(query);
+        delete transformedQuery.node;
+        try {
+          return await targetSearchNode.search(transformedQuery, requestUser, throwOnEmpty);
+        } catch (err) {
+          if (!err.message?.includes("No Lavalink Node was provided") && !err.message?.includes("not connected")) {
+            throw err;
+          }
+        }
+      }
+
+      try {
+        return await originalSearch.call(this, query, requestUser, throwOnEmpty);
+      } catch (err) {
+        const altNodes = Array.from(this.LavalinkManager.nodeManager.nodes.values()).filter(
+          n => isNodeAvailable(n) && n.id !== this.node?.id
+        );
+        if (altNodes.length > 0) {
+          const fallbackNode = altNodes[0];
+          this.node = fallbackNode;
+          if (this.options) this.options.node = fallbackNode.id;
+          const transformed = this.LavalinkManager.utils.transformQuery(query);
+          delete transformed.node;
+          return await fallbackNode.search(transformed, requestUser, throwOnEmpty);
+        }
+        throw err;
+      }
+    };
+    Player.prototype._isSearchPatched = true;
   }
 
   if (Player?.prototype?.changeNode && !Player.prototype._isChangeNodePatched) {

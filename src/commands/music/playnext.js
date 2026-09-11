@@ -9,6 +9,7 @@ const { thirdPartySourceHandler } = require("../../utils/thirdPartySourceHandler
 const { searchTidalTracks } = require("../../utils/tidalNativePlay.js");
 const youtubeSr = require("youtube-sr").default;
 const { sanitizeSearchQuery } = require("../../utils/searchSanitization.js");
+const { isNodeAvailable, migratePlayerNode, findBestNodeForSource, getAvailableNodes } = require("../../utils/nodeFallbackHelper.js");
 
 module.exports =  {
     data: new SlashCommandBuilder()
@@ -51,6 +52,12 @@ module.exports =  {
       player = client.manager.getPlayer(interaction.guild.id);
       if (!player) {
         return interaction.editReply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`, flags: MessageFlags.Ephemeral});
+      }
+      if (!isNodeAvailable(player.node)) {
+        const fallbackNode = findBestNodeForSource(client.manager, 'youtube_music') || getAvailableNodes(client.manager)[0];
+        if (fallbackNode) {
+          await migratePlayerNode(player, fallbackNode, client).catch(() => {});
+        }
       }
 
       let res;
@@ -241,6 +248,25 @@ module.exports =  {
       const nodeId = player?.node?.id || player?.node?.options?.id || 'Unknown';
       console.error(`Error Running PlayNext:[${interaction.guild.name}] (ID: ${interaction.guild.id}) Request: (${name || 'N/A'}) Node: [${nodeId}] Error:`, error);
       updatePlayAnalytics({ errorType: 'playError' });
+
+      if (player && (
+        error?.message?.includes("Node Request resulted into an error") ||
+        error?.message?.includes("not connected") ||
+        error?.message?.includes("No Lavalink Node was provided") ||
+        error?.message?.includes("backend unresponsive")
+      )) {
+        try {
+          const availableNodes = getAvailableNodes(client.manager, nodeId);
+          if (availableNodes.length > 0) {
+            const targetNode = availableNodes[0];
+            console.log(`[PlayNext] Moving player to node [${targetNode.id}] and retrying...`);
+            await migratePlayerNode(player, targetNode, client);
+          }
+        } catch (retryErr) {
+          console.error('[PlayNext] Migration retry failed:', retryErr);
+        }
+      }
+
       if (player && client.manager && typeof handleExcessiveLavaErrors === 'function') {
         handleExcessiveLavaErrors(player, client.manager, { error });
       }
@@ -267,7 +293,7 @@ module.exports =  {
     }
     interaction.client.userInteractions.set(interaction.user.id, Date.now());
 
-    const node = client.manager.nodeManager.getNode();
+    const node = findBestNodeForSource(client.manager, 'soundcloud') || getAvailableNodes(client.manager)[0];
     const resultsSoundcloudLavalink = node ? await node.search({ query, source: 'scsearch' }, interaction.user).catch(() => null) : null;
     const resultsSpotifyLavalink = node ? await node.search({ query, source: 'spsearch' }, interaction.user).catch(() => null) : null;
 

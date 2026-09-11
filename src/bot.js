@@ -159,22 +159,11 @@ new CommandHandler({
     await mongoose.connect(process.env.MONGODB_URI);
     console.log("Connected to DB.");
     if (process.env.DEBUG === 'true') {
-      console.debug('[Bot] Initializing cluster client:', {
-        clusterId: process.env.CLUSTER_ID,
       console.debug('[Bot] Cluster client info:', {
         clusterId: client.cluster?.id,
         hasCluster: !!client.cluster,
         shardList: getInfo().SHARD_LIST,
         totalShards: getInfo().TOTAL_SHARDS
-      });
-    }
-    
-    client.cluster = new ClusterClient(client);
-    
-    if (process.env.DEBUG === 'true') {
-      console.debug('[Bot] Cluster client initialized:', {
-        clusterId: client.cluster?.id,
-        hasCluster: !!client.cluster
       });
     }
 

@@ -54,7 +54,6 @@ async function broadcastNodeSync(client, action, nodeId, reason) {
     try {
         await client.cluster.broadcastEval(
             async (c, { action, targetNodeId, targetReason }) => {
-                const demotion = require('./utils/handleExcessiveLavaErrors');
                 const helperPath = require('path').join(process.cwd(), 'src', 'utils', 'handleExcessiveLavaErrors');
                 const demotion = require(helperPath);
                 if (c.manager) {
@@ -94,7 +93,6 @@ async function demoteNode(manager, nodeId, reason = 'Excessive errors', isSync =
         for (const p of manager.players.values()) {
             if (p.node?.id === nodeId) {
                 try {
-                    await migratePlayerNode(p, targetNode, manager?.client);
                     await migratePlayerNode(p, targetNode, discordClient);
                 } catch (moveError) {
                     console.error(`[Lavalink Demotion] Failed to migrate player for guild ${p.guildId} to ${targetNode.id}:`, moveError);
@@ -103,8 +101,6 @@ async function demoteNode(manager, nodeId, reason = 'Excessive errors', isSync =
         }
     }
 
-    if (!isSync && manager?.client) {
-        await broadcastNodeSync(manager.client, 'demote', nodeId, reason);
     if (!isSync && discordClient) {
         await broadcastNodeSync(discordClient, 'demote', nodeId, reason);
     }
@@ -129,8 +125,6 @@ async function promoteNode(manager, nodeId, isSync = false) {
 
     console.log(`[Lavalink Demotion] Node ${nodeId} restored and re-promoted back to active pool.`);
 
-    if (!isSync && manager?.client) {
-        await broadcastNodeSync(manager.client, 'promote', nodeId);
     const discordClient = manager?.client || manager?.options?.clientInstance;
     if (!isSync && discordClient) {
         await broadcastNodeSync(discordClient, 'promote', nodeId);

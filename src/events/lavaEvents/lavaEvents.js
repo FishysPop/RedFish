@@ -268,7 +268,7 @@ client.manager.on("trackError", async (player, track, payload) => {
 
   const guild = client.guilds.cache.get(player.guildId);
   const guildName = guild ? guild.name : "Unknown Guild";
-  const nodeId = player?.node?.id || player?.node?.options?.id || "Unknown Node";
+  const initialNodeId = player?.node?.id || player?.node?.options?.id || "Unknown Node";
   const trackToUse = track || player?.queue?.current || payload?.track;
   const trackTitle = trackToUse?.info?.title || trackToUse?.title || "Unknown Track";
 
@@ -277,8 +277,8 @@ client.manager.on("trackError", async (player, track, payload) => {
   const errorCause = exception?.cause || (payload instanceof Error ? payload.stack : '') || '';
   const fullErrorText = `${errorMessage} ${errorCause}`;
 
-  console.error(`Track Error on Node [${nodeId}] in Guild "${guildName}" (${player.guildId}) for track "${trackTitle}":`, exception || payload);
-  await handleExcessiveLavalinkErrors(player, client.manager, { error: exception || payload });
+  console.error(`Track Error on Node [${initialNodeId}] in Guild "${guildName}" (${player.guildId}) for track "${trackTitle}":`, exception || payload);
+  await handleExcessiveLavalinkErrors(player, client.manager, { error: exception || payload, track: trackToUse });
 
   const channel = client.channels.cache.get(player.textId || player.textChannelId);
   if (!channel) return;
@@ -290,7 +290,73 @@ client.manager.on("trackError", async (player, track, payload) => {
     }
   }
 
+  const currentNodeId = player?.node?.id || player?.node?.options?.id;
+  const wasMigrated = Boolean(currentNodeId && currentNodeId !== initialNodeId && player.node?.connected && !player.node?.isDemoted);
+
+  let retrySuccess = false;
+  if (wasMigrated && trackToUse) {
+    try {
+      if (!player.playing && !player.paused) {
+        await player.play({ track: trackToUse });
+        retrySuccess = true;
+      }
+    } catch (retryErr) {
+      console.warn(`[Node ${currentNodeId}] Failed to replay track after failover migration:`, retryErr?.message || retryErr);
+    }
+  }
+
   if (player.customData?.playerMessages !== "noMessage") {
+    if (wasMigrated) {
+      let title = 'Audio Server Switched';
+      let description = '';
+      if (retrySuccess) {
+        title = 'Audio Server Switched';
+        description = `Server \`${initialNodeId}\` encountered a playback issue. Switched to backup server \`${currentNodeId}\` and resumed **${trackTitle}**.`;
+      } else {
+        const hasUpcomingTracks = Array.isArray(player.queue?.tracks) && player.queue.tracks.length > 0;
+        if (hasUpcomingTracks) {
+          title = 'Audio Server Switched - Skipping Track';
+          description = `Server \`${initialNodeId}\` encountered an issue. Switched to backup server \`${currentNodeId}\`. Could not resume **${trackTitle}**, playing next track in queue.`;
+        } else {
+          title = 'Audio Server Switched';
+          description = `Server \`${initialNodeId}\` encountered an issue. Playback was moved to backup server \`${currentNodeId}\`. Please try playing your track again.`;
+        }
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor('#e66229')
+        .setTitle(title)
+        .setDescription(description);
+
+      const nowPlayingMessage = player.customData?.message;
+      player.customData.message = null;
+
+      let targetMessage = null;
+      if (nowPlayingMessage) {
+        targetMessage = await nowPlayingMessage.edit({ embeds: [embed], components: [] }).catch(err => {
+          if (err.code !== 50013 && err.code !== 10008) console.error("Error editing message to server switch embed:", err);
+          return null;
+        });
+      }
+
+      if (!targetMessage) {
+        targetMessage = await channel.send({ embeds: [embed] }).catch(err => {
+          if (err.code !== 50013) console.error("Error sending server switch message:", err);
+          return null;
+        });
+      }
+
+      if (targetMessage && player.customData?.playerMessages === "deleteAfter") {
+        const timer = setTimeout(() => {
+          targetMessage.delete().catch(err => {
+            if (err.code !== 50013 && err.code !== 10008) console.error("Error deleting switch message:", err);
+          });
+        }, 15000);
+        if (typeof timer?.unref === "function") timer.unref();
+      }
+      return;
+    }
+
     const isYoutubeError = fullErrorText.includes('This video requires login') ||
                           fullErrorText.includes('Sign in to confirm') ||
                           fullErrorText.includes('Not success status code: 403') ||
@@ -299,9 +365,17 @@ client.manager.on("trackError", async (player, track, payload) => {
                           fullErrorText.includes('All clients failed to load the item') ||
                           fullErrorText.includes('The page needs to be reloaded');
 
-    const truncatedError = errorMessage.length > 500 ? errorMessage.substring(0, 497) + '...' : errorMessage;
+    let cleanError = errorMessage;
+    if (isYoutubeError) {
+      cleanError = 'YouTube is rate-limiting or blocking playback requests on our servers.';
+    } else if (cleanError.includes('Client [') || cleanError.includes('at dev.lavalink')) {
+      cleanError = cleanError.split('\n')[0].trim();
+    }
+    if (cleanError.length > 300) {
+      cleanError = cleanError.substring(0, 297) + '...';
+    }
 
-    let description = `Track: **${trackTitle}**\nReason: ${truncatedError}\nNode: \`${nodeId}\`\n\n-# Join the [support server](https://discord.com/invite/rDHPK2er3j) if this continues`;
+    let description = `Track: **${trackTitle}**\nReason: ${cleanError}\nNode: \`${initialNodeId}\`\n\n-# Join the [support server](https://discord.com/invite/rDHPK2er3j) if this continues`;
 
     if (isYoutubeError) {
       description += `\n\n**Tip:** YouTube is currently rate-limiting or blocking playback requests on our servers. Try enabling direct Tidal, Qobuz or Spotify streaming in \`/player-settings\`.`;

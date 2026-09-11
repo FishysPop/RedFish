@@ -80,6 +80,7 @@ async function promoteNode(manager, nodeId, isSync = false) {
     node.isDemoted = false;
     node.demotedAt = null;
     node.demoteReason = null;
+    node.lastFailedTrack = null;
     node.errors = [];
     node.consecutiveProbeSuccesses = 0;
 
@@ -97,7 +98,6 @@ async function probeNodeHealth(node, options = {}) {
         return { healthy: false, isRateLimited: false, reason: 'Node disconnected' };
     }
 
-    const testTrackUrl = options.testTrackUrl || 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
     const playbackDurationMs = typeof options.playbackDurationMs === 'number' ? options.playbackDurationMs : 10000;
 
     try {
@@ -110,72 +110,112 @@ async function probeNodeHealth(node, options = {}) {
         return { healthy: false, isRateLimited: false, reason: `REST health check failed: ${restErr.message}` };
     }
 
-    let searchResult = null;
-    try {
-        if (typeof node.search === 'function') {
-            searchResult = await node.search({ query: testTrackUrl, source: 'ytsearch' });
-        } else if (typeof node.loadTracks === 'function') {
-            searchResult = await node.loadTracks(testTrackUrl);
+    const testTargets = [];
+    if (options.testTrackUrl) {
+        testTargets.push({ query: options.testTrackUrl });
+    } else if (node.lastFailedTrack) {
+        if (node.lastFailedTrack.encoded) {
+            testTargets.push({ track: node.lastFailedTrack });
+        } else if (node.lastFailedTrack.info?.uri || node.lastFailedTrack.info?.title) {
+            testTargets.push({ query: node.lastFailedTrack.info.uri || `ytsearch:${node.lastFailedTrack.info.title}` });
         }
-    } catch (searchErr) {
-        const isRateLimited = isRateLimitError(searchErr);
-        return { healthy: false, isRateLimited, reason: `Track resolution failed: ${searchErr.message}` };
+    } else {
+        testTargets.push({ query: 'ytsearch:My Jealousy' });
+        testTargets.push({ query: 'ytsearch:popular hits' });
     }
 
-    if (!searchResult || searchResult.loadType === 'error') {
-        const errorMsg = searchResult?.data?.message || 'Search returned error loadType';
-        return { healthy: false, isRateLimited: isRateLimitError(errorMsg), reason: errorMsg };
-    }
-
-    const tracks = searchResult.tracks || [];
-    const testTrack = tracks[0];
-    const encoded = testTrack?.encoded;
-
-    if (!encoded) {
-        return { healthy: false, isRateLimited: false, reason: 'No playable track resolved' };
-    }
-
-    const probeGuildId = `probe_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const probeGuildId = "999999999999999999";
     let playbackException = null;
 
-    const exceptionHandler = (eventPayload) => {
-        if (eventPayload?.guildId === probeGuildId) {
-            playbackException = eventPayload.exception?.message || 'Playback exception event received';
-        }
+    const wsHandler = (data) => {
+        try {
+            const payload = JSON.parse(data.toString());
+            if (payload.op === 'event' && payload.type === 'TrackExceptionEvent' && String(payload.guildId) === probeGuildId) {
+                playbackException = payload.exception?.message || 'TrackExceptionEvent received';
+            }
+        } catch {}
     };
 
-    if (typeof node.on === 'function') {
-        node.on('trackException', exceptionHandler);
-        node.on('event', exceptionHandler);
+    if (node.socket && typeof node.socket.on === 'function') {
+        node.socket.on('message', wsHandler);
     }
 
     try {
-        if (node.sessionId && typeof node.request === 'function') {
-            await node.request(`/sessions/${node.sessionId}/players/${probeGuildId}`, {
-                method: 'PATCH',
-                body: JSON.stringify({ track: { encoded } })
-            }).catch(err => {
-                if (isRateLimitError(err)) playbackException = err.message;
-            });
-        }
-
-        const checkInterval = 200;
-        let elapsed = 0;
-        while (elapsed < playbackDurationMs) {
+        for (const target of testTargets) {
             if (playbackException) break;
-            await new Promise(r => setTimeout(r, Math.min(checkInterval, playbackDurationMs - elapsed)));
-            elapsed += checkInterval;
+
+            let encoded = null;
+            if (target.track?.encoded) {
+                encoded = target.track.encoded;
+            } else if (target.query) {
+                let searchResult = null;
+                try {
+                    if (typeof node.search === 'function') {
+                        searchResult = await node.search({ query: target.query, source: 'ytsearch' });
+                    } else if (typeof node.loadTracks === 'function') {
+                        searchResult = await node.loadTracks(target.query);
+                    }
+                } catch (searchErr) {
+                    playbackException = `Track resolution failed: ${searchErr.message}`;
+                    break;
+                }
+
+                if (!searchResult || searchResult.loadType === 'error') {
+                    playbackException = searchResult?.data?.message || 'Search returned error loadType';
+                    break;
+                }
+
+                const tracks = searchResult.tracks || [];
+                if (!tracks.length || !tracks[0]?.encoded) {
+                    playbackException = 'No playable track resolved';
+                    break;
+                }
+                encoded = tracks[0].encoded;
+            }
+
+            if (!encoded) {
+                playbackException = 'No playable track resolved';
+                break;
+            }
+
+            try {
+                if (typeof node.updatePlayer === 'function') {
+                    await node.updatePlayer({
+                        guildId: probeGuildId,
+                        playerOptions: { track: { encoded } }
+                    });
+                } else if (node.sessionId && typeof node.request === 'function') {
+                    await node.request(`/sessions/${node.sessionId}/players/${probeGuildId}`, (r) => {
+                        r.method = 'PATCH';
+                        r.headers['Content-Type'] = 'application/json';
+                        r.body = JSON.stringify({ track: { encoded } });
+                    });
+                }
+            } catch (patchErr) {
+                playbackException = `Player update failed: ${patchErr.message}`;
+                break;
+            }
+
+            const checkInterval = 200;
+            let elapsed = 0;
+            while (elapsed < playbackDurationMs) {
+                if (playbackException) break;
+                await new Promise(r => setTimeout(r, Math.min(checkInterval, playbackDurationMs - elapsed)));
+                elapsed += checkInterval;
+            }
+
+            if (playbackException) break;
         }
 
         if (playbackException) {
             return {
                 healthy: false,
                 isRateLimited: isRateLimitError(playbackException),
-                reason: `Playback failure: ${playbackException}`
+                reason: playbackException.split('\n')[0].trim()
             };
         }
 
-        return { healthy: true };
+        return { healthy: true, isRateLimited: false };
     } catch (probeErr) {
         return {
             healthy: false,
@@ -183,20 +223,18 @@ async function probeNodeHealth(node, options = {}) {
             reason: `Playback probe error: ${probeErr.message}`
         };
     } finally {
-        if (typeof node.off === 'function') {
-            node.off('trackException', exceptionHandler);
-            node.off('event', exceptionHandler);
-        } else if (typeof node.removeListener === 'function') {
-            node.removeListener('trackException', exceptionHandler);
-            node.removeListener('event', exceptionHandler);
+        if (node.socket && typeof node.socket.off === 'function') {
+            node.socket.off('message', wsHandler);
+        } else if (node.socket && typeof node.socket.removeListener === 'function') {
+            node.socket.removeListener('message', wsHandler);
         }
 
-        if (node.sessionId && typeof node.request === 'function') {
-            await node.request(`/sessions/${node.sessionId}/players/${probeGuildId}`, {
-                method: 'DELETE'
-            }).catch(() => {});
-        } else if (typeof node.destroyPlayer === 'function') {
+        if (typeof node.destroyPlayer === 'function') {
             await node.destroyPlayer(probeGuildId).catch(() => {});
+        } else if (node.sessionId && typeof node.request === 'function') {
+            await node.request(`/sessions/${node.sessionId}/players/${probeGuildId}`, (r) => {
+                r.method = 'DELETE';
+            }).catch(() => {});
         }
     }
 }
@@ -259,6 +297,10 @@ async function handleExcessiveLavaErrors(player, manager, options = {}) {
         const nodeId = node.id || node.options?.id || 'Unknown';
 
         if (node.isDemoted) return false;
+
+        if (options.track) {
+            node.lastFailedTrack = options.track;
+        }
 
         if (options.reason || (options.error && isRateLimitError(options.error))) {
             const reason = options.reason || options.error?.message || 'Rate limit detected';

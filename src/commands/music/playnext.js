@@ -242,7 +242,7 @@ module.exports =  {
       console.error(`Error Running PlayNext:[${interaction.guild.name}] (ID: ${interaction.guild.id}) Request: (${name || 'N/A'}) Node: [${nodeId}] Error:`, error);
       updatePlayAnalytics({ errorType: 'playError' });
       if (player && client.manager && typeof handleExcessiveLavaErrors === 'function') {
-        handleExcessiveLavaErrors(player, client.manager);
+        handleExcessiveLavaErrors(player, client.manager, { error });
       }
       return interaction.editReply(`Oops seems something went wrong on node [${nodeId}]: ${error?.message || error}, Please join the support server if this keeps happening`).catch(() => {});
     }

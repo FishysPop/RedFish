@@ -37,9 +37,20 @@ function isSourceSupportedByNode(node, source) {
     return false;
 }
 
+function isNodeAvailable(node) {
+    return Boolean(node && node.connected && !node.isDemoted && !node.isDisconnecting);
+}
+
+function getAvailableNodes(manager, excludeNodeId = null) {
+    if (!manager?.nodeManager?.nodes) return [];
+    return Array.from(manager.nodeManager.nodes.values()).filter(
+        n => isNodeAvailable(n) && (!excludeNodeId || n.id !== excludeNodeId)
+    );
+}
+
 function findBestNodeForSource(manager, targetSource, preferredNodeId = null) {
     if (!manager || !manager.nodeManager) return null;
-    const nodes = Array.from(manager.nodeManager.nodes.values()).filter(n => n.connected);
+    const nodes = getAvailableNodes(manager);
     if (nodes.length === 0) return null;
 
     if (preferredNodeId) {
@@ -96,7 +107,7 @@ async function migratePlayerNode(player, targetNode, client = null) {
     if (!player || !targetNode) return false;
     const manager = player.LavalinkManager || player.manager || client?.manager;
     const targetNodeObj = typeof targetNode === 'string' ? manager?.nodeManager?.nodes?.get(targetNode) : targetNode;
-    if (!targetNodeObj || !targetNodeObj.connected) return false;
+    if (!targetNodeObj || !targetNodeObj.connected || targetNodeObj.isDemoted) return false;
     if (player.node?.id === targetNodeObj.id) return true;
 
     const discordClient = client || player.LavalinkManager?.client || manager?.client;
@@ -111,7 +122,7 @@ async function migratePlayerNode(player, targetNode, client = null) {
 
     if (hasVoiceData) {
         try {
-            await player.changeNode(targetNodeObj);
+            await player.changeNode(targetNodeObj, false);
             return true;
         } catch (err) {
             if (!err.message?.includes("Voice Data is missing")) {
@@ -167,6 +178,8 @@ async function migratePlayerNode(player, targetNode, client = null) {
 }
 
 module.exports = {
+    isNodeAvailable,
+    getAvailableNodes,
     isSourceSupportedByNode,
     findBestNodeForSource,
     searchWithNodeFallback,

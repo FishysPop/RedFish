@@ -9,7 +9,7 @@ const { thirdPartySourceHandler } = require("../../utils/thirdPartySourceHandler
 const { searchTidalTracks } = require("../../utils/tidalNativePlay.js");
 const youtubeSr = require("youtube-sr").default;
 const { sanitizeSearchQuery } = require("../../utils/searchSanitization.js");
-const { searchWithNodeFallback } = require("../../utils/nodeFallbackHelper.js");
+const { searchWithNodeFallback, isNodeAvailable, migratePlayerNode } = require("../../utils/nodeFallbackHelper.js");
 
 module.exports =  {
     data: new SlashCommandBuilder()
@@ -53,6 +53,14 @@ module.exports =  {
     let playlistName = "Playlist";
 
     try { 
+      let targetNodeId = undefined;
+      if (playerSettings.PreferedNode && client.manager?.nodeManager?.nodes) {
+        const prefNode = client.manager.nodeManager.nodes.get(playerSettings.PreferedNode);
+        if (prefNode && isNodeAvailable(prefNode)) {
+          targetNodeId = prefNode.id;
+        }
+      }
+
       player = client.manager.getPlayer(interaction.guild.id);
       if (!player) {
         player = await client.manager.createPlayer({
@@ -61,14 +69,22 @@ module.exports =  {
           voiceChannelId: channel.id,
           volume: parseInt(playerSettings.volume, 10) || 30,
           selfDeaf: true,
-          nodeOptions: playerSettings.PreferedNode ? { id: playerSettings.PreferedNode } : undefined,
+          node: targetNodeId,
           customData: {
             autoPlay: false,
             playerMessages: playerSettings.playerMessages
           }
         });
-      } else if (player.textChannelId !== interaction.channel.id) {
-        player.textChannelId = interaction.channel.id;
+      } else {
+        if (player.textChannelId !== interaction.channel.id) {
+          player.textChannelId = interaction.channel.id;
+        }
+        if (targetNodeId && player.node?.id !== targetNodeId) {
+          const targetNode = client.manager.nodeManager.nodes.get(targetNodeId);
+          if (targetNode && isNodeAvailable(targetNode)) {
+            await migratePlayerNode(player, targetNode, client).catch(() => {});
+          }
+        }
       }
       if (!player.connected) await player.connect();
 
@@ -284,7 +300,7 @@ module.exports =  {
 
       if (player && (error?.message?.includes("Node Request resulted into an error") || error?.message?.includes("not connected"))) {
         try {
-          const availableNodes = Array.from(client.manager.nodeManager.nodes.values()).filter(n => n.connected && n.id !== nodeId);
+          const availableNodes = Array.from(client.manager.nodeManager.nodes.values()).filter(n => n.connected && !n.isDemoted && n.id !== nodeId);
           console.warn(`[Play Command] Node [${nodeId}] error encountered for guild ${interaction.guild.id}. Attempting automatic retry on alternate node...`);
           
           if (availableNodes.length > 0) {
@@ -324,7 +340,7 @@ module.exports =  {
       }
 
       if (player && client.manager && typeof handleExcessiveLavaErrors === 'function') {
-        handleExcessiveLavaErrors(player, client.manager);
+        handleExcessiveLavaErrors(player, client.manager, { error });
       }
       return interaction.editReply(`Oops seems something went wrong on node [${nodeId}]: ${error?.message || error}. Please join the support server if this keeps happening`).catch(() => {});
     }
@@ -349,7 +365,15 @@ module.exports =  {
     }
     interaction.client.userInteractions.set(interaction.user.id, Date.now());
 
-    const node = client.manager.nodeManager.getNode();
+    let node = null;
+    if (interaction.guildId) {
+      const serverSettings = await GuildSettings.findOne({ guildId: interaction.guildId }).catch(() => null);
+      if (serverSettings?.preferredNode) {
+        const prefNode = client.manager?.nodeManager?.nodes?.get(serverSettings.preferredNode);
+        if (prefNode && isNodeAvailable(prefNode)) node = prefNode;
+      }
+    }
+    if (!node) node = client.manager.nodeManager.getNode();
     const resultsSoundcloudLavalink = node ? await node.search({ query, source: 'scsearch' }, interaction.user).catch(() => null) : null;
     const resultsSpotifyLavalink = node ? await node.search({ query, source: 'spsearch' }, interaction.user).catch(() => null) : null;
 

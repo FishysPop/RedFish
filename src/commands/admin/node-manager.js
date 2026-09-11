@@ -43,7 +43,7 @@ Playing: ${targetNode?.stats?.playingPlayers || '0'}
 Uptime: ${targetNode?.stats?.uptime ? prettyMs(targetNode.stats.uptime, { compact: true }) : 'N/A'}
 Memory: ${targetNode?.stats?.memory ? (targetNode.stats.memory.used / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}
 CPU: ${targetNode?.stats?.cpu?.systemLoad ? (targetNode.stats.cpu.systemLoad * 100).toFixed(2) + '%' : 'N/A'}
-Status: ${targetNode?.connected ? 'Connected' : 'Disconnected'}
+Status: ${targetNode?.connected ? (targetNode?.isDemoted ? `Demoted (${targetNode.demoteReason || 'Errors'})` : 'Connected') : 'Disconnected'}
 ${rateLimited}
 \`\`\``) 
           .setColor("#e66229")
@@ -52,7 +52,7 @@ ${rateLimited}
         nodes.forEach((node, idx) => {
           embed.addFields({
             name: `${idx === index ? '`' : ''}${node.id}${idx === index ? '`' : ''}`,
-            value: `${idx === index ? '`' : ''}State: ${node.connected ? 'Connected' : 'Disconnected'}\nPlayers: ${node.stats?.playingPlayers || 0}/${node.stats?.players || 0}${idx === index ? '`' : ''}`,
+            value: `${idx === index ? '`' : ''}State: ${node.connected ? (node.isDemoted ? 'Demoted' : 'Connected') : 'Disconnected'}\nPlayers: ${node.stats?.playingPlayers || 0}/${node.stats?.players || 0}${idx === index ? '`' : ''}`,
             inline: true
           });
         });
@@ -108,7 +108,7 @@ ${rateLimited}
             i.deferUpdate();
             const nodeToDisconnect = nodes[currentNode];
             if (nodeToDisconnect) {
-              const targetNode = nodes.find(n => n.id !== nodeToDisconnect.id && n.connected);
+              const targetNode = nodes.find(n => n.id !== nodeToDisconnect.id && n.connected && !n.isDemoted);
               const playersToMove = Array.from(client.manager.players.values()).filter(p => p.node?.id === nodeToDisconnect.id);
               
               if (playersToMove.length > 0 && targetNode) {
@@ -129,7 +129,7 @@ ${rateLimited}
             i.deferUpdate();
             const nodeToRemove = nodes[currentNode];
             if (nodeToRemove) {
-              const targetNode = nodes.find(n => n.id !== nodeToRemove.id && n.connected);
+              const targetNode = nodes.find(n => n.id !== nodeToRemove.id && n.connected && !n.isDemoted);
               const playersToMove = Array.from(client.manager.players.values()).filter(p => p.node?.id === nodeToRemove.id);
               
               if (playersToMove.length > 0 && targetNode) {

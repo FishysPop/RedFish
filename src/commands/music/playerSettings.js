@@ -2,6 +2,7 @@ const { SlashCommandBuilder,PermissionsBitField, EmbedBuilder, ActionRowBuilder,
 const User = require("../../models/UserPlayerSettings");
 const GuildSettings = require("../../models/GuildSettings");
 const axios = require('axios');
+const { isNodeAvailable, migratePlayerNode } = require('../../utils/nodeFallbackHelper');
 require("dotenv").config();
 
 
@@ -108,9 +109,24 @@ module.exports = {
               { label: 'Disabled', value: 'noMessage' }, { label: 'Delete After Finish', value: 'deleteAfter' }, { label: 'Default', value: 'default' }
             ).setMaxValues(1)
           );
-          const nodesArray = Array.from(client.manager.nodeManager.nodes.values());
+          const nodesArray = client.manager?.nodeManager?.nodes ? Array.from(client.manager.nodeManager.nodes.values()) : [];
           const preferedNodeSelectMenu = new StringSelectMenuBuilder().setCustomId('preferedNodeSelectMenu').setPlaceholder('Prefered Node');
-          for (const node of nodesArray) preferedNodeSelectMenu.addOptions(new StringSelectMenuOptionBuilder().setLabel(node.id).setValue(node.id));
+          preferedNodeSelectMenu.addOptions(
+            new StringSelectMenuOptionBuilder()
+              .setLabel('None (Automatic)')
+              .setValue('none')
+              .setDefault(!guildSettings.preferredNode)
+          );
+          for (const node of nodesArray) {
+            const isSelected = guildSettings.preferredNode === node.id;
+            const statusSuffix = !node.connected ? ' (Offline)' : (node.isDemoted ? ' (Demoted)' : '');
+            preferedNodeSelectMenu.addOptions(
+              new StringSelectMenuOptionBuilder()
+                .setLabel(`${node.id}${statusSuffix}`.substring(0, 100))
+                .setValue(node.id)
+                .setDefault(isSelected)
+            );
+          }
           row5 = new ActionRowBuilder().addComponents(preferedNodeSelectMenu);
         }
       } else {
@@ -195,10 +211,19 @@ module.exports = {
             interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true, flags: MessageFlags.Ephemeral })
           break;
           case "preferedNodeSelectMenu":
-            guildSettings.preferredNode = i.values[0];
+            guildSettings.preferredNode = i.values[0] === 'none' ? null : i.values[0];
             await guildSettings.save();
+            if (client.manager) {
+              const activePlayer = client.manager.getPlayer(interaction.guildId);
+              if (activePlayer && guildSettings.preferredNode) {
+                const targetNode = client.manager.nodeManager?.nodes?.get(guildSettings.preferredNode);
+                if (targetNode && isNodeAvailable(targetNode)) {
+                  await migratePlayerNode(activePlayer, targetNode, client).catch(() => {});
+                }
+              }
+            }
             await generateUI();
-            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true, flags: MessageFlags.Ephemeral })
+            interaction.editReply({ embeds: [embed], components: [row, row2, row3, row4, row5].filter(Boolean), withResponse: true, flags: MessageFlags.Ephemeral });
           break;
         }
       });

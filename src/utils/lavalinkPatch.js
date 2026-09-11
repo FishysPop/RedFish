@@ -1,4 +1,4 @@
-const { LavalinkNode, Player } = require("lavalink-client");
+const { LavalinkNode, Player, NodeManager } = require("lavalink-client");
 
 function getDefaultNodeInfo(node) {
   return {
@@ -21,7 +21,15 @@ function getDefaultNodeInfo(node) {
     sourceManagers: [
       "youtube",
       "youtubemusic",
+      "ytmusic",
       "soundcloud",
+      "spotify",
+      "applemusic",
+      "deezer",
+      "qobuz",
+      "jiosaavn",
+      "yandexmusic",
+      "flowerytts",
       "twitch",
       "vimeo",
       "http",
@@ -42,6 +50,24 @@ function getDefaultNodeInfo(node) {
     plugins: [],
     isNodelink: false
   };
+}
+
+function isBackendUnreachableError(err) {
+  if (!err) return false;
+  const msg = (err.message || String(err)).toLowerCase();
+  return (
+    msg.includes("500") ||
+    msg.includes("502") ||
+    msg.includes("503") ||
+    msg.includes("504") ||
+    msg.includes("proxy error") ||
+    msg.includes("bad gateway") ||
+    msg.includes("dial tcp") ||
+    msg.includes("i/o timeout") ||
+    msg.includes("econnrefused") ||
+    msg.includes("etimedout") ||
+    msg.includes("ehostunreach")
+  );
 }
 
 let patchesApplied = false;
@@ -80,7 +106,6 @@ function applyLavalinkPatches() {
   LavalinkNode.prototype.open = async function () {
     try {
       this.isAlive = true;
-      this.resetReconnectionAttempts();
 
       if (this.nodeType === "Lavalink") {
         if (this.options.enablePingOnStatsCheck) this.heartBeat();
@@ -100,10 +125,46 @@ function applyLavalinkPatches() {
         }
       }
 
+      if (this.version === "v4" && !this.sessionId) {
+        await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            cleanup();
+            reject(new Error(`Timed out waiting for Lavalink ready payload (backend unresponsive)`));
+          }, this.options.readyTimeout || 6000);
+
+          const onMsg = (d) => {
+            try {
+              const payload = JSON.parse(d.toString());
+              if (payload.op === "ready" && payload.sessionId) {
+                cleanup();
+                resolve();
+              }
+            } catch {}
+          };
+
+          const onClose = (code, reason) => {
+            cleanup();
+            reject(new Error(`Socket closed before ready payload received (${code}: ${reason || "unknown"})`));
+          };
+
+          const cleanup = () => {
+            clearTimeout(timeout);
+            this.socket?.off("message", onMsg);
+            this.socket?.off("close", onClose);
+          };
+
+          this.socket?.on("message", onMsg);
+          this.socket?.on("close", onClose);
+        });
+      }
+
       let fetchedInfo = null;
       try {
         fetchedInfo = await this.fetchInfo();
       } catch (err) {
+        if (isBackendUnreachableError(err)) {
+          throw new Error(`Lavalink backend is unreachable: ${err.message}`);
+        }
         if (process.env.DEBUG === "true") {
           console.warn(`[Lavalink Node ${this.id}] Failed to fetch info: ${err.message}`);
         }
@@ -117,10 +178,18 @@ function applyLavalinkPatches() {
         this.info = { ...fallback };
       }
 
+      if (this.info && Array.isArray(this.info.sourceManagers)) {
+        const sm = new Set(this.info.sourceManagers);
+        if (sm.has("youtubemusic") || sm.has("youtube")) sm.add("ytmusic");
+        if (sm.has("youtube")) sm.add("youtubemusic");
+        this.info.sourceManagers = Array.from(sm);
+      }
+
+      this.resetReconnectionAttempts();
       this.info.isNodelink = !!this.info.isNodelink;
       this.NodeManager.emit("connect", this);
     } catch (openError) {
-      console.error(`[Lavalink Node ${this.id}] Connection open error:`, openError.message);
+      console.error(`[Lavalink Node ${this.id}] Connection handshake error:`, openError.message);
       if (this.NodeManager && typeof this.NodeManager.emit === "function") {
         this.NodeManager.emit("error", this, openError);
       }
@@ -131,6 +200,23 @@ function applyLavalinkPatches() {
       } catch {}
     }
   };
+
+  if (NodeManager?.prototype?.leastUsedNodes) {
+    const originalLeastUsedNodes = NodeManager.prototype.leastUsedNodes;
+    NodeManager.prototype.leastUsedNodes = function (sortType, filterForNodeTypes) {
+      const nodes = originalLeastUsedNodes.call(this, sortType, filterForNodeTypes);
+      const nonDemoted = nodes.filter(n => !n.isDemoted);
+      return nonDemoted.length > 0 ? nonDemoted : nodes;
+    };
+  }
+
+  if (Player?.prototype?.changeNode && !Player.prototype._isChangeNodePatched) {
+    const originalChangeNode = Player.prototype.changeNode;
+    Player.prototype.changeNode = async function (newNode, checkSources = false) {
+      return await originalChangeNode.call(this, newNode, false);
+    };
+    Player.prototype._isChangeNodePatched = true;
+  }
 
   Player.prototype.moveNode = async function (node) {
     try {
@@ -149,7 +235,7 @@ function applyLavalinkPatches() {
 
       if (!node) {
         const availableNodes = Array.from(this.LavalinkManager.nodeManager.leastUsedNodes("playingPlayers")).filter(
-          (n) => n.connected && n.options.id !== this.node.options.id
+          (n) => n.connected && !n.isDemoted && n.options.id !== this.node.options.id
         );
         node = availableNodes[0]?.id;
       }
@@ -161,9 +247,9 @@ function applyLavalinkPatches() {
       if (this.node.options.id === node) return this;
 
       const updateNode = this.LavalinkManager.nodeManager.nodes.get(node);
-      if (!updateNode || !updateNode.connected) return null;
+      if (!updateNode || !updateNode.connected || updateNode.isDemoted) return null;
 
-      return await this.changeNode(updateNode);
+      return await this.changeNode(updateNode, false);
     } catch (moveError) {
       if (!moveError.message?.includes("Voice Data is missing")) {
         console.warn(`[Lavalink Player] Failed to move node for guild ${this.guildId}:`, moveError.message);
@@ -175,5 +261,6 @@ function applyLavalinkPatches() {
 
 module.exports = {
   applyLavalinkPatches,
-  getDefaultNodeInfo
+  getDefaultNodeInfo,
+  isBackendUnreachableError
 };

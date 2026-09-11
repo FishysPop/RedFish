@@ -48,19 +48,25 @@ if (process.env.LAVALINK === 'true') {
   const lavaURI = process.env.LAVALINK_URI; 
   if (lavaURI) {
     const nodes = lavaURI.split(';');
-    nodes.forEach((node, index) => {
-      const [ip, portAndAuth] = node.split(':');
-      if (portAndAuth) {
-        const [port, password] = portAndAuth.split('@');
+    nodes.forEach((nodeStr, index) => {
+      const colonIdx = nodeStr.indexOf(':');
+      const atIdx = nodeStr.indexOf('@', colonIdx);
+      if (colonIdx !== -1 && atIdx !== -1) {
+        const ip = nodeStr.substring(0, colonIdx);
+        const port = parseInt(nodeStr.substring(colonIdx + 1, atIdx), 10);
+        const password = nodeStr.substring(atIdx + 1);
         lavaNodes.push({
           id: `${process.env.NAME || 'node'}_${index + 1}`,
           host: ip,
-          port: parseInt(port, 10),
+          port,
           authorization: password,
-          secure: false
+          secure: false,
+          autoChecks: {
+            sourcesValidations: false
+          }
         });
       } else {
-        console.warn(`Invalid Lavalink node configuration: ${node}`);
+        console.warn(`Invalid Lavalink node configuration: ${nodeStr}`);
       }
     });
   } else {

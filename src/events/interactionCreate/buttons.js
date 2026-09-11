@@ -17,7 +17,7 @@ module.exports = async (interaction, client, handler) => {
           const nodeId = player?.node?.id || 'Unknown';
           console.warn(`[Buttons] Action failed on Node [${nodeId}]: ${err.message}. Attempting node failover...`);
           if (err?.message?.includes("Node Request resulted into an error") || err?.message?.includes("not connected")) {
-            const availableNodes = Array.from(client.manager.nodeManager.nodes.values()).filter(n => n.connected && n.id !== nodeId);
+            const availableNodes = Array.from(client.manager.nodeManager.nodes.values()).filter(n => n.connected && !n.isDemoted && n.id !== nodeId);
             if (availableNodes.length > 0) {
               const targetNode = availableNodes[Math.floor(Math.random() * availableNodes.length)];
               await player.changeNode(targetNode).catch(() => {});

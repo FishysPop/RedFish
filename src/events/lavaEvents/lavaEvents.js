@@ -11,6 +11,9 @@ const PlayerSession = require("../../models/PlayerSession");
 const User = require("../../models/UserPlayerSettings");
 
 module.exports = (client) => {
+if (typeof handleExcessiveLavalinkErrors.startDemotedNodeProber === 'function') {
+  handleExcessiveLavalinkErrors.startDemotedNodeProber(client);
+}
 client.manager.nodeManager.on('connect', async (node) => {
   console.log(`Lavalink Node ${node.id}: Connected & Ready!`);
   
@@ -90,7 +93,7 @@ client.manager.nodeManager.on('connect', async (node) => {
         } catch (e) {
           console.error(`[Node ${p.node?.id || node.id}] Error starting restored player playback for guild ${savedData.guildId}:`, e?.message || e);
           if (e?.message?.includes("Node Request resulted into an error")) {
-            const altNodes = Array.from(client.manager.nodeManager.nodes.values()).filter(n => n.connected && n.id !== node.id);
+            const altNodes = Array.from(client.manager.nodeManager.nodes.values()).filter(n => n.connected && !n.isDemoted && n.id !== node.id);
             if (altNodes.length > 0) {
               const targetNode = altNodes[Math.floor(Math.random() * altNodes.length)];
               console.warn(`[Lavalink Restore] Switching to fallback node ${targetNode.id} for guild ${savedData.guildId}...`);
@@ -275,7 +278,7 @@ client.manager.on("trackError", async (player, track, payload) => {
   const fullErrorText = `${errorMessage} ${errorCause}`;
 
   console.error(`Track Error on Node [${nodeId}] in Guild "${guildName}" (${player.guildId}) for track "${trackTitle}":`, exception || payload);
-  await handleExcessiveLavalinkErrors(player, client.manager);
+  await handleExcessiveLavalinkErrors(player, client.manager, { error: exception || payload });
 
   const channel = client.channels.cache.get(player.textId || player.textChannelId);
   if (!channel) return;
@@ -301,7 +304,7 @@ client.manager.on("trackError", async (player, track, payload) => {
     let description = `Track: **${trackTitle}**\nReason: ${truncatedError}\nNode: \`${nodeId}\`\n\n-# Join the [support server](https://discord.com/invite/rDHPK2er3j) if this continues`;
 
     if (isYoutubeError) {
-      description += `\n\n**Tip:** YouTube is currently rate-limiting or blocking playback requests on our servers. Try enabling direct Tidal or Spotify streaming in \`/player-settings\`.`;
+      description += `\n\n**Tip:** YouTube is currently rate-limiting or blocking playback requests on our servers. Try enabling direct Tidal, Qobuz or Spotify streaming in \`/player-settings\`.`;
     }
 
     const hasUpcomingTracks = Array.isArray(player.queue?.tracks) && player.queue.tracks.length > 0;

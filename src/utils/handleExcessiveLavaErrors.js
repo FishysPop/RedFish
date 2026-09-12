@@ -49,6 +49,12 @@ function recordFailedProbe(node, initialMs = INITIAL_PROBE_BACKOFF_MS, maxMs = M
     return backoff;
 }
 
+function getClusterId(client) {
+    if (client?.cluster?.id !== undefined) return Number(client.cluster.id);
+    if (process.env.CLUSTER !== undefined) return Number(process.env.CLUSTER);
+    return 0;
+}
+
 async function broadcastNodeSync(client, action, nodeId, reason) {
     if (!client?.cluster || typeof client.cluster.broadcastEval !== 'function') return;
     try {
@@ -67,7 +73,9 @@ async function broadcastNodeSync(client, action, nodeId, reason) {
             { context: { action, targetNodeId: nodeId, targetReason: reason } }
         );
     } catch (err) {
-        console.warn(`[Lavalink Demotion Sync] Failed to broadcast ${action} for node ${nodeId}:`, err.message);
+        if (process.env.DEBUG === 'true') {
+            console.warn(`[Lavalink Demotion Sync] Failed to broadcast ${action} for node ${nodeId}:`, err.message);
+        }
     }
 }
 
@@ -84,9 +92,15 @@ async function demoteNode(manager, nodeId, reason = 'Excessive errors', isSync =
     node.currentProbeBackoffMs = INITIAL_PROBE_BACKOFF_MS;
     node.nextProbeAt = Date.now() + INITIAL_PROBE_BACKOFF_MS;
 
-    console.warn(`[Lavalink Demotion] Demoting node ${nodeId}. Reason: ${reason}`);
-
     const discordClient = manager?.client || manager?.options?.clientInstance;
+    const clusterId = getClusterId(discordClient);
+
+    if (!isSync) {
+        console.warn(`[Lavalink Demotion] [Cluster ${clusterId}] Demoting node ${nodeId}. Reason: ${reason}`);
+    } else if (process.env.DEBUG === 'true') {
+        console.debug(`[Lavalink Demotion Sync] [Cluster ${clusterId}] Demoting node ${nodeId} from sync. Reason: ${reason}`);
+    }
+
     const availableNodes = getAvailableNodes(manager, nodeId);
     if (availableNodes.length > 0 && manager.players) {
         const targetNode = availableNodes[0];
@@ -95,7 +109,7 @@ async function demoteNode(manager, nodeId, reason = 'Excessive errors', isSync =
                 try {
                     await migratePlayerNode(p, targetNode, discordClient);
                 } catch (moveError) {
-                    console.error(`[Lavalink Demotion] Failed to migrate player for guild ${p.guildId} to ${targetNode.id}:`, moveError);
+                    console.error(`[Lavalink Demotion] [Cluster ${clusterId}] Failed to migrate player for guild ${p.guildId} to ${targetNode.id}:`, moveError);
                 }
             }
         }
@@ -123,9 +137,15 @@ async function promoteNode(manager, nodeId, isSync = false) {
     node.currentProbeBackoffMs = 0;
     node.nextProbeAt = null;
 
-    console.log(`[Lavalink Demotion] Node ${nodeId} restored and re-promoted back to active pool.`);
-
     const discordClient = manager?.client || manager?.options?.clientInstance;
+    const clusterId = getClusterId(discordClient);
+
+    if (!isSync) {
+        console.log(`[Lavalink Demotion] [Cluster ${clusterId}] Node ${nodeId} restored and re-promoted back to active pool.`);
+    } else if (process.env.DEBUG === 'true') {
+        console.debug(`[Lavalink Demotion Sync] [Cluster ${clusterId}] Node ${nodeId} restored from sync.`);
+    }
+
     if (!isSync && discordClient) {
         await broadcastNodeSync(discordClient, 'promote', nodeId);
     }
@@ -138,8 +158,6 @@ async function probeNodeHealth(node, options = {}) {
         return { healthy: false, isRateLimited: false, reason: 'Node disconnected' };
     }
 
-    const playbackDurationMs = typeof options.playbackDurationMs === 'number' ? options.playbackDurationMs : 10000;
-
     try {
         if (typeof node.fetchInfo === 'function') {
             await node.fetchInfo();
@@ -150,29 +168,83 @@ async function probeNodeHealth(node, options = {}) {
         return { healthy: false, isRateLimited: false, reason: `REST health check failed: ${restErr.message}` };
     }
 
-    const testTargets = [];
-    if (options.testTrackUrl) {
-        testTargets.push({ query: options.testTrackUrl });
-    } else if (node.lastFailedTrack) {
-        if (node.lastFailedTrack.encoded) {
-            testTargets.push({ track: node.lastFailedTrack });
-        } else if (node.lastFailedTrack.info?.uri || node.lastFailedTrack.info?.title) {
-            testTargets.push({ query: node.lastFailedTrack.info.uri || `ytsearch:${node.lastFailedTrack.info.title}` });
+    let testTarget = options.testTrackUrl || null;
+
+    const trackCandidate = options.track || node.lastFailedTrack;
+    if (!testTarget && trackCandidate) {
+        if (trackCandidate.info?.uri) {
+            testTarget = trackCandidate.info.uri;
+        } else if (trackCandidate.info?.title) {
+            testTarget = `ytsearch:${trackCandidate.info.title}`;
+        } else if (trackCandidate.encoded && typeof node.decodeTrack === 'function') {
+            try {
+                const decoded = await node.decodeTrack(trackCandidate.encoded);
+                testTarget = decoded?.info?.uri || (decoded?.info?.title ? `ytsearch:${decoded.info.title}` : null);
+            } catch {}
         }
-    } else {
-        testTargets.push({ query: 'ytsearch:My Jealousy' });
-        testTargets.push({ query: 'ytsearch:popular hits' });
-        testTargets.push({ query: 'ytsearch:NCS release' });
     }
 
-    const probeGuildId = "999999999999999999";
+    if (!testTarget) {
+        testTarget = 'ytsearch:popular hits';
+    }
+
+    try {
+        let searchResult = null;
+        if (typeof node.search === 'function') {
+            const isDirectUrl = testTarget.startsWith('http://') || testTarget.startsWith('https://');
+            const searchOpts = isDirectUrl ? { query: testTarget } : { query: testTarget, source: 'ytsearch' };
+            searchResult = await node.search(searchOpts);
+        } else if (typeof node.loadTracks === 'function') {
+            searchResult = await node.loadTracks(testTarget);
+        }
+
+        if (!searchResult || searchResult.loadType === 'error') {
+            const errorMsg = searchResult?.data?.message || searchResult?.exception?.message || 'Search returned error loadType';
+            return {
+                healthy: false,
+                isRateLimited: isRateLimitError(errorMsg),
+                reason: errorMsg
+            };
+        }
+
+        const tracks = searchResult.tracks || [];
+        if (!tracks.length || !tracks[0]?.encoded) {
+            return {
+                healthy: false,
+                isRateLimited: false,
+                reason: 'No playable tracks resolved'
+            };
+        }
+
+        encoded = tracks[0].encoded;
+    } catch (searchErr) {
+        return {
+            healthy: false,
+            isRateLimited: isRateLimitError(searchErr),
+            reason: `Track resolution failed: ${searchErr.message || searchErr}`
+        };
+    }
+
+    const playbackDurationMs = typeof options.playbackDurationMs === 'number' ? options.playbackDurationMs : 3000;
+    const probeGuildId = options.probeGuildId || '999999999999999999';
     let playbackException = null;
+
+    const rawHandler = (n, payload) => {
+        if (n?.id && n.id !== node.id) return;
+        if (payload?.op === 'event' && String(payload.guildId) === probeGuildId) {
+            if (payload.type === 'TrackExceptionEvent') {
+                playbackException = payload.exception?.message || 'TrackExceptionEvent received';
+            }
+        }
+    };
 
     const wsHandler = (data) => {
         try {
-            const payload = JSON.parse(data.toString());
-            if (payload.op === 'event' && payload.type === 'TrackExceptionEvent' && String(payload.guildId) === probeGuildId) {
-                playbackException = payload.exception?.message || 'TrackExceptionEvent received';
+            const payload = typeof data === 'string' ? JSON.parse(data) : JSON.parse(data.toString());
+            if (payload.op === 'event' && String(payload.guildId) === probeGuildId) {
+                if (payload.type === 'TrackExceptionEvent') {
+                    playbackException = payload.exception?.message || 'TrackExceptionEvent received';
+                }
             }
         } catch {}
     };
@@ -180,94 +252,60 @@ async function probeNodeHealth(node, options = {}) {
     if (node.socket && typeof node.socket.on === 'function') {
         node.socket.on('message', wsHandler);
     }
+    if (node.NodeManager && typeof node.NodeManager.on === 'function') {
+        node.NodeManager.on('raw', rawHandler);
+    }
 
     try {
-        for (const target of testTargets) {
-            if (playbackException) break;
+        if (typeof node.updatePlayer === 'function') {
+            await node.updatePlayer({
+                guildId: probeGuildId,
+                playerOptions: { track: { encoded } }
+            });
+        } else if (node.sessionId && typeof node.request === 'function') {
+            await node.request(`/sessions/${node.sessionId}/players/${probeGuildId}`, (r) => {
+                r.method = 'PATCH';
+                r.headers['Content-Type'] = 'application/json';
+                r.body = JSON.stringify({ track: { encoded } });
+            });
+        }
 
-            let encoded = null;
-            if (target.track?.encoded) {
-                encoded = target.track.encoded;
-            } else if (target.query) {
-                let searchResult = null;
-                try {
-                    if (typeof node.search === 'function') {
-                        searchResult = await node.search({ query: target.query, source: 'ytsearch' });
-                    } else if (typeof node.loadTracks === 'function') {
-                        searchResult = await node.loadTracks(target.query);
-                    }
-                } catch (searchErr) {
-                    playbackException = `Track resolution failed: ${searchErr.message}`;
-                    break;
-                }
-
-                if (!searchResult || searchResult.loadType === 'error') {
-                    playbackException = searchResult?.data?.message || 'Search returned error loadType';
-                    break;
-                }
-
-                const tracks = searchResult.tracks || [];
-                if (!tracks.length || !tracks[0]?.encoded) {
-                    playbackException = 'No playable track resolved';
-                    break;
-                }
-                encoded = tracks[0].encoded;
-            }
-
-            if (!encoded) {
-                playbackException = 'No playable track resolved';
-                break;
-            }
-
-            try {
-                if (typeof node.updatePlayer === 'function') {
-                    await node.updatePlayer({
-                        guildId: probeGuildId,
-                        playerOptions: { track: { encoded } }
-                    });
-                } else if (node.sessionId && typeof node.request === 'function') {
-                    await node.request(`/sessions/${node.sessionId}/players/${probeGuildId}`, (r) => {
-                        r.method = 'PATCH';
-                        r.headers['Content-Type'] = 'application/json';
-                        r.body = JSON.stringify({ track: { encoded } });
-                    });
-                }
-            } catch (patchErr) {
-                playbackException = `Player update failed: ${patchErr.message}`;
-                break;
-            }
-
-            const checkInterval = 200;
+        if (playbackDurationMs > 0) {
+            const checkInterval = 100;
             let elapsed = 0;
             while (elapsed < playbackDurationMs) {
                 if (playbackException) break;
-                await new Promise(r => setTimeout(r, Math.min(checkInterval, playbackDurationMs - elapsed)));
+                await new Promise((r) => setTimeout(r, Math.min(checkInterval, playbackDurationMs - elapsed)));
                 elapsed += checkInterval;
             }
-
-            if (playbackException) break;
         }
 
         if (playbackException) {
             return {
                 healthy: false,
                 isRateLimited: isRateLimitError(playbackException),
-                reason: playbackException.split('\n')[0].trim()
+                reason: `Playback exception: ${playbackException}`
             };
         }
 
         return { healthy: true, isRateLimited: false };
-    } catch (probeErr) {
+    } catch (playErr) {
         return {
             healthy: false,
-            isRateLimited: isRateLimitError(probeErr),
-            reason: `Playback probe error: ${probeErr.message}`
+            isRateLimited: isRateLimitError(playErr),
+            reason: `Playback update error: ${playErr.message || playErr}`
         };
     } finally {
         if (node.socket && typeof node.socket.off === 'function') {
             node.socket.off('message', wsHandler);
         } else if (node.socket && typeof node.socket.removeListener === 'function') {
             node.socket.removeListener('message', wsHandler);
+        }
+
+        if (node.NodeManager && typeof node.NodeManager.off === 'function') {
+            node.NodeManager.off('raw', rawHandler);
+        } else if (node.NodeManager && typeof node.NodeManager.removeListener === 'function') {
+            node.NodeManager.removeListener('raw', rawHandler);
         }
 
         if (typeof node.destroyPlayer === 'function') {
@@ -281,19 +319,13 @@ async function probeNodeHealth(node, options = {}) {
 }
 
 function startDemotedNodeProber(client, options = {}) {
-    const isMainCluster = !client?.cluster || client.cluster.id === 0;
-    if (!isMainCluster) return;
-    const clusterId = client?.cluster?.id !== undefined
-        ? client.cluster.id
-        : (process.env.CLUSTER !== undefined ? Number(process.env.CLUSTER) : 0);
-
+    const clusterId = getClusterId(client);
     if (clusterId !== 0) return;
 
     if (proberInterval) return;
 
     const intervalMs = typeof options.intervalMs === 'number' ? options.intervalMs : 15000;
     const requiredSuccesses = typeof options.requiredSuccesses === 'number' ? options.requiredSuccesses : 2;
-    const playbackDurationMs = typeof options.playbackDurationMs === 'number' ? options.playbackDurationMs : 10000;
 
     proberInterval = setInterval(async () => {
         try {
@@ -305,7 +337,10 @@ function startDemotedNodeProber(client, options = {}) {
                 const now = Date.now();
                 if (node.nextProbeAt && now < node.nextProbeAt) continue;
 
-                const probeResult = await probeNodeHealth(node, { playbackDurationMs });
+                const probeResult = await probeNodeHealth(node, {
+                    playbackDurationMs: options.playbackDurationMs,
+                    testTrackUrl: options.testTrackUrl
+                });
                 if (probeResult.healthy) {
                     node.consecutiveProbeSuccesses = (node.consecutiveProbeSuccesses || 0) + 1;
                     if (node.consecutiveProbeSuccesses >= requiredSuccesses) {
@@ -317,11 +352,11 @@ function startDemotedNodeProber(client, options = {}) {
                     node.consecutiveProbeSuccesses = 0;
                     const nextBackoff = recordFailedProbe(node);
                     const delayMinutes = (nextBackoff / 60000).toFixed(1);
-                    console.warn(`[Lavalink Prober] Node ${node.id} probe failed (${probeResult.reason}). Next probe in ${delayMinutes}m (attempt ${node.failedProbeAttempts}, max 6h).`);
+                    console.warn(`[Lavalink Prober] [Cluster ${clusterId}] Node ${node.id} probe failed (${probeResult.reason}). Next probe in ${delayMinutes}m (attempt ${node.failedProbeAttempts}, max 6h).`);
                 }
             }
         } catch (intervalErr) {
-            console.error('[Lavalink Prober] Error during probe cycle:', intervalErr);
+            console.error(`[Lavalink Prober] [Cluster ${clusterId}] Error during probe cycle:`, intervalErr);
         }
     }, intervalMs);
 
@@ -342,10 +377,7 @@ function isProberRunning() {
 }
 
 async function syncDemotedNodesFromCluster0(client) {
-    const clusterId = client?.cluster?.id !== undefined
-        ? client.cluster.id
-        : (process.env.CLUSTER !== undefined ? Number(process.env.CLUSTER) : 0);
-
+    const clusterId = getClusterId(client);
     if (clusterId === 0 || !client?.cluster || typeof client.cluster.broadcastEval !== 'function') return;
 
     try {
@@ -367,7 +399,9 @@ async function syncDemotedNodesFromCluster0(client) {
             }
         }
     } catch (err) {
-        console.warn('[Lavalink Demotion Sync] Error syncing demoted nodes from cluster 0:', err.message);
+        if (process.env.DEBUG === 'true') {
+            console.warn(`[Lavalink Demotion Sync] [Cluster ${clusterId}] Error syncing demoted nodes from cluster 0:`, err.message);
+        }
     }
 }
 
@@ -423,5 +457,6 @@ handleExcessiveLavaErrors.calculateProbeBackoff = calculateProbeBackoff;
 handleExcessiveLavaErrors.recordFailedProbe = recordFailedProbe;
 handleExcessiveLavaErrors.INITIAL_PROBE_BACKOFF_MS = INITIAL_PROBE_BACKOFF_MS;
 handleExcessiveLavaErrors.MAX_PROBE_BACKOFF_MS = MAX_PROBE_BACKOFF_MS;
+handleExcessiveLavaErrors.getClusterId = getClusterId;
 
 module.exports = handleExcessiveLavaErrors;

@@ -1,3 +1,85 @@
+function safeSanitize(value, seen = new WeakSet()) {
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+  if (value instanceof Date) {
+    return new Date(value.getTime());
+  }
+  if (seen.has(value)) {
+    return undefined;
+  }
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value
+      .map(item => safeSanitize(item, seen))
+      .filter(item => item !== undefined);
+  }
+
+  if (value.client || value.guild || value.channel || typeof value.send === 'function') {
+    if (value.id && (value.username || value.user)) {
+      return sanitizeRequester(value);
+    }
+    return undefined;
+  }
+
+  const result = {};
+  for (const [key, val] of Object.entries(value)) {
+    if (key === 'client' || key === 'guild' || key === 'channel' || key === 'message') {
+      continue;
+    }
+    if (typeof val === 'function' || typeof val === 'symbol') {
+      continue;
+    }
+    const cleaned = safeSanitize(val, seen);
+    if (cleaned !== undefined) {
+      result[key] = cleaned;
+    }
+  }
+  return result;
+}
+
+function sanitizeRequester(requester) {
+  if (!requester) return null;
+  if (typeof requester === 'string') return requester;
+  if (typeof requester === 'object') {
+    const raw = requester.requester || requester.user || requester;
+    if (typeof raw === 'string') return raw;
+    const sanitized = {};
+    if (raw.id) sanitized.id = String(raw.id);
+    if (raw.username) sanitized.username = String(raw.username);
+    if (raw.globalName) sanitized.globalName = String(raw.globalName);
+    if (raw.discriminator && raw.discriminator !== '0') sanitized.discriminator = String(raw.discriminator);
+    if (raw.avatar) sanitized.avatar = String(raw.avatar);
+    return Object.keys(sanitized).length > 0 ? sanitized : null;
+  }
+  return null;
+}
+
+function sanitizeCustomData(customData) {
+  if (!customData || typeof customData !== 'object') return {};
+  const cleaned = {};
+  for (const [key, val] of Object.entries(customData)) {
+    if (key === 'message' || key === 'client' || key === 'guild' || key === 'channel') continue;
+    if (typeof val === 'function' || typeof val === 'symbol') continue;
+    const sanitized = safeSanitize(val);
+    if (sanitized !== undefined) {
+      cleaned[key] = sanitized;
+    }
+  }
+  return cleaned;
+}
+
+function sanitizeTrack(track) {
+  if (!track) return null;
+  return {
+    encoded: track.encoded || null,
+    info: track.info ? safeSanitize(track.info) : null,
+    requester: sanitizeRequester(track.requester),
+    userData: track.userData ? safeSanitize(track.userData) : {}
+  };
+}
+
 function processSessionSaveState(player) {
   if (!player || !player.guildId) {
     return { action: 'ignore' };
@@ -11,19 +93,8 @@ function processSessionSaveState(player) {
     return { action: 'delete', guildId: player.guildId };
   }
 
-  const queueTracksToSave = queueTracks.map(t => ({
-    encoded: t.encoded,
-    info: t.info,
-    requester: t.requester,
-    userData: t.userData
-  }));
-
-  const currentTrackToSave = currentTrack ? {
-    encoded: currentTrack.encoded,
-    info: currentTrack.info,
-    requester: currentTrack.requester,
-    userData: currentTrack.userData
-  } : null;
+  const queueTracksToSave = queueTracks.map(sanitizeTrack).filter(Boolean);
+  const currentTrackToSave = sanitizeTrack(currentTrack);
 
   return {
     action: 'save',
@@ -37,8 +108,8 @@ function processSessionSaveState(player) {
       paused: Boolean(player.paused),
       selfDeaf: player.options?.selfDeaf ?? true,
       currentTrack: currentTrackToSave,
-      requester: currentTrack?.requester,
-      customData: player.customData || {},
+      requester: sanitizeRequester(currentTrack?.requester),
+      customData: sanitizeCustomData(player.customData),
       queueTracks: queueTracksToSave,
       updatedAt: new Date()
     }
@@ -57,19 +128,9 @@ function processTrackEndState(player) {
     return { action: 'delete', guildId: player.guildId };
   }
 
-  const queueTracksToSave = queueTracks.map(t => ({
-    encoded: t.encoded,
-    info: t.info,
-    requester: t.requester,
-    userData: t.userData
-  }));
-
-  const currentTrackToSave = currentTrack ? {
-    encoded: currentTrack.encoded,
-    info: currentTrack.info,
-    requester: currentTrack.requester,
-    userData: currentTrack.userData
-  } : null;
+  const queueTracksToSave = queueTracks.map(sanitizeTrack).filter(Boolean);
+  const currentTrackToSave = sanitizeTrack(currentTrack);
+  const nextTrack = currentTrackToSave || queueTracksToSave[0] || null;
 
   return {
     action: 'save',
@@ -82,9 +143,9 @@ function processTrackEndState(player) {
       playing: true,
       paused: Boolean(player.paused),
       selfDeaf: player.options?.selfDeaf ?? true,
-      currentTrack: currentTrackToSave || queueTracksToSave[0] || null,
-      requester: currentTrack?.requester || queueTracksToSave[0]?.requester,
-      customData: player.customData || {},
+      currentTrack: nextTrack,
+      requester: sanitizeRequester(currentTrack?.requester || queueTracksToSave[0]?.requester),
+      customData: sanitizeCustomData(player.customData),
       queueTracks: currentTrackToSave ? queueTracksToSave : queueTracksToSave.slice(1),
       updatedAt: new Date()
     }
@@ -181,5 +242,9 @@ function evaluateSessionRestoration(savedData, currentTime = Date.now()) {
 module.exports = {
   processSessionSaveState,
   processTrackEndState,
-  evaluateSessionRestoration
+  evaluateSessionRestoration,
+  safeSanitize,
+  sanitizeRequester,
+  sanitizeCustomData,
+  sanitizeTrack
 };

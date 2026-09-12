@@ -12,7 +12,27 @@ const User = require("../../models/UserPlayerSettings");
 const { getAvailableNodes, findBestNodeForSource, migratePlayerNode } = require("../../utils/nodeFallbackHelper.js");
 const { processSessionSaveState, processTrackEndState, evaluateSessionRestoration } = require("../../utils/sessionHelper.js");
 
-module.exports = (client) => {
+const savePlayerSession = async (player) => {
+  if (!player || !player.guildId) return;
+  try {
+    const decision = processSessionSaveState(player);
+    if (decision.action === 'delete') {
+      await PlayerSession.deleteOne({ guildId: player.guildId }).catch(() => {});
+      return;
+    }
+    if (decision.action === 'save') {
+      await PlayerSession.findOneAndUpdate(
+        { guildId: player.guildId },
+        decision.data,
+        { upsert: true, returnDocument: 'after' }
+      );
+    }
+  } catch (err) {
+    console.error("Error persisting player session to database:", err);
+  }
+};
+
+const lavaEvents = (client) => {
 if (typeof handleExcessiveLavalinkErrors.startDemotedNodeProber === 'function') {
   handleExcessiveLavalinkErrors.startDemotedNodeProber(client);
 }
@@ -224,26 +244,6 @@ client.manager.nodeManager.on('resumed', async (node, payload, fetchedPlayers) =
   }
 });
 
-const savePlayerSession = async (player) => {
-  if (!player || !player.guildId) return;
-  try {
-    const decision = processSessionSaveState(player);
-    if (decision.action === 'delete') {
-      await PlayerSession.deleteOne({ guildId: player.guildId }).catch(() => {});
-      return;
-    }
-    if (decision.action === 'save') {
-      await PlayerSession.findOneAndUpdate(
-        { guildId: player.guildId },
-        decision.data,
-        { upsert: true, new: true }
-      );
-    }
-  } catch (err) {
-    console.error("Error persisting player session to database:", err);
-  }
-};
-
 client.manager.on("playerCreate", (player) => {
   savePlayerSession(player);
 });
@@ -261,7 +261,7 @@ client.manager.on("trackEnd", async (player, track, payload) => {
       await PlayerSession.findOneAndUpdate(
         { guildId: player.guildId },
         decision.data,
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: 'after' }
       ).catch(() => {});
     }
   } catch (err) {
@@ -667,4 +667,7 @@ client.manager.on("queueEnd", async (player) => {
     player.customData?.message?.delete().catch(err => { if (err.code !== 50013 && err.code !== 10008) console.log("Error deleting playerEnd message:", err); });
   }
 });
-}
+};
+
+lavaEvents.savePlayerSession = savePlayerSession;
+module.exports = lavaEvents;

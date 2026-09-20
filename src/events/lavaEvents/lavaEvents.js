@@ -10,13 +10,17 @@ require("dotenv").config();
 const PlayerSession = require("../../models/PlayerSession");
 const User = require("../../models/UserPlayerSettings");
 const { getAvailableNodes, findBestNodeForSource, migratePlayerNode } = require("../../utils/nodeFallbackHelper.js");
-const { processSessionSaveState, processTrackEndState, evaluateSessionRestoration } = require("../../utils/sessionHelper.js");
+const { processSessionSaveState, processTrackEndState, evaluateSessionRestoration, shouldSavePlayerSession, clearSessionThrottle } = require("../../utils/sessionHelper.js");
 
-const savePlayerSession = async (player) => {
+const savePlayerSession = async (player, options = { force: false }) => {
   if (!player || !player.guildId) return;
+  const throttleCheck = shouldSavePlayerSession(player, options);
+  if (!throttleCheck.shouldSave) return;
+
   try {
     const decision = processSessionSaveState(player);
     if (decision.action === 'delete') {
+      clearSessionThrottle(player.guildId);
       await PlayerSession.deleteOne({ guildId: player.guildId }).catch(() => {});
       return;
     }
@@ -245,15 +249,16 @@ client.manager.nodeManager.on('resumed', async (node, payload, fetchedPlayers) =
 });
 
 client.manager.on("playerCreate", (player) => {
-  savePlayerSession(player);
+  savePlayerSession(player, { force: true });
 });
 
 client.manager.on("playerUpdate", async (oldPlayer, newPlayer) => {
-  savePlayerSession(newPlayer || oldPlayer);
+  savePlayerSession(newPlayer || oldPlayer, { force: false });
 });
 
 client.manager.on("trackEnd", async (player, track, payload) => {
   try {
+    clearSessionThrottle(player?.guildId);
     const decision = processTrackEndState(player);
     if (decision.action === 'delete') {
       await PlayerSession.deleteOne({ guildId: player.guildId }).catch(() => {});
@@ -271,6 +276,7 @@ client.manager.on("trackEnd", async (player, track, payload) => {
 
 client.manager.on("playerDestroy", async (player) => {
   try {
+    clearSessionThrottle(player?.guildId);
     await PlayerSession.deleteOne({ guildId: player.guildId });
   } catch (err) {
     console.error("Error deleting player session from database:", err);
@@ -474,7 +480,7 @@ client.manager.on("trackError", async (player, track, payload) => {
 
   
 client.manager.on("trackStart", async (player, track) => {
-  savePlayerSession(player);
+  savePlayerSession(player, { force: true });
   checkQueueForNativePlay(player, client);
   checkQueueForTidalNativePlay(player, client); 
   if (player.customData?.message) {
@@ -659,6 +665,7 @@ client.manager.on("queueEnd", async (player) => {
     }
   }
 
+  clearSessionThrottle(player?.guildId);
   await PlayerSession.deleteOne({ guildId: player.guildId }).catch(() => {});
 
   if (player.customData?.playerMessages === "default") {

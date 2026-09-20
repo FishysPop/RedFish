@@ -126,25 +126,15 @@ async function flushAnalyticsToDB(AnalyticsModel, GuildAnalyticsModel) {
   }
 }
 
-async function _migrateLegacyGuildAnalytics(AnalyticsModel, GuildAnalyticsModel) {
+async function _migrateLegacyGuildAnalytics(AnalyticsModel) {
   try {
-    if (!AnalyticsModel || !GuildAnalyticsModel) return;
-    const dbData = await AnalyticsModel.findOne({}).lean();
+    if (!AnalyticsModel) return;
+    const dbData = await AnalyticsModel.collection.findOne({});
     if (dbData && Array.isArray(dbData.guildPlayCount) && dbData.guildPlayCount.length > 0) {
-      const bulkOps = dbData.guildPlayCount.map(g => ({
-        updateOne: {
-          filter: { guildId: g.guildId },
-          update: { $inc: { playCount: g.playCount || 0 } },
-          upsert: true
-        }
-      }));
-      if (bulkOps.length > 0) {
-        await GuildAnalyticsModel.bulkWrite(bulkOps);
-      }
-      await AnalyticsModel.updateOne({}, { $unset: { guildPlayCount: "" } });
+      await AnalyticsModel.collection.updateOne({}, { $unset: { guildPlayCount: 1 } });
     }
   } catch (error) {
-    console.error('[CacheManager] Error migrating legacy guild analytics:', error);
+    console.error('[CacheManager] Error cleaning legacy guild analytics:', error);
   }
 }
 
@@ -155,7 +145,7 @@ function startAnalyticsProcessor(AnalyticsModel, GuildAnalyticsModel) {
 
   const isMainCluster = !_client || !_client.cluster || (_client.cluster.id === 0);
   if (isMainCluster) {
-    _migrateLegacyGuildAnalytics(AnalyticsModel, GuildAnalyticsModel);
+    _migrateLegacyGuildAnalytics(AnalyticsModel);
   }
 
   analyticsIntervalId = setInterval(() => {
@@ -170,7 +160,16 @@ function startAnalyticsProcessor(AnalyticsModel, GuildAnalyticsModel) {
   process.once('SIGTERM', cleanup);
 }
 
-function handleIncomingAnalyticsUpdate() {}
+function getLocalDeltas() {
+  return {
+    totalPlayCount: localDeltas.totalPlayCount,
+    playHasPlayerSettingsCount: localDeltas.playHasPlayerSettingsCount,
+    failedPlayCount: localDeltas.failedPlayCount,
+    failedSearchCount: localDeltas.failedSearchCount,
+    usedSearchEngines: { ...localDeltas.usedSearchEngines },
+    guildPlayCount: { ...localDeltas.guildPlayCount },
+  };
+}
 
 module.exports = {
   guildSettingsCache,
@@ -182,5 +181,6 @@ module.exports = {
   startAnalyticsProcessor,
   flushAnalyticsToDB,
   updatePlayAnalytics,
-  handleIncomingAnalyticsUpdate,
+  getLocalDeltas,
 };
+

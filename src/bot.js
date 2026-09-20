@@ -38,6 +38,7 @@ const clientOptions = {
 
 const client = new Client(clientOptions);
 client.cluster = new ClusterClient(client);
+client.cacheManager = cacheManager;
 cacheManager.initializeCacheManager(client); 
 
 
@@ -156,8 +157,27 @@ new CommandHandler({
 (async () => {
   try {
     mongoose.set("strictQuery", false);
-    await mongoose.connect(process.env.MONGODB_URI);
+    const maxPoolSize = parseInt(process.env.MONGO_MAX_POOL_SIZE, 10) || 10;
+    const minPoolSize = parseInt(process.env.MONGO_MIN_POOL_SIZE, 10) || 2;
+    await mongoose.connect(process.env.MONGODB_URI, {
+      maxPoolSize,
+      minPoolSize,
+      maxIdleTimeMS: 30000,
+      serverSelectionTimeoutMS: 10000
+    });
     console.log("Connected to DB.");
+
+    const gracefulDbShutdown = async () => {
+      try {
+        if (mongoose.connection.readyState !== 0) {
+          await mongoose.connection.close(false);
+        }
+      } catch (err) {
+        console.error('[Bot] Error closing Mongoose connection:', err);
+      }
+    };
+    process.once('SIGINT', gracefulDbShutdown);
+    process.once('SIGTERM', gracefulDbShutdown);
     if (process.env.DEBUG === 'true') {
       console.debug('[Bot] Cluster client info:', {
         clusterId: client.cluster?.id,
@@ -192,15 +212,6 @@ process.on('message', (message) => {
       messageKeys: Object.keys(message)
     });
   }
-
-  // Handle analytics data sync from secondary clusters to the main cluster
-  if (message.type === 'ANALYTICS_SYNC_IPC' && client.cluster && client.cluster.id === 0) {
-    if (process.env.DEBUG === 'true') {
-      console.debug('[Bot] Processing analytics sync IPC message');
-    }
-    cacheManager.handleIncomingAnalyticsUpdate(message.data);
-  }
-
 });
 
 module.exports = client;

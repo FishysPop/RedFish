@@ -239,6 +239,45 @@ function evaluateSessionRestoration(savedData, currentTime = Date.now()) {
   return { shouldRestore: false, reason: 'tracks_finished' };
 }
 
+const sessionThrottleMap = new Map();
+
+function shouldSavePlayerSession(player, { force = false, now = Date.now(), throttleMs = 30000 } = {}) {
+  if (!player || !player.guildId) {
+    return { shouldSave: false, reason: 'invalid_player' };
+  }
+
+  const guildId = String(player.guildId);
+  const currentPaused = Boolean(player.paused);
+  const prevRecord = sessionThrottleMap.get(guildId);
+
+  if (force || !prevRecord) {
+    sessionThrottleMap.set(guildId, { lastSavedAt: now, paused: currentPaused });
+    return { shouldSave: true };
+  }
+
+  if (prevRecord.paused !== currentPaused) {
+    sessionThrottleMap.set(guildId, { lastSavedAt: now, paused: currentPaused });
+    return { shouldSave: true, reason: 'state_changed' };
+  }
+
+  if (now - prevRecord.lastSavedAt < throttleMs) {
+    return { shouldSave: false, reason: 'throttled' };
+  }
+
+  sessionThrottleMap.set(guildId, { lastSavedAt: now, paused: currentPaused });
+  return { shouldSave: true };
+}
+
+function clearSessionThrottle(guildId) {
+  if (guildId) {
+    sessionThrottleMap.delete(String(guildId));
+  }
+}
+
+function resetAllSessionThrottles() {
+  sessionThrottleMap.clear();
+}
+
 module.exports = {
   processSessionSaveState,
   processTrackEndState,
@@ -246,5 +285,8 @@ module.exports = {
   safeSanitize,
   sanitizeRequester,
   sanitizeCustomData,
-  sanitizeTrack
+  sanitizeTrack,
+  shouldSavePlayerSession,
+  clearSessionThrottle,
+  resetAllSessionThrottles
 };

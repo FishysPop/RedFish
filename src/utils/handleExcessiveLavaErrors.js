@@ -13,7 +13,15 @@ function isRateLimitError(err) {
         msg.includes('this video is private') ||
         msg.includes('content warning') ||
         msg.includes('not available in your country') ||
-        msg.includes('who has blocked it on copyright grounds')
+        msg.includes('who has blocked it on copyright grounds') ||
+        msg.includes('members-only') ||
+        msg.includes('members only') ||
+        msg.includes('join this channel') ||
+        msg.includes('confirm your age') ||
+        msg.includes('age-restricted') ||
+        msg.includes('this video is unavailable') ||
+        msg.includes('this live event will begin in') ||
+        msg.includes('premieres in')
     ) {
         return false;
     }
@@ -170,17 +178,11 @@ async function probeNodeHealth(node, options = {}) {
 
     let testTarget = options.testTrackUrl || null;
 
-    const trackCandidate = options.track || node.lastFailedTrack;
-    if (!testTarget && trackCandidate) {
-        if (trackCandidate.info?.uri) {
-            testTarget = trackCandidate.info.uri;
-        } else if (trackCandidate.info?.title) {
-            testTarget = `ytsearch:${trackCandidate.info.title}`;
-        } else if (trackCandidate.encoded && typeof node.decodeTrack === 'function') {
-            try {
-                const decoded = await node.decodeTrack(trackCandidate.encoded);
-                testTarget = decoded?.info?.uri || (decoded?.info?.title ? `ytsearch:${decoded.info.title}` : null);
-            } catch {}
+    if (!testTarget && options.track) {
+        if (options.track.info?.uri) {
+            testTarget = options.track.info.uri;
+        } else if (options.track.info?.title) {
+            testTarget = `ytsearch:${options.track.info.title}`;
         }
     }
 
@@ -207,8 +209,9 @@ async function probeNodeHealth(node, options = {}) {
             };
         }
 
-        const tracks = searchResult.tracks || [];
-        if (!tracks.length || !tracks[0]?.encoded) {
+        const tracks = (searchResult.tracks || []).filter(t => !t.info?.isStream && t.encoded);
+        const candidateTrack = tracks.length > 0 ? tracks[0] : (searchResult.tracks?.[0] || null);
+        if (!candidateTrack?.encoded) {
             return {
                 healthy: false,
                 isRateLimited: false,
@@ -216,7 +219,7 @@ async function probeNodeHealth(node, options = {}) {
             };
         }
 
-        encoded = tracks[0].encoded;
+        encoded = candidateTrack.encoded;
     } catch (searchErr) {
         return {
             healthy: false,

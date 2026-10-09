@@ -418,16 +418,34 @@ client.manager.on("trackError", async (player, track, payload) => {
       return;
     }
 
-    const isYoutubeError = fullErrorText.includes('This video requires login') ||
+    const isExplicitTrackRestriction = fullErrorText.includes('Join this channel') ||
+                                      fullErrorText.includes('members-only') ||
+                                      fullErrorText.includes('members only') ||
+                                      fullErrorText.includes('confirm your age') ||
+                                      fullErrorText.includes('age-restricted') ||
+                                      fullErrorText.includes('This video is unavailable') ||
+                                      fullErrorText.includes('This video is private');
+
+    const isYoutubeError = !isExplicitTrackRestriction && (
+                          fullErrorText.includes('This video requires login') ||
                           fullErrorText.includes('Sign in to confirm') ||
                           fullErrorText.includes('Not success status code: 403') ||
                           fullErrorText.includes('Video player configuration error') ||
                           fullErrorText.includes('Invalid status code for player api response: 400') ||
                           fullErrorText.includes('All clients failed to load the item') ||
-                          fullErrorText.includes('The page needs to be reloaded');
+                          fullErrorText.includes('The page needs to be reloaded')
+    );
 
     let cleanError = errorMessage;
-    if (isYoutubeError) {
+    if (fullErrorText.includes('Join this channel') || fullErrorText.includes('members-only') || fullErrorText.includes('members only')) {
+      cleanError = 'This video is restricted to YouTube channel members only.';
+    } else if (fullErrorText.includes('confirm your age') || fullErrorText.includes('age-restricted')) {
+      cleanError = 'This video is age-restricted and requires age confirmation.';
+    } else if (fullErrorText.includes('This video is unavailable')) {
+      cleanError = 'This video is unavailable on YouTube.';
+    } else if (fullErrorText.includes('This video is private')) {
+      cleanError = 'This video is set to private.';
+    } else if (isYoutubeError) {
       cleanError = 'YouTube is rate-limiting or blocking playback requests on our servers.';
     } else if (cleanError.includes('Client [') || cleanError.includes('at dev.lavalink')) {
       cleanError = cleanError.split('\n')[0].trim();

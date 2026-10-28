@@ -10,6 +10,7 @@ require("dotenv").config();
 const PlayerSession = require("../../models/PlayerSession");
 const User = require("../../models/UserPlayerSettings");
 const { getAvailableNodes, findBestNodeForSource, migratePlayerNode } = require("../../utils/nodeFallbackHelper.js");
+const { handleTrackStuck } = require("../../utils/trackStuckHelper.js");
 const { processSessionSaveState, processTrackEndState, evaluateSessionRestoration, shouldSavePlayerSession, clearSessionThrottle } = require("../../utils/sessionHelper.js");
 
 const savePlayerSession = async (player, options = { force: false }) => {
@@ -318,7 +319,7 @@ client.manager.on("trackStuck", async (player, track, payload) => {
   const trackTitle = trackToUse?.info?.title || trackToUse?.title || "Unknown Track";
 
   console.error(`Track Stuck: Node: [${nodeId}], Guild: ${guildName} (${player.guildId}) for track "${trackTitle}":`, payload);
-  await handleExcessiveLavalinkErrors(player, client.manager);
+  await handleTrackStuck({ player, track, payload, client });
 });
 
 client.manager.on("trackError", async (player, track, payload) => {
@@ -498,6 +499,11 @@ client.manager.on("trackError", async (player, track, payload) => {
 
   
 client.manager.on("trackStart", async (player, track) => {
+  if (player?.customData) {
+    delete player.customData._stuckNodeAttempts;
+    delete player.customData._stuckTrackId;
+    delete player.customData._lastStuckSingleRetry;
+  }
   savePlayerSession(player, { force: true });
   checkQueueForNativePlay(player, client);
   checkQueueForTidalNativePlay(player, client); 

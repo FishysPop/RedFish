@@ -9,7 +9,7 @@ require("dotenv").config();
 
 const PlayerSession = require("../../models/PlayerSession");
 const User = require("../../models/UserPlayerSettings");
-const { getAvailableNodes, findBestNodeForSource, migratePlayerNode } = require("../../utils/nodeFallbackHelper.js");
+const { getAvailableNodes, findBestNodeForSource, migratePlayerNode, getLeastUsedNode } = require("../../utils/nodeFallbackHelper.js");
 const { handleTrackStuck } = require("../../utils/trackStuckHelper.js");
 const { processSessionSaveState, processTrackEndState, evaluateSessionRestoration, shouldSavePlayerSession, clearSessionThrottle } = require("../../utils/sessionHelper.js");
 
@@ -103,7 +103,7 @@ client.manager.nodeManager.on('connect', async (node) => {
           continue;
         }
 
-        const availableNode = findBestNodeForSource(client.manager, 'youtube_music') || getAvailableNodes(client.manager)[0];
+        const availableNode = findBestNodeForSource(client.manager, 'youtube_music') || getLeastUsedNode(client.manager);
         if (!availableNode) {
           console.warn(`[Session Restore] No available Lavalink nodes found to restore guild ${savedData.guildId}.`);
           break;
@@ -291,9 +291,10 @@ client.manager.nodeManager.on('disconnect', async (node, reason) => {
   try {
     const availableNodes = getAvailableNodes(client.manager, node.id);
     if (availableNodes.length > 0 && client.manager.players) {
-      const targetNode = availableNodes[0];
       for (const p of client.manager.players.values()) {
         if (p.node?.id === node.id) {
+          const targetNode = getLeastUsedNode(client.manager, availableNodes);
+          if (!targetNode) break;
           console.log(`[Lavalink Disconnect] Migrating player in guild ${p.guildId} from disconnected node ${node.id} to ${targetNode.id}...`);
           await migratePlayerNode(p, targetNode, client).catch(err => {
             console.error(`[Lavalink Disconnect] Failed to migrate player ${p.guildId}:`, err);

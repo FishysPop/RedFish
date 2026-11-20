@@ -6,7 +6,7 @@ const nodeSourceMap = {
     jiosaavn: ["jiosaavnsearch", "jiosaavn"],
     yandexmusic: ["ymsearch", "yandexmusic", "yandex"],
     youtube: ["ytsearch", "youtube"],
-    youtubemusic: ["ytmsearch", "youtubemusic"],
+    youtubemusic: ["ytmsearch", "youtubemusic", "ytmusic", "youtube_music"],
     soundcloud: ["scsearch", "soundcloud"]
 };
 
@@ -14,7 +14,7 @@ function isSourceSupportedByNode(node, source) {
     if (!node || !node.connected) return false;
 
     const info = node.info;
-    const targetSource = source.toLowerCase().replace(":", "");
+    const targetSource = source.toLowerCase().replace(/[:_\-\s]/g, "");
     const possibleNames = nodeSourceMap[targetSource] || [targetSource];
 
     if (info && Array.isArray(info.sourceManagers) && info.sourceManagers.length > 0) {
@@ -55,6 +55,37 @@ function getAvailableNodes(manager, excludeNodeId = null) {
     );
 }
 
+function getNodeLoadScore(node, manager = null) {
+    if (!node) return Infinity;
+    const remotePlayers = Number(node.stats?.players) || 0;
+    const localPlayers = manager?.players?.values
+        ? Array.from(manager.players.values()).filter(p => p.node?.id === node.id).length
+        : 0;
+    const effectivePlayers = Math.max(remotePlayers, localPlayers);
+    const cpuLoad = Number(node.stats?.cpu?.systemLoad) || 0;
+    return (effectivePlayers * 100) + (cpuLoad * 50);
+}
+
+function getLeastUsedNode(manager, candidateNodes = null) {
+    const nodes = candidateNodes || getAvailableNodes(manager);
+    if (!nodes || nodes.length === 0) return null;
+    if (nodes.length === 1) return nodes[0];
+
+    const scored = nodes.map(node => ({
+        node,
+        score: getNodeLoadScore(node, manager)
+    }));
+
+    scored.sort((a, b) => a.score - b.score);
+
+    const minScore = scored[0].score;
+    const bestCandidates = scored.filter(s => Math.abs(s.score - minScore) < 1).map(s => s.node);
+    if (bestCandidates.length > 1) {
+        return bestCandidates[Math.floor(Math.random() * bestCandidates.length)];
+    }
+    return scored[0].node;
+}
+
 function findBestNodeForSource(manager, targetSource, preferredNodeId = null) {
     if (!manager || !manager.nodeManager) return null;
     const nodes = getAvailableNodes(manager);
@@ -67,10 +98,10 @@ function findBestNodeForSource(manager, targetSource, preferredNodeId = null) {
         }
     }
 
-    const matchingNode = nodes.find(n => isSourceSupportedByNode(n, targetSource));
-    if (matchingNode) return matchingNode;
+    const matchingNodes = nodes.filter(n => isSourceSupportedByNode(n, targetSource));
+    const candidates = matchingNodes.length > 0 ? matchingNodes : nodes;
 
-    return nodes[0];
+    return getLeastUsedNode(manager, candidates);
 }
 
 
@@ -152,6 +183,8 @@ module.exports = {
     isNodeAvailable,
     getAvailableNodes,
     isSourceSupportedByNode,
+    getNodeLoadScore,
+    getLeastUsedNode,
     findBestNodeForSource,
     migratePlayerNode
 };

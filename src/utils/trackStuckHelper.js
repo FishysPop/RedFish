@@ -1,5 +1,5 @@
 const { EmbedBuilder, PermissionsBitField } = require('discord.js');
-const { getAvailableNodes, migratePlayerNode } = require('./nodeFallbackHelper');
+const { getAvailableNodes, migratePlayerNode, getLeastUsedNode } = require('./nodeFallbackHelper');
 const handleExcessiveLavalinkErrors = require('./handleExcessiveLavaErrors');
 
 async function handleTrackStuck({ player, track, payload, client, migrateFn = migratePlayerNode }) {
@@ -33,7 +33,7 @@ async function handleTrackStuck({ player, track, payload, client, migrateFn = mi
   let alternateSourceUsed = false;
 
   if (untriedNodes.length > 0) {
-    const targetNode = untriedNodes[0];
+    const targetNode = getLeastUsedNode(manager, untriedNodes) || untriedNodes[0];
     try {
       await migrateFn(player, targetNode, client);
       const currentNodeId = player.node?.id || player.node?.options?.id;

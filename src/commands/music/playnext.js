@@ -9,7 +9,7 @@ const { thirdPartySourceHandler } = require("../../utils/thirdPartySourceHandler
 const { searchTidalTracks } = require("../../utils/tidalNativePlay.js");
 const youtubeSr = require("youtube-sr").default;
 const { sanitizeSearchQuery } = require("../../utils/searchSanitization.js");
-const { isNodeAvailable, migratePlayerNode, findBestNodeForSource, getAvailableNodes } = require("../../utils/nodeFallbackHelper.js");
+const { isNodeAvailable, migratePlayerNode, findBestNodeForSource, getAvailableNodes, getLeastUsedNode } = require("../../utils/nodeFallbackHelper.js");
 
 module.exports =  {
     data: new SlashCommandBuilder()
@@ -54,7 +54,7 @@ module.exports =  {
         return interaction.editReply({content: `There is nothing currently playing. \nPlay something using **\`/play\`**`, flags: MessageFlags.Ephemeral});
       }
       if (!isNodeAvailable(player.node)) {
-        const fallbackNode = findBestNodeForSource(client.manager, 'youtube_music') || getAvailableNodes(client.manager)[0];
+        const fallbackNode = findBestNodeForSource(client.manager, 'youtube_music') || getLeastUsedNode(client.manager);
         if (fallbackNode) {
           await migratePlayerNode(player, fallbackNode, client).catch(() => {});
         }
@@ -293,7 +293,7 @@ module.exports =  {
     }
     interaction.client.userInteractions.set(interaction.user.id, Date.now());
 
-    const node = findBestNodeForSource(client.manager, 'soundcloud') || getAvailableNodes(client.manager)[0];
+    const node = findBestNodeForSource(client.manager, 'soundcloud') || getLeastUsedNode(client.manager);
     const resultsSoundcloudLavalink = node ? await node.search({ query, source: 'scsearch' }, interaction.user).catch(() => null) : null;
     const resultsSpotifyLavalink = node ? await node.search({ query, source: 'spsearch' }, interaction.user).catch(() => null) : null;
 

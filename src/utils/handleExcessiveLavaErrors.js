@@ -1,5 +1,5 @@
 const path = require('path');
-const { getAvailableNodes, migratePlayerNode } = require('./nodeFallbackHelper');
+const { getAvailableNodes, migratePlayerNode, getLeastUsedNode } = require('./nodeFallbackHelper');
 
 let proberInterval = null;
 
@@ -111,9 +111,10 @@ async function demoteNode(manager, nodeId, reason = 'Excessive errors', isSync =
 
     const availableNodes = getAvailableNodes(manager, nodeId);
     if (availableNodes.length > 0 && manager.players) {
-        const targetNode = availableNodes[0];
         for (const p of manager.players.values()) {
             if (p.node?.id === nodeId) {
+                const targetNode = getLeastUsedNode(manager, availableNodes);
+                if (!targetNode) break;
                 try {
                     await migratePlayerNode(p, targetNode, discordClient);
                 } catch (moveError) {

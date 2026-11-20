@@ -1,5 +1,5 @@
 const { LavalinkNode, Player, NodeManager, LavalinkManager } = require("lavalink-client");
-const { isNodeAvailable } = require("./nodeFallbackHelper");
+const { isNodeAvailable, getNodeLoadScore, getLeastUsedNode } = require("./nodeFallbackHelper");
 
 function getDefaultNodeInfo(node) {
   return {
@@ -212,7 +212,11 @@ function applyLavalinkPatches() {
         nodes = nodes.filter(customFilter);
       }
       const available = nodes.filter(n => isNodeAvailable(n));
-      return available.length > 0 ? available : nodes;
+      const targetNodes = available.length > 0 ? available : nodes;
+      const manager = this.LavalinkManager;
+      return targetNodes.slice().sort((a, b) => {
+        return getNodeLoadScore(a, manager) - getNodeLoadScore(b, manager);
+      });
     };
   }
 
@@ -222,8 +226,7 @@ function applyLavalinkPatches() {
       const oldPlayer = this.getPlayer(options?.guildId);
       if (oldPlayer) {
         if (!isNodeAvailable(oldPlayer.node)) {
-          const least = this.nodeManager.leastUsedNodes();
-          const targetNode = least[0];
+          const targetNode = getLeastUsedNode(this);
           if (targetNode && isNodeAvailable(targetNode)) {
             oldPlayer.node = targetNode;
             if (oldPlayer.options) oldPlayer.options.node = targetNode.id;
@@ -235,15 +238,13 @@ function applyLavalinkPatches() {
       if (options?.node) {
         const reqNode = typeof options.node === "string" ? this.nodeManager.nodes.get(options.node) : options.node;
         if (!isNodeAvailable(reqNode)) {
-          const least = this.nodeManager.leastUsedNodes();
-          const targetNode = least[0];
+          const targetNode = getLeastUsedNode(this);
           if (targetNode) {
             options.node = targetNode.id;
           }
         }
       } else {
-        const least = this.nodeManager.leastUsedNodes();
-        const targetNode = least[0];
+        const targetNode = getLeastUsedNode(this);
         if (targetNode) {
           options = { ...(options || {}), node: targetNode.id };
         }
@@ -251,8 +252,7 @@ function applyLavalinkPatches() {
 
       const player = originalCreatePlayer.call(this, options);
       if (player && !isNodeAvailable(player.node)) {
-        const least = this.nodeManager.leastUsedNodes();
-        const targetNode = least[0];
+        const targetNode = getLeastUsedNode(this);
         if (targetNode) {
           player.node = targetNode;
           if (player.options) player.options.node = targetNode.id;

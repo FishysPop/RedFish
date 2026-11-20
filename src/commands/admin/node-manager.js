@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags } = require('discord.js');
-const { migratePlayerNode } = require('../../utils/nodeFallbackHelper');
+const { migratePlayerNode, getAvailableNodes, getLeastUsedNode } = require('../../utils/nodeFallbackHelper');
 
 async function getPrettyMs() {
   const { default: prettyMilliseconds } = await import('pretty-ms');
@@ -108,19 +108,22 @@ ${rateLimited}
             i.deferUpdate();
             const nodeToDisconnect = nodes[currentNode];
             if (nodeToDisconnect) {
-              const targetNode = nodes.find(n => n.id !== nodeToDisconnect.id && n.connected && !n.isDemoted);
+              const availableNodes = getAvailableNodes(client.manager, nodeToDisconnect.id);
               const playersToMove = Array.from(client.manager.players.values()).filter(p => p.node?.id === nodeToDisconnect.id);
               
-              if (playersToMove.length > 0 && targetNode) {
+              if (playersToMove.length > 0 && availableNodes.length > 0) {
                 for (const player of playersToMove) {
-                  await migratePlayerNode(player, targetNode, client).catch(err => console.error("Error migrating player node:", err));
+                  const targetNode = getLeastUsedNode(client.manager, availableNodes);
+                  if (targetNode) {
+                    await migratePlayerNode(player, targetNode, client).catch(err => console.error("Error migrating player node:", err));
+                  }
                 }
               }
 
               try {
                 nodeToDisconnect.destroy("disconnect");
               } catch (dErr) {}
-              await interaction.followUp({ content: `Node **${nodeToDisconnect.id}** disconnected.${playersToMove.length > 0 && targetNode ? ` Moved ${playersToMove.length} players to ${targetNode.id}.` : ''}`, flags: MessageFlags.Ephemeral });
+              await interaction.followUp({ content: `Node **${nodeToDisconnect.id}** disconnected.${playersToMove.length > 0 && availableNodes.length > 0 ? ` Moved ${playersToMove.length} players.` : ''}`, flags: MessageFlags.Ephemeral });
               const freshEmbed = await createEmbed(currentNode);
               await interaction.editReply({ embeds: [freshEmbed], components: createComponents(currentNode), flags: MessageFlags.Ephemeral });
             }
@@ -129,19 +132,22 @@ ${rateLimited}
             i.deferUpdate();
             const nodeToRemove = nodes[currentNode];
             if (nodeToRemove) {
-              const targetNode = nodes.find(n => n.id !== nodeToRemove.id && n.connected && !n.isDemoted);
+              const availableNodes = getAvailableNodes(client.manager, nodeToRemove.id);
               const playersToMove = Array.from(client.manager.players.values()).filter(p => p.node?.id === nodeToRemove.id);
               
-              if (playersToMove.length > 0 && targetNode) {
+              if (playersToMove.length > 0 && availableNodes.length > 0) {
                 for (const player of playersToMove) {
-                  await migratePlayerNode(player, targetNode, client).catch(err => console.error("Error migrating player node:", err));
+                  const targetNode = getLeastUsedNode(client.manager, availableNodes);
+                  if (targetNode) {
+                    await migratePlayerNode(player, targetNode, client).catch(err => console.error("Error migrating player node:", err));
+                  }
                 }
               }
 
               try {
                 client.manager.nodeManager.deleteNode(nodeToRemove.id);
               } catch (delErr) {}
-              await interaction.followUp({ content: `Node **${nodeToRemove.id}** removed.${playersToMove.length > 0 && targetNode ? ` Moved ${playersToMove.length} players to ${targetNode.id}.` : ''}`, flags: MessageFlags.Ephemeral });
+              await interaction.followUp({ content: `Node **${nodeToRemove.id}** removed.${playersToMove.length > 0 && availableNodes.length > 0 ? ` Moved ${playersToMove.length} players.` : ''}`, flags: MessageFlags.Ephemeral });
               currentNode = 0;
               const freshEmbed = await createEmbed(currentNode);
               await interaction.editReply({ embeds: [freshEmbed], components: createComponents(currentNode), flags: MessageFlags.Ephemeral });

@@ -9,7 +9,7 @@ const { thirdPartySourceHandler } = require("../../utils/thirdPartySourceHandler
 const { searchTidalTracks } = require("../../utils/tidalNativePlay.js");
 const youtubeSr = require("youtube-sr").default;
 const { sanitizeSearchQuery } = require("../../utils/searchSanitization.js");
-const { isNodeAvailable, migratePlayerNode, findBestNodeForSource, getAvailableNodes } = require("../../utils/nodeFallbackHelper.js");
+const { isNodeAvailable, migratePlayerNode, findBestNodeForSource, getAvailableNodes, getLeastUsedNode } = require("../../utils/nodeFallbackHelper.js");
 
 module.exports =  {
     data: new SlashCommandBuilder()
@@ -53,27 +53,24 @@ module.exports =  {
     let playlistName = "Playlist";
 
     try { 
-      let targetNodeId = undefined;
+      let preferredNodeId = undefined;
       if (playerSettings.PreferedNode && client.manager?.nodeManager?.nodes) {
         const prefNode = client.manager.nodeManager.nodes.get(playerSettings.PreferedNode);
         if (prefNode && isNodeAvailable(prefNode)) {
-          targetNodeId = prefNode.id;
+          preferredNodeId = prefNode.id;
         }
-      }
-      if (!targetNodeId && client.manager) {
-        const bestAvailable = findBestNodeForSource(client.manager, 'youtube_music') || getAvailableNodes(client.manager)[0];
-        if (bestAvailable) targetNodeId = bestAvailable.id;
       }
 
       player = client.manager.getPlayer(interaction.guild.id);
       if (!player) {
+        const selectedNode = findBestNodeForSource(client.manager, 'youtube_music', preferredNodeId) || getLeastUsedNode(client.manager);
         player = await client.manager.createPlayer({
           guildId: interaction.guild.id,
           textChannelId: interaction.channel.id,
           voiceChannelId: channel.id,
           volume: parseInt(playerSettings.volume, 10) || 30,
           selfDeaf: true,
-          node: targetNodeId,
+          node: selectedNode?.id,
           customData: {
             autoPlay: false,
             playerMessages: playerSettings.playerMessages
@@ -83,13 +80,13 @@ module.exports =  {
         if (player.textChannelId !== interaction.channel.id) {
           player.textChannelId = interaction.channel.id;
         }
-        if (targetNodeId && player.node?.id !== targetNodeId) {
-          const targetNode = client.manager.nodeManager.nodes.get(targetNodeId);
+        if (preferredNodeId && player.node?.id !== preferredNodeId) {
+          const targetNode = client.manager.nodeManager.nodes.get(preferredNodeId);
           if (targetNode && isNodeAvailable(targetNode)) {
             await migratePlayerNode(player, targetNode, client).catch(() => {});
           }
         } else if (!isNodeAvailable(player.node)) {
-          const fallbackNode = findBestNodeForSource(client.manager, 'youtube_music') || getAvailableNodes(client.manager)[0];
+          const fallbackNode = findBestNodeForSource(client.manager, 'youtube_music') || getLeastUsedNode(client.manager);
           if (fallbackNode) {
             await migratePlayerNode(player, fallbackNode, client).catch(() => {});
           }
@@ -318,12 +315,12 @@ module.exports =  {
           console.warn(`[Play Command] Node [${nodeId}] error encountered for guild ${interaction.guild.id}. Attempting automatic retry on alternate node...`);
           
           if (availableNodes.length > 0) {
-            const targetNode = availableNodes[0];
+            const targetNode = getLeastUsedNode(client.manager, availableNodes);
             console.log(`[Play Command] Moving player to node [${targetNode.id}] and retrying...`);
             await migratePlayerNode(player, targetNode, client);
           } else {
             await player.destroy().catch(() => {});
-            const fallbackNode = getAvailableNodes(client.manager)[0];
+            const fallbackNode = getLeastUsedNode(client.manager);
             player = await client.manager.createPlayer({
               guildId: interaction.guild.id,
               textChannelId: interaction.channel.id,
@@ -393,7 +390,7 @@ module.exports =  {
         if (prefNode && isNodeAvailable(prefNode)) node = prefNode;
       }
     }
-    if (!node) node = findBestNodeForSource(client.manager, 'soundcloud') || getAvailableNodes(client.manager)[0];
+    if (!node) node = findBestNodeForSource(client.manager, 'soundcloud') || getLeastUsedNode(client.manager);
     const resultsSoundcloudLavalink = node ? await node.search({ query, source: 'scsearch' }, interaction.user).catch(() => null) : null;
     const resultsSpotifyLavalink = node ? await node.search({ query, source: 'spsearch' }, interaction.user).catch(() => null) : null;
 
